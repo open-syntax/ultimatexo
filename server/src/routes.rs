@@ -59,8 +59,15 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, room_id: String)
                     let msg = format!("{}", text);
                     let _ = tx.send((msg, user_id.clone()));
                 } else {
+                    println!(
+                        "current_player: {}",
+                        game.current_player.unwrap().to_string()
+                    );
                     if game.update_game(text.as_str()).unwrap() {
                         let _ = tx.send(("Game Won".to_string(), user_id.clone()));
+                    } else {
+                        let _ =
+                            tx.send((game.current_player.unwrap().to_string(), user_id.clone()));
                     }
                 }
             }
