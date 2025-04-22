@@ -6,3 +6,6 @@
 *.swo
 logs
 *.log
+
+# old client
+client(old)/
