@@ -1,19 +1,24 @@
+import { Button } from "@heroui/button";
+import { Input } from "@heroui/input";
 import { Link } from "@heroui/link";
 import { button as buttonStyles } from "@heroui/theme";
-import { Input } from "@heroui/input";
-import { Button } from "@heroui/button";
+import { useNavigate } from "react-router-dom";
 
-import { title, subtitle } from "@/components/primitives";
-import DefaultLayout from "@/layouts/default";
 import { Controller, Group } from "@/components/icons";
+import { subtitle, title } from "@/components/primitives";
+import DefaultLayout from "@/layouts/default";
+
 
 export default function IndexPage() {
+  let navigate = useNavigate();
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const data = new FormData(e.currentTarget);
     const roomId = data.get("roomId") as string;
 
+    navigate(`/room/${roomId}`);
   };
 
   return (
