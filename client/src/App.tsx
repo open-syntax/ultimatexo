@@ -1,21 +1,16 @@
-import "./App.css";
-import Button from "./components/ui/button";
+import { Route, Routes } from "react-router-dom";
+
+import IndexPage from "@/pages/index";
+import RoomsPage from "@/pages/rooms";
+import RoomPage from "@/pages/room";
 
 function App() {
   return (
-    <>
-      <Button>default</Button>
-      <Button color="secondary">default</Button>
-      <Button color="accent">default</Button>
-      <Button color="danger">default</Button>
-      <Button variant="ghost">ghost</Button>
-      <Button color="secondary" variant="ghost">ghost</Button>
-      <Button color="accent" variant="ghost">ghost</Button>
-      <Button color="danger" variant="ghost">ghost</Button>
-      <Button variant="outline">outline</Button>
-      <Button color="secondary" variant="outline">outline</Button>
-      <Button color="danger" variant="outline">outline</Button>
-    </>
+    <Routes>
+      <Route element={<IndexPage />} path="/" />
+      <Route element={<RoomPage />} path="/room/:roomId" />
+      <Route element={<RoomsPage />} path="/rooms" />
+    </Routes>
   );
 }
 
