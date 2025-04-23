@@ -1,39 +1,61 @@
 import { Link } from "@heroui/link";
 import { button as buttonStyles } from "@heroui/theme";
+import { Input } from "@heroui/input";
+import { Button } from "@heroui/button";
 
-import { siteConfig } from "@/config/site";
 import { title, subtitle } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 import { Controller, Group } from "@/components/icons";
 
 export default function IndexPage() {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const data = new FormData(e.currentTarget);
+    const roomId = data.get("roomId") as string;
+
+  };
+
   return (
     <DefaultLayout>
-      <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
+      <section className="flex flex-col items-center justify-center gap-8 py-8 md:py-10">
         <div className="inline-block max-w-lg text-center justify-center">
           <span className={title({ color: "yellow" })}>Ulitamte&nbsp;</span>
           <span className={title()}>Tic Tac Toe</span>
         </div>
 
-        <div className="flex gap-3">
-          <Link
-            className={buttonStyles({
-              color: "primary",
-              radius: "full",
-              variant: "shadow",
-            })}
-            href="#"
-          >
-            <Controller />
-            Host
-          </Link>
-          <Link
-            className={buttonStyles({ variant: "bordered", radius: "full" })}
-            href="/rooms"
-          >
-            <Group />
-            Rooms
-          </Link>
+        <div className="flex flex-col gap-3 items-center">
+          <div className="flex gap-3">
+            <Link
+              className={buttonStyles({
+                color: "primary",
+                radius: "full",
+                variant: "shadow",
+              })}
+              href="#"
+            >
+              <Controller />
+              Host
+            </Link>
+            <Link
+              className={buttonStyles({ variant: "bordered", radius: "full" })}
+              href="/rooms"
+            >
+              <Group />
+              Rooms
+            </Link>
+          </div>
+
+          <p className="w-full text-center relative before:w-1/2 before:content-[''] after:w-1/2 after:content-[''] before:bg-default-400 after:bg-default-400 before:h-px after:h-px before:absolute after:absolute before:-left-4 after:-right-4 before:top-1/2 before:translate-y-1/2 after:top-1/2 after:translate-y-1/2">
+            OR
+          </p>
+
+          <form className="flex gap-3" onSubmit={(e) => handleSubmit(e)}>
+            <Input name="roomId" placeholder="Room ID" variant="bordered" />
+            <Button color="primary" type="submit">
+              Join
+            </Button>
+          </form>
         </div>
 
         <div className="mt-8">
