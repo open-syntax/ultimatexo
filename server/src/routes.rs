@@ -17,17 +17,29 @@ use axum::{
 
 use crate::{
     AppState,
-    game::{Game, Marker},
+    game::{Board, Game, Marker, Player},
 };
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "event", content = "data")]
 pub enum ServerMessage {
-    TextMessage { message: String, marker: Marker },
-    GameUpdate { message: String, marker: Marker },
-    PlayerUpdate { message: String, marker: Marker },
-    GameError { error: String },
-    Error { error: String },
+    TextMessage {},
+    GameUpdate {
+        board: Board,
+        status: Option<String>,
+        next_player: Player,
+        next_board: usize,
+    },
+    PlayerUpdate {
+        message: String,
+        marker: Marker,
+    },
+    GameError {
+        error: String,
+    },
+    Error {
+        error: String,
+    },
 }
 
 impl ServerMessage {
@@ -80,9 +92,6 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, room_id: String)
         .to_json()
         .unwrap(),
     );
-    game.lock()
-        .await
-        .add_player(player.id.clone(), player.marker);
 
     let send_task = tokio::spawn({
         async move {
@@ -99,27 +108,23 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, room_id: String)
         async move {
             while let Some(Ok(Message::Text(json_input))) = receiver.next().await {
                 match from_str::<Value>(&json_input) {
-                    Ok(json) => match json.get("type").and_then(|t| t.as_str()) {
+                    Ok(json) => match json.get("event").and_then(|t| t.as_str()) {
                         Some("TextMessage") => {
                             if let Some(content) = json.get("message").and_then(|c| c.as_str()) {
-                                let _ = tx.send(
-                                    ServerMessage::TextMessage {
-                                        message: content.to_string(),
-                                        marker: player.marker.clone(),
-                                    }
-                                    .to_json()
-                                    .unwrap(),
-                                );
+                                let _ = tx.send(ServerMessage::TextMessage {}.to_json().unwrap());
                             }
                         }
                         Some("GameUpdate") => {
                             if let Some(content) = json.get("move").and_then(|c| c.as_str()) {
-                                match game.lock().await.update_game(content) {
+                                let mut game = game.lock().await;
+                                match game.update_game(content) {
                                     Ok(result) => {
                                         let _ = tx.send(
                                             ServerMessage::GameUpdate {
-                                                message: result.to_string(),
-                                                marker: player.marker,
+                                                board: game.board(),
+                                                status: game.status(),
+                                                next_player: game.next_player(),
+                                                next_board: result,
                                             }
                                             .to_json()
                                             .unwrap(),

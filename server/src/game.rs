@@ -18,7 +18,7 @@ impl ToString for Marker {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Player {
     pub id: String,
     pub marker: Marker,
@@ -29,7 +29,7 @@ impl Player {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 enum SubBoardState {
     InProgress,
     Won(Marker),
@@ -42,21 +42,21 @@ impl Default for SubBoardState {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct SubBoard {
     cells: [Option<Marker>; 9],
-    state: SubBoardState,
+    status: SubBoardState,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct Board {
     boards: [SubBoard; 9],
 }
 
 #[derive(Default, Clone)]
 pub struct Game {
-    pub board: Board,
-    pub current_player: Option<Player>,
+    board: Board,
+    current_player: Option<Player>,
     players: Vec<Player>,
     game_ended: bool,
     player_won: Option<Player>,
@@ -64,13 +64,28 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Self {
-        Self {
-            board: Board::default(),
-            current_player: None,
-            players: Vec::new(),
-            game_ended: false,
-            player_won: None,
+        Self::default()
+    }
+
+    pub fn board(&self) -> Board {
+        self.board.clone()
+    }
+    pub fn status(&self) -> Option<String> {
+        if let Some(player) = self.player_won.clone() {
+            Some(player.marker.to_string())
+        } else {
+            if self.game_ended {
+                Some("Draw".to_string().to_string())
+            } else {
+                None
+            }
         }
+    }
+
+    pub fn next_player(&self) -> Player {
+        // current player gets set to next player after each move so this should work fine
+        // see update_game and toggle_current_player to know how it works
+        self.current_player.clone().unwrap()
     }
     pub fn add_player(&mut self, id: String, marker: Marker) -> Player {
         let player = Player::new(id, marker);
@@ -109,7 +124,7 @@ impl Game {
             let _ =
                 self.board.boards[a].cells[b].insert(self.current_player.as_ref().unwrap().marker);
             if self.board.boards[a].cells.iter().all(|cell| cell.ne(&None)) {
-                self.board.boards[a].state = SubBoardState::Draw;
+                self.board.boards[a].status = SubBoardState::Draw;
             }
             return Ok(true);
         }
@@ -133,17 +148,17 @@ impl Game {
                 && board.cells[condition[0]].eq(&board.cells[condition[1]])
                 && board.cells[condition[0]].eq(&board.cells[condition[2]])
             {
-                self.board.boards[index].state =
+                self.board.boards[index].status =
                     SubBoardState::Won(self.current_player.as_ref().unwrap().marker);
             }
         }
         //checks of a game win
         for condition in win_conditions {
             let boards = self.board.boards.clone();
-            if boards[condition[0]].state.eq(&SubBoardState::Won(
+            if boards[condition[0]].status.eq(&SubBoardState::Won(
                 self.current_player.as_ref().unwrap().marker,
-            )) && boards[condition[0]].state.eq(&boards[condition[1]].state)
-                && boards[condition[0]].state.eq(&boards[condition[2]].state)
+            )) && boards[condition[0]].status.eq(&boards[condition[1]].status)
+                && boards[condition[0]].status.eq(&boards[condition[2]].status)
             {
                 self.game_ended = true;
                 let _ = self.player_won.insert(self.current_player.take().unwrap());
@@ -154,11 +169,16 @@ impl Game {
             .board
             .boards
             .iter()
-            .all(|board| board.state.ne(&SubBoardState::InProgress))
+            .all(|board| board.status.ne(&SubBoardState::InProgress))
         {
             self.game_ended = true;
         }
 
         Ok(true)
+    }
+
+    fn restart_game(&mut self) {
+        *self = Self::default();
+        self.player_won = None;
     }
 }
