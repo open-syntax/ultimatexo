@@ -41,7 +41,7 @@ function RoomPage() {
   }>({ status: "connecting", message: "" });
 
   useEffect(() => {
-    const ws = new WebSocket(`ws://localhost:3000/room/${roomId}`);
+    const ws = new WebSocket(`ws://${import.meta.env.VITE_WS_URI}:${import.meta.env.VITE_WS_PORT}/${roomId}`);
 
     // handle on connection established
     ws.onopen = () => {
