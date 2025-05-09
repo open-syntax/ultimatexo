@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.98"
 axum = { version = "0.8.3", features = ["ws"] }
+dashmap = "6.1.0"
 dotenv = "0.15.0"
 futures-util = "0.3.31"
 serde = { version = "1.0.219", features = ["derive"] }

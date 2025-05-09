@@ -1,23 +1,18 @@
 use anyhow::{Context, Result};
+use app::RoomManager;
 use axum::{Router, routing::get};
 use dotenv::dotenv;
-use game::Game;
 use routes::{get_rooms_handler, websocket_handler};
-use std::{collections::HashMap, env, sync::Arc};
-use tokio::sync::{Mutex, broadcast};
+use std::{env, sync::Arc};
+mod app;
 mod game;
 mod routes;
 mod utils;
 
-#[derive(Default)]
-pub struct AppState {
-    rooms: Mutex<HashMap<String, (broadcast::Sender<String>, Arc<Mutex<Game>>)>>,
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-    let state = Arc::new(AppState::default());
+    let state = Arc::new(RoomManager::new());
     let app = Router::new()
         .route("/ws/{room_id}", get(websocket_handler))
         .route("/rooms", get(get_rooms_handler))

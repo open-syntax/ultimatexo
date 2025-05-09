@@ -1,7 +1,7 @@
-use anyhow::{Error, Ok, Result};
-use serde::{Deserialize, Serialize};
-
 use crate::utils::parse_tuple;
+use anyhow::{Ok, Result, anyhow};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Marker {
@@ -18,7 +18,7 @@ impl ToString for Marker {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Player {
     pub id: String,
     pub marker: Marker,
@@ -30,36 +30,45 @@ impl Player {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-enum SubBoardState {
+enum Status {
     InProgress,
     Won(Marker),
     Draw,
 }
 
-impl Default for SubBoardState {
+impl Default for Status {
     fn default() -> Self {
-        SubBoardState::InProgress
+        Status::InProgress
+    }
+}
+impl ToString for Status {
+    fn to_string(&self) -> String {
+        match self {
+            Status::InProgress => "None".to_string(),
+            Status::Draw => "Draw".to_string(),
+            Status::Won(player) => player.to_string(),
+        }
     }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct SubBoard {
     cells: [Option<Marker>; 9],
-    status: SubBoardState,
+    status: Status,
 }
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize, Debug)]
 pub struct Board {
     boards: [SubBoard; 9],
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct Game {
     board: Board,
     current_player: Option<Player>,
-    players: Vec<Player>,
-    game_ended: bool,
-    player_won: Option<Player>,
+    next_player: Option<Player>,
+    status: Status,
+    next_board: Option<usize>,
 }
 
 impl Game {
@@ -70,65 +79,76 @@ impl Game {
     pub fn board(&self) -> Board {
         self.board.clone()
     }
-    pub fn status(&self) -> Option<String> {
-        if let Some(player) = self.player_won.clone() {
-            Some(player.marker.to_string())
-        } else {
-            if self.game_ended {
-                Some("Draw".to_string().to_string())
-            } else {
-                None
-            }
-        }
+    pub fn status(&self) -> String {
+        self.status.to_string()
+    }
+    pub fn current_player(&self) -> Player {
+        self.current_player.clone().unwrap()
     }
 
     pub fn next_player(&self) -> Player {
-        // current player gets set to next player after each move so this should work fine
-        // see update_game and toggle_current_player to know how it works
-        self.current_player.clone().unwrap()
+        self.next_player.clone().unwrap()
     }
-    pub fn add_player(&mut self, id: String, marker: Marker) -> Player {
-        let player = Player::new(id, marker);
-        if self.players.is_empty() {
+
+    fn toggle_players(&mut self) {
+        let temp = self.current_player.clone();
+        self.current_player = self.next_player.clone();
+        self.next_player = temp;
+    }
+
+    pub fn next_board(&self) -> String {
+        self.next_board
+            .map(|b| b.to_string())
+            .unwrap_or_else(|| "null".to_string())
+    }
+    pub fn add_player(&mut self) -> Player {
+        let mut player = Player::new(Uuid::new_v4().to_string(), Marker::X);
+        if self.current_player.is_none() {
             self.current_player = Some(player.clone());
+        } else {
+            player.marker = Marker::O;
+            self.next_player = Some(player.clone());
         }
-        self.players.push(player.clone());
         player
     }
 
-    pub fn toggle_current_player(&mut self) {
-        let current_idx = self
-            .current_player
-            .as_ref()
-            .and_then(|p| self.players.iter().position(|pl| pl.id == p.id))
-            .unwrap_or(0);
-        let other_idx = 1 - current_idx;
-        self.current_player = Some(self.players[other_idx].clone());
+    pub fn remove_player(&mut self, id: &String) -> Result<()> {
+        if self.current_player().id == *id {
+            self.current_player = None
+        } else if self.next_player().id == *id {
+            self.next_player = None
+        } else {
+            return Err(anyhow!("ID_DOESNT_EXIST"));
+        }
+        Ok(())
     }
 
-    pub fn update_game(&mut self, position_str: &str) -> Result<usize> {
+    pub fn update_game(&mut self, position_str: &str, player_id: &str) -> Result<()> {
+        if self.current_player().id.as_str() != player_id {
+            return Err(anyhow!("ILLEGAL_TURN"));
+        }
         let position = parse_tuple(position_str)?;
         self.check_position(position)?;
         self.check_win(position.0)?;
-        self.toggle_current_player();
-        if self.game_ended {
-            if self.player_won.is_some() {
-                return Ok(10);
-            }
-            return Ok(11);
-        }
-        Ok(position.1)
+        self.toggle_players();
+        Ok(())
     }
     fn check_position(&mut self, (a, b): (usize, usize)) -> Result<bool> {
-        if self.board.boards[a].cells[b].is_none() {
-            let _ =
-                self.board.boards[a].cells[b].insert(self.current_player.as_ref().unwrap().marker);
-            if self.board.boards[a].cells.iter().all(|cell| cell.ne(&None)) {
-                self.board.boards[a].status = SubBoardState::Draw;
-            }
-            return Ok(true);
+        if self.current_player.is_none() || self.next_player.is_none() {
+            return Err(anyhow!("MISSING_A_PLAYER"));
         }
-        Err(Error::msg("Invalid Move"))
+        if self.next_board() == "null" || a.to_string() == self.next_board() {
+            if self.board.boards[a].cells[b].is_none() {
+                let _ = self.board.boards[a].cells[b].insert(self.next_player().marker);
+                if self.board.boards[a].cells.iter().all(|cell| cell.ne(&None)) {
+                    self.board.boards[a].status = Status::Draw;
+                }
+                self.next_board = Some(b);
+                return Ok(true);
+            }
+        }
+
+        Err(anyhow!("INVALID_MOVE"))
     }
     fn check_win(&mut self, index: usize) -> Result<bool> {
         let win_conditions = [
@@ -148,20 +168,19 @@ impl Game {
                 && board.cells[condition[0]].eq(&board.cells[condition[1]])
                 && board.cells[condition[0]].eq(&board.cells[condition[2]])
             {
-                self.board.boards[index].status =
-                    SubBoardState::Won(self.current_player.as_ref().unwrap().marker);
+                self.board.boards[index].status = Status::Won(self.current_player().marker);
             }
         }
         //checks of a game win
         for condition in win_conditions {
             let boards = self.board.boards.clone();
-            if boards[condition[0]].status.eq(&SubBoardState::Won(
-                self.current_player.as_ref().unwrap().marker,
-            )) && boards[condition[0]].status.eq(&boards[condition[1]].status)
+            if boards[condition[0]]
+                .status
+                .eq(&Status::Won(self.current_player().marker))
+                && boards[condition[0]].status.eq(&boards[condition[1]].status)
                 && boards[condition[0]].status.eq(&boards[condition[2]].status)
             {
-                self.game_ended = true;
-                let _ = self.player_won.insert(self.current_player.take().unwrap());
+                self.status = Status::Won(self.current_player().marker);
             }
         }
         //checks for a game draw
@@ -169,16 +188,16 @@ impl Game {
             .board
             .boards
             .iter()
-            .all(|board| board.status.ne(&SubBoardState::InProgress))
+            .all(|board| board.status.ne(&Status::InProgress))
         {
-            self.game_ended = true;
+            self.status = Status::Draw;
         }
 
         Ok(true)
     }
 
-    fn restart_game(&mut self) {
-        *self = Self::default();
-        self.player_won = None;
-    }
+    // pub fn restart_game(&mut self) {
+    //     *self = Self::default();
+    //     self.player_won = None;
+    // }
 }

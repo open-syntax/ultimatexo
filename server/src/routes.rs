@@ -1,12 +1,9 @@
+use crate::{
+    app::RoomManager,
+    game::{Board, Player},
+    utils::send_board,
+};
 use anyhow::Result;
-use futures_util::SinkExt;
-use futures_util::stream::StreamExt;
-use serde::{Deserialize, Serialize};
-use serde_json::{Value, from_str};
-use std::sync::Arc;
-use tokio::sync::{Mutex, broadcast};
-use uuid::Uuid;
-
 use axum::{
     extract::{
         Path, State, WebSocketUpgrade,
@@ -14,25 +11,31 @@ use axum::{
     },
     response::Response,
 };
-
-use crate::{
-    AppState,
-    game::{Board, Game, Marker, Player},
+use futures_util::{
+    SinkExt,
+    stream::{SplitSink, SplitStream, StreamExt},
 };
+use serde::{Deserialize, Serialize};
+use serde_json::{Value, from_str};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "event", content = "data")]
 pub enum ServerMessage {
-    TextMessage {},
+    TextMessage {
+        message: String,
+        player: Player,
+    },
     GameUpdate {
         board: Board,
-        status: Option<String>,
+        status: String,
         next_player: Player,
-        next_board: usize,
+        next_board: String,
     },
     PlayerUpdate {
-        message: String,
-        marker: Marker,
+        action: String,
+        player: Player,
     },
     GameError {
         error: String,
@@ -51,52 +54,54 @@ impl ServerMessage {
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
     Path(room_id): Path<String>,
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<RoomManager>>,
 ) -> Response {
-    ws.on_upgrade(move |socket| handle_socket(socket, state, room_id))
+    ws.on_upgrade(async move |socket| {
+        let (sender, receiver) = socket.split();
+        let sender = Arc::new(Mutex::new(sender));
+        if let Err(err) = handle_socket(sender.clone(), receiver, state, room_id).await {
+            sender
+                .lock()
+                .await
+                .send(Message::text(
+                    ServerMessage::Error {
+                        error: err.to_string(),
+                    }
+                    .to_json()
+                    .unwrap(),
+                ))
+                .await
+                .unwrap();
+            return;
+        }
+    })
 }
 
-async fn handle_socket(socket: WebSocket, state: Arc<AppState>, room_id: String) {
-    let (mut sender, mut receiver) = socket.split();
-
-    let (tx, game) = {
-        let mut rooms = state.rooms.lock().await;
-        let entry = rooms.entry(room_id.clone()).or_insert_with(|| {
-            let (tx, _) = broadcast::channel(100);
-            let game = Game::new();
-            (tx, Arc::new(Mutex::new(game))) // Wrap game in Arc<Mutex>
-        });
-        (entry.0.clone(), Arc::clone(&entry.1))
-    };
-
-    if tx.receiver_count() >= 2 {
-        let _ = sender.send(Message::Text("ROOM_FULL".into())).await;
-        return;
-    }
+async fn handle_socket(
+    sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,
+    mut receiver: SplitStream<WebSocket>,
+    state: Arc<RoomManager>,
+    room_id: String,
+) -> Result<()> {
+    let (player, room) = state.join(&room_id).await?;
+    let tx = room.tx.clone();
     let mut rx = tx.subscribe();
 
-    let marker = if tx.receiver_count() == 1 {
-        Marker::X
-    } else {
-        Marker::O
+    let msg = ServerMessage::PlayerUpdate {
+        action: "PLAYER_JOINED".to_string(),
+        player: player.clone(),
     };
-    let player = game
-        .lock()
-        .await
-        .add_player(Uuid::new_v4().to_string(), marker);
-    let _ = tx.send(
-        ServerMessage::PlayerUpdate {
-            message: "New Player Joined".to_string(),
-            marker: player.marker,
-        }
-        .to_json()
-        .unwrap(),
-    );
+    let _ = room.tx.send(serde_json::to_string(&msg).unwrap());
+
+    if room.tx.receiver_count() == 2 {
+        send_board(&tx, room.game.clone()).await;
+    }
 
     let send_task = tokio::spawn({
         async move {
             while let Ok(msg) = rx.recv().await {
-                if sender.send(Message::Text(msg.into())).await.is_err() {
+                let mut locked_sender = sender.lock().await;
+                if locked_sender.send(Message::Text(msg.into())).await.is_err() {
                     break;
                 }
             }
@@ -111,34 +116,31 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, room_id: String)
                     Ok(json) => match json.get("event").and_then(|t| t.as_str()) {
                         Some("TextMessage") => {
                             if let Some(content) = json.get("message").and_then(|c| c.as_str()) {
-                                let _ = tx.send(ServerMessage::TextMessage {}.to_json().unwrap());
+                                let _ = tx.send(
+                                    ServerMessage::TextMessage {
+                                        message: content.to_string(),
+                                        player: player.clone(),
+                                    }
+                                    .to_json()
+                                    .unwrap(),
+                                );
                             }
                         }
                         Some("GameUpdate") => {
-                            if let Some(content) = json.get("move").and_then(|c| c.as_str()) {
-                                let mut game = game.lock().await;
-                                match game.update_game(content) {
-                                    Ok(result) => {
-                                        let _ = tx.send(
-                                            ServerMessage::GameUpdate {
-                                                board: game.board(),
-                                                status: game.status(),
-                                                next_player: game.next_player(),
-                                                next_board: result,
-                                            }
-                                            .to_json()
-                                            .unwrap(),
-                                        );
-                                    }
-                                    Err(err) => {
-                                        let _ = tx.send(
-                                            ServerMessage::GameError {
-                                                error: err.to_string(),
-                                            }
-                                            .to_json()
-                                            .unwrap(),
-                                        );
-                                    }
+                            if let Some(position) = json.get("move").and_then(|c| c.as_str()) {
+                                if let Err(err) = room.game.lock().await.update_game(
+                                    position,
+                                    json.get("player_id").unwrap().as_str().unwrap(),
+                                ) {
+                                    let _ = tx.send(
+                                        ServerMessage::GameError {
+                                            error: err.to_string(),
+                                        }
+                                        .to_json()
+                                        .unwrap(),
+                                    );
+                                } else {
+                                    send_board(&tx, room.game.clone()).await;
                                 }
                             }
                         }
@@ -174,22 +176,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, room_id: String)
         _ = recv_task => {},
     }
 
-    let mut rooms = state.rooms.lock().await;
-    if let Some((tx, _)) = rooms.get(&room_id) {
-        let _ = tx.send(
-            ServerMessage::PlayerUpdate {
-                message: "Player Left".to_string(),
-                marker: player.marker,
-            }
-            .to_json()
-            .unwrap(),
-        );
-        if tx.receiver_count() == 0 {
-            rooms.remove(&room_id);
-        }
-    }
+    let _ = state.leave(&room_id, player).await;
+    Ok(())
 }
 
-pub async fn get_rooms_handler(State(state): State<Arc<AppState>>) -> String {
-    state.rooms.lock().await.len().to_string()
+pub async fn get_rooms_handler(State(state): State<Arc<RoomManager>>) -> String {
+    state.rooms.len().to_string()
 }
