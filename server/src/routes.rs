@@ -1,10 +1,11 @@
 use crate::{
-    app::RoomManager,
-    game::{Board, Player, Status},
+    app::{Room, RoomData, RoomManager},
+    game::{Board, Game, Player, Status},
     utils::send_board,
 };
 use anyhow::Result;
 use axum::{
+    Json,
     extract::{
         Path, State, WebSocketUpgrade,
         ws::{Message, WebSocket},
@@ -15,10 +16,12 @@ use futures_util::{
     SinkExt,
     stream::{SplitSink, SplitStream, StreamExt},
 };
+
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, from_str};
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, broadcast};
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "event", content = "data")]
@@ -53,7 +56,7 @@ impl ServerMessage {
 
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
-    Path(room_id): Path<String>,
+    Path(room_id): Path<usize>,
     State(state): State<Arc<RoomManager>>,
 ) -> Response {
     ws.on_upgrade(async move |socket| {
@@ -81,7 +84,7 @@ async fn handle_socket(
     sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,
     mut receiver: SplitStream<WebSocket>,
     state: Arc<RoomManager>,
-    room_id: String,
+    room_id: usize,
 ) -> Result<()> {
     let (player, room) = state.join(&room_id).await?;
     let tx = room.tx.clone();
@@ -186,5 +189,29 @@ async fn handle_socket(
 }
 
 pub async fn get_rooms_handler(State(state): State<Arc<RoomManager>>) -> String {
-    state.rooms.len().to_string()
+    state
+        .rooms
+        .iter()
+        .filter(|room| room.data.is_public)
+        .count()
+        .to_string()
+}
+
+pub async fn new_room_handler(
+    State(state): State<Arc<RoomManager>>,
+    Json(payload): Json<RoomData>,
+) -> String {
+    let (tx, _) = broadcast::channel(100);
+    let room = Arc::new(Room {
+        tx,
+        game: Arc::new(Mutex::new(Game::new())),
+        data: RoomData {
+            is_public: payload.is_public,
+            password: payload.password,
+        },
+    });
+
+    let room_id = rand::rng().random_range(1..=99999);
+    state.rooms.insert(room_id, room);
+    room_id.to_string()
 }

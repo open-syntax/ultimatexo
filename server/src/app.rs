@@ -4,18 +4,25 @@ use crate::{
 };
 use anyhow::{Ok, Result, anyhow};
 use dashmap::DashMap;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::{Mutex, broadcast};
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct RoomData {
+    pub is_public: bool,
+    pub password: String,
+}
 #[derive(Debug)]
 pub struct Room {
     pub tx: broadcast::Sender<String>,
     pub game: Arc<Mutex<Game>>,
+    pub data: RoomData,
 }
 
 #[derive(Debug)]
 pub struct RoomManager {
-    pub rooms: DashMap<String, Arc<Room>>,
+    pub rooms: DashMap<usize, Arc<Room>>,
 }
 
 impl RoomManager {
@@ -25,31 +32,19 @@ impl RoomManager {
         }
     }
 
-    pub async fn join(&self, room_id: &String) -> Result<(Player, Arc<Room>)> {
-        dbg!("test rejoin");
-        dbg!(self.rooms.len());
-        let room = self
-            .rooms
-            .entry(room_id.to_string())
-            .or_insert_with(|| {
-                dbg!("test1");
-                let (tx, _) = broadcast::channel(100);
-                Arc::new(Room {
-                    tx,
-                    game: Arc::new(Mutex::new(Game::new())),
-                })
-            })
-            .clone();
-
-        if room.tx.receiver_count() >= 2 {
-            return Err(anyhow!("ROOM_FULL"));
+    pub async fn join(&self, room_id: &usize) -> Result<(Player, Arc<Room>)> {
+        if let Some(room) = self.rooms.get(room_id) {
+            let room = room.clone();
+            if room.tx.receiver_count() >= 2 {
+                return Err(anyhow!("ROOM_FULL"));
+            }
+            let player = room.game.lock().await.add_player();
+            return Ok((player, room));
         }
-        let player = room.game.lock().await.add_player();
-        Ok((player, room))
+        Err(anyhow!("ROOM_NOT_FOUND"))
     }
 
-    // requires a fix (droping the active room results a deadlock)
-    pub async fn leave(&self, room_id: &str, player: Player) -> Result<()> {
+    pub async fn leave(&self, room_id: &usize, player: Player) -> Result<()> {
         if let Some(room) = self.rooms.get(room_id) {
             let is_empty = room.game.lock().await.remove_player(&player.id)?;
 
@@ -58,12 +53,10 @@ impl RoomManager {
                 player,
             };
             let _ = room.tx.send(msg.to_json()?);
-            dbg!("test");
 
             if is_empty {
-                dbg!("empty");
+                drop(room);
                 self.rooms.remove(room_id);
-                dbg!("room vanished");
             }
         }
         Ok(())
