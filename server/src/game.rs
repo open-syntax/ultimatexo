@@ -1,6 +1,6 @@
 use crate::utils::parse_tuple;
 use anyhow::{Ok, Result, anyhow};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -29,8 +29,8 @@ impl Player {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-enum Status {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+pub enum Status {
     InProgress,
     Won(Marker),
     Draw,
@@ -41,16 +41,18 @@ impl Default for Status {
         Status::InProgress
     }
 }
-impl ToString for Status {
-    fn to_string(&self) -> String {
+impl Serialize for Status {
+    fn serialize<T>(&self, serializer: T) -> Result<T::Ok, T::Error>
+    where
+        T: Serializer,
+    {
         match self {
-            Status::InProgress => "None".to_string(),
-            Status::Draw => "Draw".to_string(),
-            Status::Won(player) => player.to_string(),
+            Status::InProgress => serializer.serialize_none(),
+            Status::Draw => serializer.serialize_some("Draw"),
+            Status::Won(marker) => serializer.serialize_some(&marker.to_string()),
         }
     }
 }
-
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct SubBoard {
     cells: [Option<Marker>; 9],
@@ -79,8 +81,8 @@ impl Game {
     pub fn board(&self) -> Board {
         self.board.clone()
     }
-    pub fn status(&self) -> String {
-        self.status.to_string()
+    pub fn status(&self) -> Status {
+        self.status
     }
     pub fn current_player(&self) -> Player {
         self.current_player.clone().unwrap()
@@ -96,10 +98,10 @@ impl Game {
         self.next_player = temp;
     }
 
-    pub fn next_board(&self) -> String {
+    pub fn next_board(&self) -> Option<String> {
         self.next_board
-            .map(|b| b.to_string())
-            .unwrap_or_else(|| "null".to_string())
+            .map(|b| Some(b.to_string()))
+            .unwrap_or_else(|| None)
     }
     pub fn add_player(&mut self) -> Player {
         let mut player = Player::new(Uuid::new_v4().to_string(), Marker::X);
@@ -112,7 +114,7 @@ impl Game {
         player
     }
 
-    pub fn remove_player(&mut self, id: &String) -> Result<()> {
+    pub fn remove_player(&mut self, id: &String) -> Result<bool> {
         if self.current_player().id == *id {
             self.current_player = None
         } else if self.next_player().id == *id {
@@ -120,7 +122,7 @@ impl Game {
         } else {
             return Err(anyhow!("ID_DOESNT_EXIST"));
         }
-        Ok(())
+        Ok(self.current_player.is_none() && self.next_player.is_none())
     }
 
     pub fn update_game(&mut self, position_str: &str, player_id: &str) -> Result<()> {
@@ -137,7 +139,7 @@ impl Game {
         if self.current_player.is_none() || self.next_player.is_none() {
             return Err(anyhow!("MISSING_A_PLAYER"));
         }
-        if self.next_board() == "null" || a.to_string() == self.next_board() {
+        if self.next_board().is_none() || self.next_board().unwrap() == a.to_string() {
             if self.board.boards[a].cells[b].is_none() {
                 let _ = self.board.boards[a].cells[b].insert(self.next_player().marker);
                 if self.board.boards[a].cells.iter().all(|cell| cell.ne(&None)) {

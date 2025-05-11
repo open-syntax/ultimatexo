@@ -1,6 +1,6 @@
 use crate::{
     app::RoomManager,
-    game::{Board, Player},
+    game::{Board, Player, Status},
     utils::send_board,
 };
 use anyhow::Result;
@@ -29,9 +29,9 @@ pub enum ServerMessage {
     },
     GameUpdate {
         board: Board,
-        status: String,
+        status: Status,
         next_player: Player,
-        next_board: String,
+        next_board: Option<String>,
     },
     PlayerUpdate {
         action: String,
@@ -100,8 +100,13 @@ async fn handle_socket(
     let send_task = tokio::spawn({
         async move {
             while let Ok(msg) = rx.recv().await {
-                let mut locked_sender = sender.lock().await;
-                if locked_sender.send(Message::Text(msg.into())).await.is_err() {
+                if sender
+                    .lock()
+                    .await
+                    .send(Message::Text(msg.into()))
+                    .await
+                    .is_err()
+                {
                     break;
                 }
             }

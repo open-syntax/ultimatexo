@@ -26,10 +26,13 @@ impl RoomManager {
     }
 
     pub async fn join(&self, room_id: &String) -> Result<(Player, Arc<Room>)> {
+        dbg!("test rejoin");
+        dbg!(self.rooms.len());
         let room = self
             .rooms
             .entry(room_id.to_string())
             .or_insert_with(|| {
+                dbg!("test1");
                 let (tx, _) = broadcast::channel(100);
                 Arc::new(Room {
                     tx,
@@ -41,28 +44,26 @@ impl RoomManager {
         if room.tx.receiver_count() >= 2 {
             return Err(anyhow!("ROOM_FULL"));
         }
-        let player = {
-            let mut game = room.game.lock().await;
-            game.add_player()
-        };
+        let player = room.game.lock().await.add_player();
         Ok((player, room))
     }
 
+    // requires a fix (droping the active room results a deadlock)
     pub async fn leave(&self, room_id: &str, player: Player) -> Result<()> {
         if let Some(room) = self.rooms.get(room_id) {
-            {
-                let mut game = room.game.lock().await;
-                game.remove_player(&player.id)?;
-            }
+            let is_empty = room.game.lock().await.remove_player(&player.id)?;
 
             let msg = ServerMessage::PlayerUpdate {
                 action: "PLAYER_LEFT".to_string(),
                 player,
             };
-            let _ = room.tx.send(serde_json::to_string(&msg).unwrap());
+            let _ = room.tx.send(msg.to_json()?);
+            dbg!("test");
 
-            if room.tx.receiver_count() <= 1 {
+            if is_empty {
+                dbg!("empty");
                 self.rooms.remove(room_id);
+                dbg!("room vanished");
             }
         }
         Ok(())
