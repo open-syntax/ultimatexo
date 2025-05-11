@@ -3,34 +3,22 @@ import { useEffect, useState } from "react";
 import { Spinner } from "@heroui/spinner";
 import { button as buttonStyles } from "@heroui/theme";
 import { Link } from "@heroui/link";
+import { Button } from "@heroui/button";
 
+import { Link as LinkIcon } from "@/components/icons";
 import Board from "@/components/board";
 import DefaultLayout from "@/layouts/default";
-import { BoardCell, Board as BoardType, socketEvent } from "@/types";
-
-
-const b: { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" } = {
-  cells: [null, null, null, null, null, null, null, null, null] as unknown as BoardCell[],
-  status: "InProgress"
-}
-
-const boards: BoardType = [
-  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
-  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
-  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
-  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
-  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
-  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
-  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
-  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
-  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" }
-];
+import { Board as BoardType, socketEvent } from "@/types";
+import RoomLayout from "@/layouts/room";
 
 function RoomPage() {
   let { roomId } = useParams();
 
-  const [board, setBoard] = useState<BoardType>(boards);
-  const [player, setPlayer] = useState<{id: string; marker: "X" | "O"}>({ id: "", marker: "X" });
+  const [board, setBoard] = useState<BoardType | null>(null);
+  const [player, setPlayer] = useState<{ id: string; marker: "X" | "O" }>({
+    id: "",
+    marker: "X",
+  });
 
   const [status, setStatus] = useState<{
     status: "connected" | "disconnected" | "connecting";
@@ -49,10 +37,9 @@ function RoomPage() {
 
     // handle on message arrival
     ws.onmessage = (event) => {
-      console.log(JSON.parse(event.data))
+      console.log(JSON.parse(event.data));
       const e: socketEvent = JSON.parse(event.data);
       const eventName = e.event;
-
 
       switch (eventName) {
         case "GameUpdate":
@@ -89,7 +76,7 @@ function RoomPage() {
   return (
     <DefaultLayout>
       {status.status === "disconnected" ? (
-        <div className="container mx-auto flex max-w-7xl flex-grow flex-col items-center justify-center gap-4 px-6">
+        <RoomLayout>
           {status.message}
           <div className="flex gap-3">
             <Link className={buttonStyles({ variant: "bordered" })} href="/">
@@ -99,11 +86,30 @@ function RoomPage() {
               Rooms
             </Link>
           </div>
+        </RoomLayout>
+      ) : board ? (
+        <div className="container mx-auto my-auto flex max-w-7xl flex-grow gap-4 px-6">
+          <Board board={board} />
         </div>
       ) : (
-        <main className="container mx-auto flex max-w-7xl flex-grow items-center px-6">
-          <Board board={board} />
-        </main>
+        <RoomLayout>
+          <h3>Waiting for player to join.</h3>
+          <div className="flex gap-3">
+            <Button variant="bordered" onPress={() => {
+              navigator.clipboard.writeText(roomId as string);
+            }}>
+              Room ID: <b>{roomId}</b>
+            </Button>
+            <Button
+              color="primary"
+              onPress={() => {
+                navigator.clipboard.writeText(window.location.href);
+              }}
+            >
+              Copy Link <LinkIcon size={20} />
+            </Button>
+          </div>
+        </RoomLayout>
       )}
     </DefaultLayout>
   );
