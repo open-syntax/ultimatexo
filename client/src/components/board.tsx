@@ -2,25 +2,11 @@ import MiniBoard from "./miniBoard";
 
 import { Board as BoardType } from "@/types";
 
-interface BoardProps {
-  board: [
-    BoardType,
-    BoardType,
-    BoardType,
-    BoardType,
-    BoardType,
-    BoardType,
-    BoardType,
-    BoardType,
-    BoardType
-];
-}
-
-function Board({ board }: BoardProps) {
+function Board({ board }: { board: BoardType}) {
   return (
     <div className="w-screen h-full grid grid-cols-3 grid-rows-3 place-items-center max-h-[calc(100vh-10rem)] max-w-xl mx-auto">
-      {board.map((row, i) => (
-        <MiniBoard key={i} board={row} index={i} />
+      {board.map((miniBoard, i) => (
+        <MiniBoard key={i} board={miniBoard} index={i} />
       ))}
     </div>
   );

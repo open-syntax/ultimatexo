@@ -6,34 +6,31 @@ import { Link } from "@heroui/link";
 
 import Board from "@/components/board";
 import DefaultLayout from "@/layouts/default";
-import { Board as BoardType } from "@/types";
+import { BoardCell, Board as BoardType, socketEvent } from "@/types";
 
-type BoardT = [
-  BoardType,
-  BoardType,
-  BoardType,
-  BoardType,
-  BoardType,
-  BoardType,
-  BoardType,
-  BoardType,
-  BoardType,
-];
 
-const board: BoardT = [
-  ["", "", "", "O", "", "", "", "", ""],
-  ["", "", "", "", "", "X", "", "", ""],
-  ["", "", "", "", "", "", "", "", ""],
-  ["O", "", "", "O", "", "", "O", "", ""],
-  ["", "", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "X", "", ""],
-  ["", "", "", "", "", "", "", "", "O"],
-  ["", "", "", "", "", "", "X", "X", "X"],
+const b: { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" } = {
+  cells: [null, null, null, null, null, null, null, null, null] as unknown as BoardCell[],
+  status: "InProgress"
+}
+
+const boards: BoardType = [
+  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
+  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
+  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
+  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
+  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
+  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
+  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
+  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" },
+  b as { cells: BoardCell[]; status: "InProgress" | "Draw" | "X" | "O" }
 ];
 
 function RoomPage() {
   let { roomId } = useParams();
+
+  const [board, setBoard] = useState<BoardType>(boards);
+  const [player, setPlayer] = useState<{id: string; marker: "X" | "O"}>({ id: "", marker: "X" });
 
   const [status, setStatus] = useState<{
     status: "connected" | "disconnected" | "connecting";
@@ -41,7 +38,9 @@ function RoomPage() {
   }>({ status: "connecting", message: "" });
 
   useEffect(() => {
-    const ws = new WebSocket(`ws://${import.meta.env.VITE_WS_URI}:${import.meta.env.VITE_WS_PORT}/${roomId}`);
+    const ws = new WebSocket(
+      `http://${import.meta.env.VITE_WS_URI}:${import.meta.env.VITE_WS_PORT}/ws/${roomId}`,
+    );
 
     // handle on connection established
     ws.onopen = () => {
@@ -50,7 +49,21 @@ function RoomPage() {
 
     // handle on message arrival
     ws.onmessage = (event) => {
-      console.log(event);
+      console.log(JSON.parse(event.data))
+      const e: socketEvent = JSON.parse(event.data);
+      const eventName = e.event;
+
+
+      switch (eventName) {
+        case "GameUpdate":
+          setBoard(e.data.board.boards);
+          break;
+        case "PlayerUpdate":
+          if (e.data.action === "PLAYER_JOINED") {
+            setPlayer(e.data.player);
+          }
+          break;
+      }
     };
 
     // handle on disconnection

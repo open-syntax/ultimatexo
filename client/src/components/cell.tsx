@@ -1,15 +1,17 @@
 import { cn } from "@heroui/theme";
 
+import { BoardCell } from "@/types";
+
 interface CellProps {
-  mark?: string;
+  mark: BoardCell;
   index: number;
 
   onClick: () => void;
 }
 
-function Cell({ mark = "", index, onClick }: CellProps) {
+function Cell({ mark, index, onClick }: CellProps) {
   const handleClick = () => {
-    if (mark === "") {
+    if (mark === null) {
       onClick();
     }
   };
@@ -48,9 +50,9 @@ function Cell({ mark = "", index, onClick }: CellProps) {
       borderClasses = "border-l-2 border-t-2";
   }
 
-  if (mark === "X") {
+  if (mark === "X" as unknown as BoardCell) {
     uxClasses = "text-red-500 pointer-events-none";
-  } else if (mark === "O") {
+  } else if (mark === "O" as unknown as BoardCell) {
     uxClasses = "text-blue-500 pointer-events-none";
   } else {
     uxClasses = "cursor-pointer";
@@ -58,7 +60,7 @@ function Cell({ mark = "", index, onClick }: CellProps) {
 
   return (
     <button className={cn(defaultClasses, borderClasses, uxClasses)} onClick={() => handleClick()}>
-      {mark}
+      {mark as unknown as string}
     </button>
   );
 }

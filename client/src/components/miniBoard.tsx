@@ -1,11 +1,11 @@
 import Cell from "./cell";
 
 import { checkWinner } from "@/functions/game";
-import { Board as BoardType } from "@/types/index";
+import { BoardCell, miniBoard } from "@/types/index";
 
 
 interface MiniBoardProps {
-  board: BoardType;
+  board: miniBoard;
 
   index: number;
 }
@@ -23,11 +23,11 @@ function MiniBoard({ board, index }: MiniBoardProps) {
 
   return (
     <div className="p-2 border border-default-400 grid grid-cols-3 grid-rows-3 w-full h-full place-items-center aspect-square">
-      {board.map((mark, i) => (
+      {board.cells.map((cell: BoardCell, i) => (
         <Cell
           key={i}
           index={i}
-          mark={mark}
+          mark={cell}
           onClick={() => {
             console.log(i);
           }}
