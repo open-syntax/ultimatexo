@@ -56,13 +56,13 @@ impl ServerMessage {
 
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
-    Path(room_id): Path<usize>,
+    Path(path): Path<String>,
     State(state): State<Arc<RoomManager>>,
 ) -> Response {
     ws.on_upgrade(async move |socket| {
         let (sender, receiver) = socket.split();
         let sender = Arc::new(Mutex::new(sender));
-        if let Err(err) = handle_socket(sender.clone(), receiver, state, room_id).await {
+        if let Err(err) = handle_socket(sender.clone(), receiver, state, path).await {
             sender
                 .lock()
                 .await
@@ -84,9 +84,20 @@ async fn handle_socket(
     sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,
     mut receiver: SplitStream<WebSocket>,
     state: Arc<RoomManager>,
-    room_id: usize,
+    path: String,
 ) -> Result<()> {
-    let (player, room) = state.join(&room_id).await?;
+    let (room_id, password) = {
+        if path.contains(":") {
+            let mut path_splitted = path.split(":");
+            (
+                path_splitted.next().unwrap().to_string(),
+                Some(path_splitted.next().unwrap().to_string()),
+            )
+        } else {
+            (path, None)
+        }
+    };
+    let (player, room) = state.join(&room_id, password).await?;
     let tx = room.tx.clone();
     let mut rx = tx.subscribe();
 
@@ -211,7 +222,7 @@ pub async fn new_room_handler(
         },
     });
 
-    let room_id = rand::rng().random_range(1..=99999);
-    state.rooms.insert(room_id, room);
-    room_id.to_string()
+    let room_id = rand::rng().random_range(11111..=99999).to_string();
+    state.rooms.insert(room_id.clone(), room);
+    room_id
 }

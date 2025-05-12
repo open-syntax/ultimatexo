@@ -11,7 +11,8 @@ use tokio::sync::{Mutex, broadcast};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RoomData {
     pub is_public: bool,
-    pub password: String,
+    #[serde(default)]
+    pub password: Option<String>,
 }
 #[derive(Debug)]
 pub struct Room {
@@ -22,7 +23,7 @@ pub struct Room {
 
 #[derive(Debug)]
 pub struct RoomManager {
-    pub rooms: DashMap<usize, Arc<Room>>,
+    pub rooms: DashMap<String, Arc<Room>>,
 }
 
 impl RoomManager {
@@ -32,19 +33,25 @@ impl RoomManager {
         }
     }
 
-    pub async fn join(&self, room_id: &usize) -> Result<(Player, Arc<Room>)> {
+    pub async fn join(
+        &self,
+        room_id: &String,
+        password: Option<String>,
+    ) -> Result<(Player, Arc<Room>)> {
         if let Some(room) = self.rooms.get(room_id) {
-            let room = room.clone();
+            if !(password == room.data.password) {
+                return Err(anyhow!("INVALID_PASSWORD"));
+            }
             if room.tx.receiver_count() >= 2 {
                 return Err(anyhow!("ROOM_FULL"));
             }
             let player = room.game.lock().await.add_player();
-            return Ok((player, room));
+            return Ok((player, room.clone()));
         }
         Err(anyhow!("ROOM_NOT_FOUND"))
     }
 
-    pub async fn leave(&self, room_id: &usize, player: Player) -> Result<()> {
+    pub async fn leave(&self, room_id: &String, player: Player) -> Result<()> {
         if let Some(room) = self.rooms.get(room_id) {
             let is_empty = room.game.lock().await.remove_player(&player.id)?;
 
