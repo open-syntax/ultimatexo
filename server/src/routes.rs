@@ -1,6 +1,6 @@
 use crate::{
     app::{Room, RoomData, RoomManager},
-    game::{Board, Game, Player, Status},
+    game::{Board, Game, Player},
     utils::send_board,
 };
 use anyhow::Result;
@@ -32,7 +32,6 @@ pub enum ServerMessage {
     },
     GameUpdate {
         board: Board,
-        status: Status,
         next_player: Player,
         next_board: Option<String>,
     },
@@ -106,8 +105,12 @@ async fn handle_socket(
         player: player.clone(),
     };
     let _ = room.tx.send(serde_json::to_string(&msg).unwrap());
-
-    if room.tx.receiver_count() == 2 {
+    if room.data.bot_level.is_some() {
+        room.game.lock().await.add_player();
+    }
+    if room.tx.receiver_count() == 2
+        || (room.data.bot_level.is_some() && room.tx.receiver_count() == 1)
+    {
         send_board(&tx, room.game.clone()).await;
     }
 
@@ -159,6 +162,25 @@ async fn handle_socket(
                                         .unwrap(),
                                     );
                                 } else {
+                                    if room.data.bot_level.is_some() {
+                                        let level =
+                                            match room.data.bot_level.as_ref().unwrap().as_str() {
+                                                "Easy" => 2,
+                                                "Average" => 2,
+                                                "Hard" => 2,
+                                                _ => {
+                                                    let _ = tx.send(
+                                                        ServerMessage::Error {
+                                                            error: "INVALID_BOT_LEVEL".to_string(),
+                                                        }
+                                                        .to_json()
+                                                        .unwrap(),
+                                                    );
+                                                    return;
+                                                }
+                                            };
+                                        room.game.lock().await.generate_move(level);
+                                    }
                                     send_board(&tx, room.game.clone()).await;
                                 }
                             }
@@ -219,6 +241,7 @@ pub async fn new_room_handler(
         data: RoomData {
             is_public: payload.is_public,
             password: payload.password,
+            bot_level: payload.bot_level,
         },
     });
 

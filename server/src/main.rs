@@ -1,11 +1,12 @@
 use anyhow::{Context, Result};
 use app::RoomManager;
-use axum::{Router, routing::get};
+use axum::{routing::get, Router};
 use dotenv::dotenv;
 use routes::{get_rooms_handler, new_room_handler, websocket_handler};
 use std::{env, sync::Arc};
 mod app;
 mod game;
+mod minimax;
 mod routes;
 mod utils;
 

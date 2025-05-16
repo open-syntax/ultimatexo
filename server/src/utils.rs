@@ -18,10 +18,13 @@ pub async fn send_board(tx: &broadcast::Sender<String>, game: Arc<Mutex<Game>>) 
     let game = game.lock().await;
     let _ = tx.send(
         ServerMessage::GameUpdate {
-            board: game.board(),
-            status: game.status(),
-            next_player: game.next_player(),
-            next_board: game.next_board(),
+            board: game.state.board.clone(),
+            next_player: game.state.players[0].clone(),
+            next_board: game
+                .state
+                .next_board
+                .map(|b| Some(b.to_string()))
+                .unwrap_or_else(|| None),
         }
         .to_json()
         .unwrap(),

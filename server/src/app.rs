@@ -8,11 +8,12 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::{Mutex, broadcast};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(default)]
 pub struct RoomData {
     pub is_public: bool,
-    #[serde(default)]
     pub password: Option<String>,
+    pub bot_level: Option<String>,
 }
 #[derive(Debug)]
 pub struct Room {
@@ -42,9 +43,12 @@ impl RoomManager {
             if !(password == room.data.password) {
                 return Err(anyhow!("INVALID_PASSWORD"));
             }
-            if room.tx.receiver_count() >= 2 {
+            if room.tx.receiver_count() >= 2
+                || (room.data.bot_level.is_some() && room.tx.receiver_count() >= 1)
+            {
                 return Err(anyhow!("ROOM_FULL"));
             }
+
             let player = room.game.lock().await.add_player();
             return Ok((player, room.clone()));
         }

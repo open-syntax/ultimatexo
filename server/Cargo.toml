@@ -9,6 +9,7 @@ axum = { version = "0.8.3", features = ["ws"] }
 dashmap = "6.1.0"
 dotenv = "0.15.0"
 futures-util = "0.3.31"
+minimax = "0.5.4"
 rand = "0.9.1"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
