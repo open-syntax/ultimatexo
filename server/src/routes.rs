@@ -166,7 +166,7 @@ async fn handle_socket(
                                         let level =
                                             match room.data.bot_level.as_ref().unwrap().as_str() {
                                                 "Easy" => 2,
-                                                "Average" => 2,
+                                                "Normal" => 2,
                                                 "Hard" => 2,
                                                 _ => {
                                                     let _ = tx.send(

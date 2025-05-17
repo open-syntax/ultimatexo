@@ -136,7 +136,15 @@ impl Game {
                 {
                     self.state.board.boards[a].status = Status::Draw;
                 }
-                self.state.next_board = Some(b);
+                if self.state.board.boards[b]
+                    .cells
+                    .iter()
+                    .all(|marker| marker != &Marker::Empty)
+                {
+                    self.state.next_board = Some(b);
+                } else {
+                    self.state.next_board = None;
+                }
                 return Ok(true);
             }
         }

@@ -36,7 +36,6 @@ impl minimax::Game for Game {
     }
 
     fn get_winner(state: &GameState) -> Option<minimax::Winner> {
-        dbg!("test");
         let win_conditions = [
             [0, 1, 2],
             [3, 4, 5],
