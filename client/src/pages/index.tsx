@@ -36,7 +36,7 @@ export default function IndexPage() {
                 radius: "full",
                 variant: "shadow",
               })}
-              href="#"
+              href="/create"
             >
               <Controller />
               Host

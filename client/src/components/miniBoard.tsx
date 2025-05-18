@@ -8,9 +8,11 @@ interface MiniBoardProps {
   board: miniBoard;
 
   index: number;
+
+  setMove: Function;
 }
 
-function MiniBoard({ board, index }: MiniBoardProps) {
+function MiniBoard({ board, index, setMove }: MiniBoardProps) {
 //   const isWon = checkWinner(board);
 
 //   if (isWon) {
@@ -27,10 +29,9 @@ function MiniBoard({ board, index }: MiniBoardProps) {
         <Cell
           key={i}
           index={i}
+          board={index}
           mark={cell}
-          onClick={() => {
-            console.log(i);
-          }}
+          onClick={setMove}
         />
       ))}
     </div>

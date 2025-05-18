@@ -29,7 +29,7 @@ export type socketEvent =
   | {
       event: "GameUpdate";
       data: {
-        board: {boards: Board};
+        board: { boards: Board };
         status: string;
         next_player: {
           id: string;
@@ -46,5 +46,11 @@ export type socketEvent =
           id: string;
           marker: "X" | "O";
         };
+      };
+    }
+  | {
+      event: "Error";
+      data: {
+        error: string;
       };
     };

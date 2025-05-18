@@ -4,15 +4,16 @@ import { BoardCell } from "@/types";
 
 interface CellProps {
   mark: BoardCell;
+  board: number;
   index: number;
 
-  onClick: () => void;
+  onClick: Function;
 }
 
-function Cell({ mark, index, onClick }: CellProps) {
+function Cell({ mark, board, index, onClick }: CellProps) {
   const handleClick = () => {
     if (mark === null) {
-      onClick();
+      onClick(`${board},${index}`);
     }
   };
 
@@ -50,16 +51,14 @@ function Cell({ mark, index, onClick }: CellProps) {
       borderClasses = "border-l-2 border-t-2";
   }
 
-  if (mark === "X" as unknown as BoardCell) {
-    uxClasses = "text-red-500 pointer-events-none";
-  } else if (mark === "O" as unknown as BoardCell) {
-    uxClasses = "text-blue-500 pointer-events-none";
+  if (mark === "X"  as unknown as BoardCell || mark === "O" as unknown as BoardCell) {
+    uxClasses = "text-default-800 pointer-events-none";
   } else {
     uxClasses = "cursor-pointer";
   }
 
   return (
-    <button className={cn(defaultClasses, borderClasses, uxClasses)} onClick={() => handleClick()}>
+    <button className={cn(defaultClasses, borderClasses, uxClasses, "animate-appearance-in")} onClick={() => handleClick()}>
       {mark as unknown as string}
     </button>
   );

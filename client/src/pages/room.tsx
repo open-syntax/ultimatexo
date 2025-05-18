@@ -11,6 +11,8 @@ import DefaultLayout from "@/layouts/default";
 import { Board as BoardType, socketEvent } from "@/types";
 import RoomLayout from "@/layouts/room";
 
+let ws: WebSocket;
+
 function RoomPage() {
   let { roomId } = useParams();
 
@@ -19,6 +21,7 @@ function RoomPage() {
     id: "",
     marker: "X",
   });
+  const [move, setMove] = useState<string>("");
 
   const [status, setStatus] = useState<{
     status: "connected" | "disconnected" | "connecting";
@@ -26,8 +29,8 @@ function RoomPage() {
   }>({ status: "connecting", message: "" });
 
   useEffect(() => {
-    const ws = new WebSocket(
-      `http://${import.meta.env.VITE_WS_URI}:${import.meta.env.VITE_WS_PORT}/ws/${roomId}`,
+    ws = new WebSocket(
+      `/api/ws/${roomId}`,
     );
 
     // handle on connection established
@@ -50,17 +53,42 @@ function RoomPage() {
             setPlayer(e.data.player);
           }
           break;
+
+        case "Error":
+          setStatus({
+            status: "disconnected",
+            message: e.data.error,
+          });
+          break;
       }
     };
 
     // handle on disconnection
     ws.onclose = () => {
-      setStatus({
+      setStatus((state) => ({
+        ...state,
         status: "disconnected",
-        message: "Cannot connect",
-      });
+        message:
+          state.message === "ROOM_NOT_FOUND" ? state.message : "Cannot connect",
+      }));
     };
   }, [roomId]);
+
+  // handle move
+  useEffect(() => {
+    if (!move || !status === ("connected" as any))
+      return;
+    console.log(move);
+
+
+    ws.send(
+      JSON.stringify({
+        event: "GameUpdate",
+        message: { move },
+        player_id: player.id,
+      }),
+    );
+  }, [move]);
 
   if (status.status === "connecting") {
     return (
@@ -89,15 +117,18 @@ function RoomPage() {
         </RoomLayout>
       ) : board ? (
         <div className="container mx-auto my-auto flex max-w-7xl flex-grow gap-4 px-6">
-          <Board board={board} />
+          <Board board={board} setMove={setMove} />
         </div>
       ) : (
         <RoomLayout>
           <h3>Waiting for player to join.</h3>
           <div className="flex gap-3">
-            <Button variant="bordered" onPress={() => {
-              navigator.clipboard.writeText(roomId as string);
-            }}>
+            <Button
+              variant="bordered"
+              onPress={() => {
+                navigator.clipboard.writeText(roomId as string);
+              }}
+            >
               Room ID: <b>{roomId}</b>
             </Button>
             <Button
