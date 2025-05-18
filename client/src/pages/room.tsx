@@ -17,6 +17,7 @@ function RoomPage() {
   let { roomId } = useParams();
 
   const [board, setBoard] = useState<BoardType | null>(null);
+  const [availableBoards, setAvailableBoards] = useState<string | null>(null);
   const [player, setPlayer] = useState<{ id: string; marker: "X" | "O" }>({
     id: "",
     marker: "X",
@@ -29,9 +30,7 @@ function RoomPage() {
   }>({ status: "connecting", message: "" });
 
   useEffect(() => {
-    ws = new WebSocket(
-      `/api/ws/${roomId}`,
-    );
+    ws = new WebSocket(`/api/ws/${roomId}`);
     let playerId: string | null = null;
 
     // handle on connection established
@@ -48,13 +47,14 @@ function RoomPage() {
       switch (eventName) {
         case "GameUpdate":
           setBoard(e.data.board.boards);
+          setAvailableBoards(e.data.next_board as unknown as string | null);
           break;
         case "PlayerUpdate":
           if (e.data.action === "PLAYER_JOINED" && !playerId) {
             playerId = e.data.player.id;
             console.log("player joined", playerId, "me", player.id);
 
-            setPlayer({...e.data.player});
+            setPlayer({ ...e.data.player });
           }
           break;
 
@@ -80,18 +80,16 @@ function RoomPage() {
 
   // handle move
   useEffect(() => {
-    if (!move || !status === ("connected" as any))
-      return;
-    console.log(move, player.id);
-
-
-    ws.send(
-      JSON.stringify({
-        event: "GameUpdate",
-        move,
-        player_id: player.id,
-      }),
-    );
+    if (!move || !status === ("connected" as any)) return;
+    if (!availableBoards || availableBoards === move.split(",")[0]) {
+      ws.send(
+        JSON.stringify({
+          event: "GameUpdate",
+          move,
+          player_id: player.id,
+        }),
+      );
+    }
   }, [move]);
 
   if (status.status === "connecting") {
