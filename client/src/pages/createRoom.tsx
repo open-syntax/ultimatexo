@@ -1,7 +1,7 @@
 import { Button } from "@heroui/button";
 import { card } from "@heroui/theme";
-import { Form } from "@Heroui/form";
-import { Tab, Tabs } from "@Heroui/tabs";
+import { Form } from "@heroui/form";
+import { Tab, Tabs } from "@heroui/tabs";
 import { Input } from "@heroui/input";
 import { RadioGroup, Radio } from "@heroui/radio";
 import { Switch } from "@heroui/switch";
@@ -14,7 +14,7 @@ import DefaultLayout from "@/layouts/default";
 const { base, header, body, footer } = card();
 
 type mode = "Online" | "Local" | "Bot";
-type difficulty = "Easy" | "Medium" | "Hard";
+type difficulty = "Easy" | "Normal" | "Hard";
 
 const RoomForm = () => {
   const [isPublic, setIsPublic] = useState<boolean>(true);
@@ -29,16 +29,19 @@ const RoomForm = () => {
     setIsLoading(true);
 
     const data = new FormData(e.currentTarget);
-    const password = (data.get("password") as string) || "";
+    const password = (data.get("password") as string) || null;
 
     fetch(`/api/rooms`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: !isPublic
-        ? JSON.stringify({ is_public: isPublic, password })
-        : JSON.stringify({ is_public: isPublic }),
+      body:
+        mode === "Online"
+          ? JSON.stringify({ is_public: isPublic, password })
+          : mode === "Local"
+            ? JSON.stringify({ isPublic: false })
+            : JSON.stringify({ isPublic: false, bot_level: difficulty }),
     })
       .then((response) => response.json())
       .then((data) => {
@@ -113,7 +116,7 @@ const RoomForm = () => {
                   onValueChange={(value) => setDifficulty(value as difficulty)}
                 >
                   <Radio value="Easy">Easy</Radio>
-                  <Radio value="Medium">Medium</Radio>
+                  <Radio value="Medium">Normal</Radio>
                   <Radio value="Hard">Hard</Radio>
                 </RadioGroup>
                 <Button
