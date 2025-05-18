@@ -78,8 +78,6 @@ const RoomForm = () => {
                   Public
                 </Switch>
                 <Input
-                  isDisabled={isPublic}
-                  isRequired={!isPublic}
                   label="Password"
                   name="password"
                   size="sm"

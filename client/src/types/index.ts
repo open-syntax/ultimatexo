@@ -35,7 +35,7 @@ export type socketEvent =
           id: string;
           marker: "X" | "O";
         };
-        next_board: string;
+        next_board: number | null;
       };
     }
   | {
