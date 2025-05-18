@@ -33,7 +33,7 @@ pub enum ServerMessage {
     GameUpdate {
         board: Board,
         next_player: Player,
-        next_board: Option<String>,
+        next_board: Option<usize>,
     },
     PlayerUpdate {
         action: String,

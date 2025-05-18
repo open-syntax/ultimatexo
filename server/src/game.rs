@@ -139,7 +139,7 @@ impl Game {
                 if self.state.board.boards[b]
                     .cells
                     .iter()
-                    .all(|marker| marker != &Marker::Empty)
+                    .any(|marker| marker == &Marker::Empty)
                 {
                     self.state.next_board = Some(b);
                 } else {

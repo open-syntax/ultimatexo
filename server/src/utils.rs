@@ -23,7 +23,7 @@ pub async fn send_board(tx: &broadcast::Sender<String>, game: Arc<Mutex<Game>>) 
             next_board: game
                 .state
                 .next_board
-                .map(|b| Some(b.to_string()))
+                .map(|b| Some(b))
                 .unwrap_or_else(|| None),
         }
         .to_json()
