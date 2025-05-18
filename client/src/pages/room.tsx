@@ -32,6 +32,7 @@ function RoomPage() {
     ws = new WebSocket(
       `/api/ws/${roomId}`,
     );
+    let playerId: string | null = null;
 
     // handle on connection established
     ws.onopen = () => {
@@ -49,8 +50,11 @@ function RoomPage() {
           setBoard(e.data.board.boards);
           break;
         case "PlayerUpdate":
-          if (e.data.action === "PLAYER_JOINED") {
-            setPlayer(e.data.player);
+          if (e.data.action === "PLAYER_JOINED" && !playerId) {
+            playerId = e.data.player.id;
+            console.log("player joined", playerId, "me", player.id);
+
+            setPlayer({...e.data.player});
           }
           break;
 
@@ -78,13 +82,13 @@ function RoomPage() {
   useEffect(() => {
     if (!move || !status === ("connected" as any))
       return;
-    console.log(move);
+    console.log(move, player.id);
 
 
     ws.send(
       JSON.stringify({
         event: "GameUpdate",
-        message: { move },
+        move,
         player_id: player.id,
       }),
     );
