@@ -51,15 +51,30 @@ function Cell({ mark, board, index, onClick }: CellProps) {
       borderClasses = "border-l-2 border-t-2";
   }
 
-  if (mark === "X"  as unknown as BoardCell || mark === "O" as unknown as BoardCell) {
+  if (
+    mark === ("X" as unknown as BoardCell) ||
+    mark === ("O" as unknown as BoardCell)
+  ) {
     uxClasses = "text-default-800 pointer-events-none";
   } else {
     uxClasses = "cursor-pointer";
   }
 
   return (
-    <button className={cn(defaultClasses, borderClasses, uxClasses, "animate-appearance-in")} onClick={() => handleClick()}>
-      {mark && <p className="font-bold animate-appearance-in">{mark as unknown as string}</p>}
+    <button
+      className={cn(
+        defaultClasses,
+        borderClasses,
+        uxClasses,
+        "relative animate-appearance-in",
+      )}
+      onClick={() => handleClick()}
+    >
+      {mark && (
+        <div
+          className={`relative h-full aspect-square animate-appearance-in before:absolute before:left-1/2 before:top-1/2 before:translate-x-[-50%] before:translate-y-[-50%] after:absolute after:left-1/2 after:top-1/2 after:translate-x-[-50%] after:translate-y-[-50%] after:bg-default-800 ${mark === ("X" as unknown as BoardCell) ? "before:block before:h-2 before:w-[calc(100%-4px)] before:rotate-45 before:bg-default-800 after:block after:h-2 after:w-[calc(100%-4px)] after:-rotate-45" : "before:block before:h-[calc(100%-8px)] before:w-[calc(100%-8px)] before:rounded-full before:border-8"}`}
+        />
+      )}
     </button>
   );
 }
