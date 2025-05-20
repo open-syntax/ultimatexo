@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import RoomLayout from "@/layouts/room";
 import DefaultLayout from "@/layouts/default";
 
-const { base, header, body, footer } = card();
+const { base, header, body } = card();
 
 type mode = "Online" | "Local" | "Bot";
 type difficulty = "Easy" | "Normal" | "Hard";
