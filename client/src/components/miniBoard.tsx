@@ -1,38 +1,32 @@
 import Cell from "./cell";
 
-import { checkWinner } from "@/functions/game";
 import { BoardCell, miniBoard } from "@/types/index";
-
 
 interface MiniBoardProps {
   board: miniBoard;
-
+  isNextBoard: boolean;
   index: number;
 
   setMove: Function;
 }
 
-function MiniBoard({ board, index, setMove }: MiniBoardProps) {
-//   const isWon = checkWinner(board);
-
-//   if (isWon) {
-//     return (
-//       <div className="border border-default-400 w-full h-full flex items-center justify-center">
-//         <p className="text-8xl font-bold" style={{ color: isWon === "X" ? "red" : "blue" }}>{isWon}</p>
-//       </div>
-//     );
-//   }
+function MiniBoard({ board, index, setMove, isNextBoard }: MiniBoardProps) {
+  if (board.status) {
+    return (
+      <div className="flex h-full w-full items-center justify-center border border-default-400">
+        <p className="animate-appearance-in text-9xl font-bold md:text-7xl">
+          {board.status}
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-2 border border-default-400 grid grid-cols-3 grid-rows-3 w-full h-full place-items-center aspect-square">
+    <div
+      className={`grid aspect-square h-full w-full grid-cols-3 grid-rows-3 place-items-center border border-default-400 p-2 transition-shadow duration-500 ${isNextBoard ? "z-10 shadow-lg shadow-primary" : ""}`}
+    >
       {board.cells.map((cell: BoardCell, i) => (
-        <Cell
-          key={i}
-          index={i}
-          board={index}
-          mark={cell}
-          onClick={setMove}
-        />
+        <Cell key={i} board={index} index={i} mark={cell} onClick={setMove} />
       ))}
     </div>
   );

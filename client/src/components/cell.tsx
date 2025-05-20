@@ -59,7 +59,7 @@ function Cell({ mark, board, index, onClick }: CellProps) {
 
   return (
     <button className={cn(defaultClasses, borderClasses, uxClasses, "animate-appearance-in")} onClick={() => handleClick()}>
-      {mark as unknown as string}
+      {mark && <p className="font-bold animate-appearance-in">{mark as unknown as string}</p>}
     </button>
   );
 }
