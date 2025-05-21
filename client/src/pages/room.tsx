@@ -22,6 +22,7 @@ function RoomPage() {
     id: "",
     marker: "X",
   });
+  const [nextPlayer, setNextPlayer] = useState<{ id: string; marker: "X" | "O" } | null>(null);
   const [move, setMove] = useState<string>("");
 
   const [status, setStatus] = useState<{
@@ -48,6 +49,7 @@ function RoomPage() {
         case "GameUpdate":
           setBoard(e.data.board.boards);
           setAvailableBoards(e.data.next_board);
+          setNextPlayer(e.data.next_player);
           break;
         case "PlayerUpdate":
           if (e.data.action === "PLAYER_JOINED" && !playerId) {
@@ -118,7 +120,7 @@ function RoomPage() {
         </RoomLayout>
       ) : board ? (
         <div className="container mx-auto my-auto flex max-w-7xl flex-grow gap-4 px-6">
-          <Board board={board} setMove={setMove} />
+          <Board board={board} nextMove={nextPlayer?.id === player.id ? (availableBoards) : false} setMove={setMove} />
         </div>
       ) : (
         <RoomLayout>
