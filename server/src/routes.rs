@@ -5,23 +5,23 @@ use crate::{
 };
 use anyhow::Result;
 use axum::{
-    Json,
     extract::{
-        Path, State, WebSocketUpgrade,
         ws::{Message, WebSocket},
+        Path, State, WebSocketUpgrade,
     },
     response::Response,
+    Json,
 };
 use futures_util::{
-    SinkExt,
     stream::{SplitSink, SplitStream, StreamExt},
+    SinkExt,
 };
 
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, from_str};
+use serde_json::{from_str, Value};
 use std::sync::Arc;
-use tokio::sync::{Mutex, broadcast};
+use tokio::sync::{broadcast, Mutex};
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "event", content = "data")]
@@ -74,7 +74,6 @@ pub async fn websocket_handler(
                 ))
                 .await
                 .unwrap();
-            return;
         }
     })
 }
