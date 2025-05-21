@@ -1,5 +1,6 @@
 use crate::{minimax::Evaluator, utils::parse_tuple};
 use anyhow::{Ok, Result, anyhow};
+use minimax::Strategy;
 use serde::{Deserialize, Serialize, Serializer};
 use uuid::Uuid;
 
@@ -117,41 +118,30 @@ impl Game {
         }
         let position = parse_tuple(position_str)?;
         self.check_position(position)?;
-        self.check_win(position.0)?;
+        self.check_win(position)?;
         self.state.toggle_players();
 
         Ok(())
     }
-    fn check_position(&mut self, (a, b): (usize, usize)) -> Result<bool> {
+    fn check_position(&mut self, (a, b): (usize, usize)) -> Result<()> {
         if self.state.players.len() < 2 {
             return Err(anyhow!("MISSING_A_PLAYER"));
         }
-        if self.state.next_board.is_none() || self.state.next_board.unwrap() == a {
-            if self.state.board.boards[a].cells[b] == Marker::Empty {
-                self.state.board.boards[a].cells[b] = self.state.players[0].marker;
-                if self.state.board.boards[a]
-                    .cells
-                    .iter()
-                    .all(|cell| cell.ne(&Marker::Empty))
-                {
-                    self.state.board.boards[a].status = Status::Draw;
-                }
-                if self.state.board.boards[b]
-                    .cells
-                    .iter()
-                    .any(|marker| marker == &Marker::Empty)
-                {
-                    self.state.next_board = Some(b);
-                } else {
-                    self.state.next_board = None;
-                }
-                return Ok(true);
-            }
+        if self.state.board.status.ne(&Status::InProgress) {
+            return Err(anyhow!("GAME_ENDED"));
+        }
+        if (self.state.next_board.is_none() || self.state.next_board.unwrap() == a)
+            && self.state.board.boards[a].status.eq(&Status::InProgress)
+            && self.state.board.boards[a].cells[b] == Marker::Empty
+        {
+            self.state.board.boards[a].cells[b] = self.state.players[0].marker;
+
+            return Ok(());
         }
 
         Err(anyhow!("INVALID_MOVE"))
     }
-    fn check_win(&mut self, index: usize) -> Result<bool> {
+    fn check_win(&mut self, (a, b): (usize, usize)) -> Result<()> {
         let win_conditions = [
             [0, 1, 2],
             [3, 4, 5],
@@ -164,17 +154,19 @@ impl Game {
         ];
         //checks of a win in current MacroBoard
         for condition in win_conditions {
-            let board = self.state.board.boards[index].clone();
+            let board = &mut self.state.board.boards[a];
             if board.cells[condition[0]].ne(&Marker::Empty)
                 && board.cells[condition[0]].eq(&board.cells[condition[1]])
                 && board.cells[condition[0]].eq(&board.cells[condition[2]])
             {
-                self.state.board.boards[index].status = Status::Won(self.state.players[0].marker);
+                board.status = Status::Won(board.cells[condition[0]]);
+            } else if board.cells.iter().all(|marker| marker.ne(&Marker::Empty)) {
+                board.status = Status::Draw;
             }
         }
         //checks of a game win
+        let boards = self.state.board.boards;
         for condition in win_conditions {
-            let boards = self.state.board.boards.clone();
             if boards[condition[0]]
                 .status
                 .eq(&Status::Won(self.state.players[0].marker))
@@ -182,29 +174,32 @@ impl Game {
                 && boards[condition[0]].status.eq(&boards[condition[2]].status)
             {
                 self.state.board.status = Status::Won(self.state.players[0].marker);
+                return Ok(());
             }
         }
         //checks for a game draw
-        if self
-            .state
-            .board
-            .boards
+        if boards
             .iter()
             .all(|board| board.status.ne(&Status::InProgress))
         {
             self.state.board.status = Status::Draw;
         }
 
-        Ok(true)
+        if self.state.board.boards[b].status == Status::InProgress {
+            self.state.next_board = Some(b);
+        } else {
+            self.state.next_board = None;
+        }
+        Ok(())
     }
 
     pub fn generate_move(&mut self, level: usize) {
-        use minimax::Strategy;
         let mut strategy = minimax::Negamax::new(Evaluator, level as u8);
 
         if let Some(best_move) = strategy.choose_move(&self.state) {
             let position = (best_move.board as usize, best_move.cell as usize);
             self.check_position(position).unwrap();
+            self.check_win(position).unwrap();
             self.state.toggle_players();
         }
     }
