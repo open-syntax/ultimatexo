@@ -1,27 +1,28 @@
 use crate::{
-    app::{Room, RoomData, RoomManager},
     game::{Board, Game, Player},
+    room::{Room, RoomInfo, RoomManager},
     utils::send_board,
 };
 use anyhow::Result;
 use axum::{
-    extract::{
-        ws::{Message, WebSocket},
-        Path, State, WebSocketUpgrade,
-    },
-    response::Response,
     Json,
+    extract::{
+        Path, Query, State, WebSocketUpgrade,
+        ws::{Message, WebSocket},
+    },
+    http::StatusCode,
+    response::Response,
 };
 use futures_util::{
-    stream::{SplitSink, SplitStream, StreamExt},
     SinkExt,
+    stream::{SplitSink, SplitStream, StreamExt},
 };
 
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use serde_json::{from_str, Value};
-use std::sync::Arc;
-use tokio::sync::{broadcast, Mutex};
+use serde_json::{Value, from_str, json, to_string};
+use std::{sync::Arc, time::SystemTime};
+use tokio::sync::{Mutex, broadcast};
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "event", content = "data")]
@@ -49,7 +50,7 @@ pub enum ServerMessage {
 
 impl ServerMessage {
     pub fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string(self)?)
+        Ok(to_string(self)?)
     }
 }
 
@@ -103,12 +104,12 @@ async fn handle_socket(
         action: "PLAYER_JOINED".to_string(),
         player: player.clone(),
     };
-    let _ = room.tx.send(serde_json::to_string(&msg).unwrap());
-    if room.data.bot_level.is_some() {
+    let _ = room.tx.send(to_string(&msg).unwrap());
+    if room.info.bot_level.is_some() {
         room.game.lock().await.add_player();
     }
     if room.tx.receiver_count() == 2
-        || (room.data.bot_level.is_some() && room.tx.receiver_count() == 1)
+        || (room.info.bot_level.is_some() && room.tx.receiver_count() == 1)
     {
         send_board(&tx, room.game.clone()).await;
     }
@@ -161,9 +162,9 @@ async fn handle_socket(
                                         .unwrap(),
                                     );
                                 } else {
-                                    if room.data.bot_level.is_some() {
+                                    if room.info.bot_level.is_some() {
                                         let level =
-                                            match room.data.bot_level.as_ref().unwrap().as_str() {
+                                            match room.info.bot_level.as_ref().unwrap().as_str() {
                                                 "Easy" => 2,
                                                 "Normal" => 2,
                                                 "Hard" => 2,
@@ -220,31 +221,79 @@ async fn handle_socket(
     Ok(())
 }
 
-pub async fn get_rooms_handler(State(state): State<Arc<RoomManager>>) -> String {
-    state
+pub async fn get_rooms(
+    State(state): State<Arc<RoomManager>>,
+) -> Result<Json<Vec<RoomInfo>>, StatusCode> {
+    let rooms = state
         .rooms
         .iter()
-        .filter(|room| room.data.is_public)
-        .count()
-        .to_string()
+        .map(|room| room.info.clone())
+        .collect::<Vec<RoomInfo>>();
+    Ok(Json(rooms))
+}
+#[derive(Deserialize)]
+pub struct RoomIdQuery {
+    pub room_id: String,
+}
+pub async fn get_room(
+    State(state): State<Arc<RoomManager>>,
+    Query(RoomIdQuery { room_id }): Query<RoomIdQuery>,
+) -> Result<Json<RoomInfo>, StatusCode> {
+    state
+        .rooms
+        .get(&room_id)
+        .map(|room| Json(room.info.clone()))
+        .ok_or(StatusCode::NOT_FOUND)
 }
 
-pub async fn new_room_handler(
+pub async fn new_room(
     State(state): State<Arc<RoomManager>>,
-    Json(payload): Json<RoomData>,
+    Json(payload): Json<RoomInfo>,
 ) -> String {
+    let room_id = rand::rng().random_range(11111..=99999).to_string();
     let (tx, _) = broadcast::channel(100);
     let room = Arc::new(Room {
         tx,
         game: Arc::new(Mutex::new(Game::new())),
-        data: RoomData {
+        info: RoomInfo {
+            id: room_id.clone(),
+            name: payload.name,
             is_public: payload.is_public,
             password: payload.password,
             bot_level: payload.bot_level,
         },
     });
 
-    let room_id = rand::rng().random_range(11111..=99999).to_string();
     state.rooms.insert(room_id.clone(), room);
     room_id
+}
+
+#[derive(Deserialize)]
+pub struct RoomPasswordCheck {
+    pub room_id: String,
+    pub password: String,
+}
+
+pub async fn check_room_password(
+    State(state): State<Arc<RoomManager>>,
+    Json(payload): Json<RoomPasswordCheck>,
+) -> Result<Json<Value>, StatusCode> {
+    let room = state
+        .rooms
+        .get(&payload.room_id)
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    let is_valid = match &room.info.password {
+        Some(pass) => pass == &payload.password,
+        None => payload.password.is_empty(),
+    };
+
+    Ok(Json(json!({ "valid": is_valid })))
+}
+
+pub async fn health_check() -> Result<Json<Value>, StatusCode> {
+    Ok(Json(json!({
+        "status": "healthy",
+        "timestamp": SystemTime::now()
+    })))
 }

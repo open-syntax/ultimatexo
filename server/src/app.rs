@@ -1,75 +1,59 @@
-use crate::{
-    game::{Game, Player},
-    routes::ServerMessage,
+use crate::room::RoomManager;
+use crate::routes::{
+    check_room_password, get_room, get_rooms, health_check, new_room, websocket_handler,
 };
-use anyhow::{Ok, Result, anyhow};
-use dashmap::DashMap;
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tokio::sync::{Mutex, broadcast};
+use anyhow::{Context, Result};
+use axum::{Router, routing::get};
+use std::{env, sync::Arc};
+use tokio::signal;
 
-#[derive(Debug, Default, Deserialize, Serialize)]
-#[serde(default)]
-pub struct RoomData {
-    pub is_public: bool,
-    pub password: Option<String>,
-    pub bot_level: Option<String>,
-}
-#[derive(Debug)]
-pub struct Room {
-    pub tx: broadcast::Sender<String>,
-    pub game: Arc<Mutex<Game>>,
-    pub data: RoomData,
+pub async fn start_server() -> Result<()> {
+    let state = Arc::new(RoomManager::new());
+
+    let app = Router::new()
+        .route("/ws/{room_id}", get(websocket_handler))
+        .route("/rooms", get(get_rooms).post(new_room))
+        .route("/health", get(health_check))
+        .route("/room", get(get_room).post(check_room_password))
+        .with_state(state);
+
+    let port: String = env::var("PORT").unwrap_or("6767".to_string());
+    let host: String = env::var("HOST").unwrap_or("127.0.0.1".to_string());
+
+    let listener = tokio::net::TcpListener::bind(format!("{}:{}", host, port))
+        .await
+        .context(format!("Failed to bind to {}:{}", host, port))?;
+
+    tracing::info!("Server listening on {}:{}", host, port);
+
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .context("Server error")?;
+
+    Ok(())
 }
 
-#[derive(Debug)]
-pub struct RoomManager {
-    pub rooms: DashMap<String, Arc<Room>>,
-}
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c().await.expect("failed to handle Ctrl+C");
+    };
 
-impl RoomManager {
-    pub fn new() -> Self {
-        Self {
-            rooms: DashMap::new(),
-        }
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to handle the Signal")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
     }
 
-    pub async fn join(
-        &self,
-        room_id: &String,
-        password: Option<String>,
-    ) -> Result<(Player, Arc<Room>)> {
-        if let Some(room) = self.rooms.get(room_id) {
-            if !(password == room.data.password) {
-                return Err(anyhow!("INVALID_PASSWORD"));
-            }
-            if room.tx.receiver_count() >= 2
-                || (room.data.bot_level.is_some() && room.tx.receiver_count() >= 1)
-            {
-                return Err(anyhow!("ROOM_FULL"));
-            }
-
-            let player = room.game.lock().await.add_player();
-            return Ok((player, room.clone()));
-        }
-        Err(anyhow!("ROOM_NOT_FOUND"))
-    }
-
-    pub async fn leave(&self, room_id: &String, player: Player) -> Result<()> {
-        if let Some(room) = self.rooms.get(room_id) {
-            let is_empty = room.game.lock().await.remove_player(&player.id)?;
-
-            let msg = ServerMessage::PlayerUpdate {
-                action: "PLAYER_LEFT".to_string(),
-                player,
-            };
-            let _ = room.tx.send(msg.to_json()?);
-
-            if is_empty {
-                drop(room);
-                self.rooms.remove(room_id);
-            }
-        }
-        Ok(())
-    }
+    tracing::info!("signal received, starting graceful shutdown");
 }
