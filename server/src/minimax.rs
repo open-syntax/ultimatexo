@@ -1,9 +1,10 @@
 use crate::game::{Game, GameState, Marker, Status};
 
-#[derive(Copy, Clone, PartialEq, Eq, Default)]
+#[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
 pub struct Place {
     pub board: u8,
     pub cell: u8,
+    p_board: Option<usize>,
 }
 
 impl minimax::Game for Game {
@@ -18,6 +19,7 @@ impl minimax::Game for Game {
                     ms.push(Place {
                         cell: cell_index as u8,
                         board: state.next_board.unwrap() as u8,
+                        p_board: state.next_board,
                     });
                 }
             }
@@ -28,6 +30,7 @@ impl minimax::Game for Game {
                         ms.push(Place {
                             cell: cell_index as u8,
                             board: board_index as u8,
+                            p_board: state.next_board,
                         });
                     }
                 }
@@ -83,14 +86,16 @@ impl minimax::Game for Game {
         }
     }
 
-    fn apply(state: &mut GameState, m: Place) -> Option<GameState> {
+    fn apply(state: &mut GameState, mut m: Place) -> Option<GameState> {
         state.board.boards[m.board as usize].cells[m.cell as usize] = state.players[0].marker;
-        state.next_board = Some(m.board as usize);
+        m.p_board = state.next_board;
+        state.next_board = Some(m.cell as usize);
         state.toggle_players();
         None
     }
     fn undo(state: &mut GameState, m: Place) {
         state.board.boards[m.board as usize].cells[m.cell as usize] = Marker::Empty;
+        state.next_board = m.p_board;
         state.toggle_players();
     }
 }
@@ -102,89 +107,109 @@ impl minimax::Evaluator for Evaluator {
     type G = Game;
     fn evaluate(&self, state: &GameState) -> minimax::Evaluation {
         let mut score = 0;
+        let win_conditions = [
+            [0, 1, 2],
+            [3, 4, 5],
+            [6, 7, 8],
+            [0, 3, 6],
+            [1, 4, 7],
+            [2, 5, 8],
+            [0, 4, 8],
+            [2, 4, 6],
+        ];
         let board = state.board.clone();
-
         for board in board.boards {
-            for i in 0..3 {
-                let line = i * 3;
-                if board.cells[line + 0] == board.cells[line + 1] {
-                    if board.cells[line + 0] == state.players[0].marker {
+            for condition in win_conditions {
+                let a = &board.cells[condition[0]];
+                let b = &board.cells[condition[1]];
+                let c = &board.cells[condition[2]];
+                if a == b {
+                    if a == &Marker::X {
+                        if c == &Marker::Empty {
+                            score += 1;
+                        }
                         score += 5;
-                    } else if board.cells[line + 0] == state.players[1].marker {
+                    } else if c == &Marker::O {
+                        if c == &Marker::Empty {
+                            score -= 1;
+                        }
                         score -= 5;
                     }
                 }
-                if board.cells[line + 1] == board.cells[line + 2] {
-                    if board.cells[line + 1] == state.players[0].marker {
+                if b == c {
+                    if b == &Marker::X {
+                        if a == &Marker::Empty {
+                            score += 1;
+                        }
                         score += 5;
-                    } else if board.cells[line + 1] == state.players[1].marker {
-                        score += 5;
-                    }
-                }
-                if board.cells[i] == board.cells[3 + i] {
-                    if board.cells[i] == state.players[0].marker {
-                        score += 5;
-                    } else if board.cells[i] == state.players[1].marker {
+                    } else if c == &Marker::O {
+                        if a == &Marker::Empty {
+                            score -= 1;
+                        }
                         score -= 5;
                     }
                 }
-                if board.cells[3 + i] == board.cells[6 + i] {
-                    if board.cells[3 + i] == state.players[0].marker {
+                if c == a {
+                    if c == &Marker::X {
+                        if b == &Marker::Empty {
+                            score += 1;
+                        }
                         score += 5;
-                    } else if board.cells[3 + i] == state.players[1].marker {
+                    } else if c == &Marker::O {
+                        if b == &Marker::Empty {
+                            score -= 1;
+                        }
                         score -= 5;
                     }
                 }
-            }
-            // 2nd: check for the middle square
-            if board.cells[4] == state.players[0].marker {
-                score += 5;
-            }
-            if board.cells[4] == state.players[1].marker {
-                score -= 5;
             }
         }
 
-        // 3rd: check for doubles
-        for i in 0..3 {
-            let line = i * 3;
-            if board.boards[line + 0].status == board.boards[line + 1].status {
-                if board.boards[line + 0].status == Status::Won(state.players[0].marker) {
-                    score += 10;
-                } else if board.boards[line + 0].status == Status::Won(state.players[0].marker) {
-                    score -= 10;
+        for condition in win_conditions {
+            let a = &board.boards[condition[0]].status;
+            let b = &board.boards[condition[1]].status;
+            let c = &board.boards[condition[2]].status;
+            if a == b {
+                if a == &Status::Won(Marker::X) {
+                    if c == &Status::InProgress {
+                        score += 10;
+                    }
+                    score += 20;
+                } else if a == &Status::Won(Marker::O) {
+                    if c == &Status::InProgress {
+                        score -= 10;
+                    }
+                    score -= 20;
                 }
             }
-            if board.boards[line + 1].status == board.boards[line + 2].status {
-                if board.boards[line + 1].status == Status::Won(state.players[0].marker) {
-                    score += 10;
-                } else if board.boards[line + 1].status == Status::Won(state.players[1].marker) {
-                    score += 10;
+            if b == c {
+                if b == &Status::Won(Marker::X) {
+                    if a == &Status::InProgress {
+                        score += 10;
+                    }
+                    score += 20;
+                } else if a == &Status::Won(Marker::O) {
+                    if a == &Status::InProgress {
+                        score -= 10;
+                    }
+                    score -= 20;
                 }
             }
-            if board.boards[i].status == board.boards[3 + i].status {
-                if board.boards[i].status == Status::Won(state.players[0].marker) {
-                    score += 10;
-                } else if board.boards[i].status == Status::Won(state.players[1].marker) {
-                    score -= 10;
-                }
-            }
-            if board.boards[3 + i].status == board.boards[6 + i].status {
-                if board.boards[3 + i].status == Status::Won(state.players[0].marker) {
-                    score += 10;
-                } else if board.boards[3 + i].status == Status::Won(state.players[1].marker) {
-                    score -= 10;
+            if c == a {
+                if c == &Status::Won(Marker::X) {
+                    if b == &Status::InProgress {
+                        score += 10;
+                    }
+                    score += 20;
+                } else if a == &Status::Won(Marker::O) {
+                    if b == &Status::InProgress {
+                        score -= 10;
+                    }
+                    score -= 20;
                 }
             }
         }
-        // 2nd: check for the middle square
-        if board.boards[4].status == Status::Won(state.players[0].marker) {
-            score += 10;
-        }
-        if board.boards[4].status == Status::Won(state.players[1].marker) {
-            score -= 10;
-        }
-        if state.players[1].marker == state.players[0].marker {
+        if state.players[0].marker == Marker::X {
             score
         } else {
             -score
