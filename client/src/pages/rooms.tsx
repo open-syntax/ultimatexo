@@ -14,26 +14,8 @@ export type room = {
   isProtected: boolean;
 };
 
-const roomstest = [
-  {
-    id: "1",
-    name: "Room 1",
-    isProtected: false,
-  },
-  {
-    id: "12",
-    name: "Room 2",
-    isProtected: false,
-  },
-  {
-    id: "13",
-    name: "Room 3",
-    isProtected: true,
-  },
-];
-
 export default function RoomsPage() {
-  const [rooms, setRooms] = useState<room[]>(roomstest);
+  const [rooms, setRooms] = useState<room[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [search, setSearch] = useState<string>("");
@@ -73,7 +55,7 @@ export default function RoomsPage() {
   if (rooms.length === 0) {
     return (
       <DefaultLayout>
-        <div className="flex flex-col gap-3 items-center justify-center h-full">
+        <div className="flex h-full flex-col items-center justify-center gap-3">
           <h3>There are no rooms at the moment :/</h3>
           <Link
             className={buttonStyles({
