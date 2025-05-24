@@ -16,13 +16,19 @@ let ws: WebSocket;
 function RoomPage() {
   let { roomId } = useParams();
 
-  const [board, setBoard] = useState<BoardType | null>(null);
+  const [board, setBoard] = useState<{
+    boards: BoardType;
+    status: string;
+  } | null>(null);
   const [availableBoards, setAvailableBoards] = useState<number | null>(null);
   const [player, setPlayer] = useState<{ id: string; marker: "X" | "O" }>({
     id: "",
     marker: "X",
   });
-  const [nextPlayer, setNextPlayer] = useState<{ id: string; marker: "X" | "O" } | null>(null);
+  const [nextPlayer, setNextPlayer] = useState<{
+    id: string;
+    marker: "X" | "O";
+  } | null>(null);
   const [move, setMove] = useState<string>("");
 
   const [status, setStatus] = useState<{
@@ -47,7 +53,7 @@ function RoomPage() {
 
       switch (eventName) {
         case "GameUpdate":
-          setBoard(e.data.board.boards);
+          setBoard(e.data.board);
           setAvailableBoards(e.data.next_board);
           setNextPlayer(e.data.next_player);
           break;
@@ -119,8 +125,21 @@ function RoomPage() {
           </div>
         </RoomLayout>
       ) : board ? (
-        <div className="container mx-auto my-auto flex max-w-7xl flex-grow gap-4 px-6">
-          <Board board={board} nextMove={nextPlayer?.id === player.id ? (availableBoards) : false} setMove={setMove} />
+        <div className="container mx-auto my-auto flex h-[calc(100vh-64px-48px-64px)] max-w-7xl flex-grow flex-col gap-4 px-6">
+          <p className="w-full text-center font-semibold">
+            {board.status
+              ? `Player ${board.status} Won!`
+              : `${nextPlayer?.marker}'s turn.`}
+          </p>
+          <Board
+            board={board.boards}
+            nextMove={
+              nextPlayer?.id === player.id && board.status === null
+                ? availableBoards
+                : false
+            }
+            setMove={setMove}
+          />
         </div>
       ) : (
         <RoomLayout>
