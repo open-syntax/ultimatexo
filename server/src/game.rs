@@ -203,9 +203,4 @@ impl Game {
             self.state.toggle_players();
         }
     }
-
-    // pub fn restart_game(&mut self) {
-    //     *self = Self::default();
-    //     self.player_won = None;
-    // }
 }

@@ -1,0 +1,42 @@
+services:
+  server:
+    image: ghcr.io/project-chatty/tic-tac-toe-server:latest
+    networks:
+      - app-network
+    restart: unless-stopped
+    environment:
+      - RUST_BACKTRACE=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6767/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  client:
+    image: ghcr.io/project-chatty/tic-tac-toe-client:latest
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  proxy:
+    image: caddy:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
