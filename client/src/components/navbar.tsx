@@ -22,7 +22,7 @@ export const Navbar = () => {
         <NavbarBrand className="gap-3 max-w-fit">
           <p className="font-bold text-inherit">Ulitamte TTT</p>
         </NavbarBrand>
-        <div className="hidden lg:flex gap-4 justify-start ml-2">
+        <div className="hidden sm:flex gap-4 justify-start ml-2">
           {siteConfig.navItems.map((item) => (
             <NavbarItem key={item.href}>
               <Link
@@ -40,6 +40,7 @@ export const Navbar = () => {
         </div>
       </NavbarContent>
 
+      {/* right navbar links */}
       <NavbarContent
         className="hidden sm:flex basis-1/5 sm:basis-full"
         justify="end"
