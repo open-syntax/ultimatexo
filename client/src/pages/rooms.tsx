@@ -1,8 +1,10 @@
 import { Input } from "@heroui/input";
 import { useEffect, useState } from "react";
 import { Spinner } from "@heroui/spinner";
+import { Link } from "@heroui/link";
+import { button as buttonStyles } from "@heroui/theme";
 
-import { SearchIcon } from "@/components/icons";
+import { Controller, SearchIcon } from "@/components/icons";
 import RoomCard from "@/components/roomCard";
 import DefaultLayout from "@/layouts/default";
 
@@ -34,13 +36,15 @@ export default function RoomsPage() {
   const [rooms, setRooms] = useState<room[]>(roomstest);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleFetch = (name?: string) => {
+  const [search, setSearch] = useState<string>("");
+
+  const handleFetch = () => {
     setIsLoading(true);
 
-    fetch(`/api/rooms${name ? `?name=${name}` : ""}`)
+    fetch(`/api/rooms${search ? `?name=${search}` : ""}`)
       .then((response) => response.json())
       .then((data: room[]) => {
-        // setRooms(data);
+        setRooms(data || []);
       })
       .catch((error) => {
         console.log(error);
@@ -66,6 +70,27 @@ export default function RoomsPage() {
     );
   }
 
+  if (rooms.length === 0) {
+    return (
+      <DefaultLayout>
+        <div className="flex flex-col gap-3 items-center justify-center h-full">
+          <h3>There are no rooms at the moment :/</h3>
+          <Link
+            className={buttonStyles({
+              color: "primary",
+              radius: "full",
+              variant: "shadow",
+            })}
+            href="/create"
+          >
+            <Controller />
+            Host
+          </Link>
+        </div>
+      </DefaultLayout>
+    );
+  }
+
   return (
     <DefaultLayout>
       <h1 className="relative mx-auto mb-8 w-full max-w-md text-center text-xl font-semibold before:absolute before:left-16 before:top-1/2 before:h-px before:w-1/4 before:translate-y-1/2 before:bg-default-400 before:content-[''] after:absolute after:right-16 after:top-1/2 after:h-px after:w-1/4 after:translate-y-1/2 after:bg-default-400 after:content-['']">
@@ -77,12 +102,15 @@ export default function RoomsPage() {
           endContent={
             <SearchIcon
               className="cursor-pointer self-center"
-              onClick={() => handleFetch}
+              onClick={() => handleFetch()}
             />
           }
           placeholder="Search for a room"
           size="md"
+          value={search}
           variant="bordered"
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => e.code === "Enter" && handleFetch()}
         />
         {rooms.map((room) => (
           <RoomCard key={room.id} room={room} />

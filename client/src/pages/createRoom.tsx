@@ -30,6 +30,7 @@ const RoomForm = () => {
 
     const data = new FormData(e.currentTarget);
     const password = (data.get("password") as string) || null;
+    const name = (data.get("name") as string) || "";
 
     fetch(`/api/rooms`, {
       method: "POST",
@@ -38,7 +39,7 @@ const RoomForm = () => {
       },
       body:
         mode === "Online"
-          ? JSON.stringify({ is_public: isPublic, password })
+          ? JSON.stringify({ is_public: isPublic, name, password })
           : mode === "Local"
             ? JSON.stringify({ isPublic: false })
             : JSON.stringify({ isPublic: false, bot_level: difficulty }),
@@ -77,6 +78,7 @@ const RoomForm = () => {
                 <Switch isSelected={isPublic} onValueChange={setIsPublic}>
                   Public
                 </Switch>
+                <Input label="Name" name="name" size="sm" />
                 <Input
                   label="Password"
                   name="password"
