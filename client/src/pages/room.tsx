@@ -206,7 +206,7 @@ function RoomPage() {
           </form>
         </RoomLayout>
       ) : board ? (
-        <div className="container mx-auto my-auto flex h-[calc(100vh-64px-48px-64px)] max-w-7xl flex-grow flex-col justify-center gap-4 px-6">
+        <div className="container mx-auto my-auto flex h-[calc(100svh-64px-48px-64px)] max-w-7xl flex-grow flex-col justify-center gap-4 px-6">
           <p className="w-full text-center font-semibold">
             You are player: {player.marker}
           </p>
