@@ -230,19 +230,17 @@ pub async fn get_rooms(
     State(state): State<Arc<RoomManager>>,
     Query(RoomNameQuery { name }): Query<RoomNameQuery>,
 ) -> Result<Json<Vec<RoomInfo>>, StatusCode> {
-    let rooms;
+    let mut rooms = state
+        .rooms
+        .iter()
+        .map(|room| room.info.clone())
+        .filter(|room| room.is_public == true && room.bot_level.is_none())
+        .collect::<Vec<RoomInfo>>();
     if name.is_some() {
-        rooms = state
-            .rooms
+        rooms = rooms
             .iter()
-            .map(|room| room.info.clone())
             .filter(|room| room.name.starts_with(name.as_ref().unwrap()))
-            .collect::<Vec<RoomInfo>>();
-    } else {
-        rooms = state
-            .rooms
-            .iter()
-            .map(|room| room.info.clone())
+            .cloned()
             .collect::<Vec<RoomInfo>>();
     }
     Ok(Json(rooms))
