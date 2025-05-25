@@ -14,13 +14,13 @@ import DefaultLayout from "@/layouts/default";
 const { base, header, body } = card();
 
 type mode = "Online" | "Local" | "Bot";
-type difficulty = "Easy" | "Normal" | "Hard";
+type difficulty = "Beginner" | "Intermediate" | "Advanced";
 
 const RoomForm = () => {
   const [isPublic, setIsPublic] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [mode, setMode] = useState<mode>("Online");
-  const [difficulty, setDifficulty] = useState<difficulty>("Easy");
+  const [difficulty, setDifficulty] = useState<difficulty>("Beginner");
   const navgiate = useNavigate();
 
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
@@ -115,9 +115,9 @@ const RoomForm = () => {
                   value={difficulty}
                   onValueChange={(value) => setDifficulty(value as difficulty)}
                 >
-                  <Radio value="Easy">Easy</Radio>
-                  <Radio value="Medium">Normal</Radio>
-                  <Radio value="Hard">Hard</Radio>
+                  <Radio value="Easy">Beginner</Radio>
+                  <Radio value="Medium">Intermediate</Radio>
+                  <Radio value="Hard">Advanced</Radio>
                 </RadioGroup>
                 <Button
                   className="mt-auto w-full"
