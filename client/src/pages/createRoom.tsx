@@ -41,8 +41,8 @@ const RoomForm = () => {
         mode === "Online"
           ? JSON.stringify({ is_public: isPublic, name, password })
           : mode === "Local"
-            ? JSON.stringify({ isPublic: false })
-            : JSON.stringify({ isPublic: false, bot_level: difficulty }),
+            ? JSON.stringify({ is_public: false })
+            : JSON.stringify({ is_public: false, bot_level: difficulty }),
     })
       .then((response) => response.json())
       .then((data) => {
