@@ -1,11 +1,9 @@
 FROM rust:1.87.0 AS builder
 
 WORKDIR /app
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --release && rm -rf src
 
-COPY src ./src
+
+COPY . .
 RUN cargo build --release
 FROM debian:bookworm-slim
 
@@ -22,6 +20,8 @@ COPY --from=builder /app/target/release/server ./server
 RUN chown appuser:appuser ./server
 
 USER appuser
+
+ENV HOST=0.0.0.0
 EXPOSE 6767
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:6767/health || exit 1
