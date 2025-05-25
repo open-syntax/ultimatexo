@@ -236,7 +236,7 @@ pub async fn get_rooms(
             .rooms
             .iter()
             .map(|room| room.info.clone())
-            .filter(|room| name.as_ref().unwrap().starts_with(&room.name))
+            .filter(|room| room.name.starts_with(name.as_ref().unwrap()))
             .collect::<Vec<RoomInfo>>();
     } else {
         rooms = state
@@ -283,16 +283,20 @@ pub async fn new_room(
     room_id
 }
 
+#[derive(Deserialize)]
+pub struct RoomPasswordCheck {
+    pub password: String,
+}
 pub async fn check_room_password(
     State(state): State<Arc<RoomManager>>,
     Path(room_id): Path<String>,
-    Json(password): Json<String>,
+    Json(payload): Json<RoomPasswordCheck>,
 ) -> Result<Json<Value>, StatusCode> {
     let room = state.rooms.get(&room_id).ok_or(StatusCode::NOT_FOUND)?;
 
     let is_valid = match &room.info.password {
-        Some(pass) => pass == &password,
-        None => password.is_empty(),
+        Some(password) => password == &payload.password,
+        None => payload.password.is_empty(),
     };
 
     Ok(Json(json!({ "valid": is_valid })))
