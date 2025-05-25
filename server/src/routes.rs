@@ -165,9 +165,9 @@ async fn handle_socket(
                                     if room.info.bot_level.is_some() {
                                         let level =
                                             match room.info.bot_level.as_ref().unwrap().as_str() {
-                                                "Easy" => 2,
-                                                "Normal" => 2,
-                                                "Hard" => 2,
+                                                "Beginner" => 2,
+                                                "Intermediate" => 5,
+                                                "Advanced" => 9,
                                                 _ => {
                                                     let _ = tx.send(
                                                         ServerMessage::Error {
