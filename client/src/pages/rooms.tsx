@@ -11,22 +11,41 @@ import DefaultLayout from "@/layouts/default";
 export type room = {
   id: string;
   name: string;
-  isProtected: boolean;
+  is_protected: boolean;
 };
 
 export default function RoomsPage() {
-  const [rooms, setRooms] = useState<room[]>([]);
+  const [rooms, setRooms] = useState<{
+    rooms: room[];
+    search: room[];
+    queried: boolean;
+  }>({
+    rooms: [],
+    search: [],
+    queried: false,
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   const [search, setSearch] = useState<string>("");
 
   const handleFetch = () => {
+    if (!search && !rooms.rooms) return;
+
     setIsLoading(true);
 
     fetch(`/api/rooms${search ? `?name=${search}` : ""}`)
       .then((response) => response.json())
       .then((data: room[]) => {
-        setRooms(data || []);
+        console.log(data);
+        if (search) {
+          setRooms((state) => ({
+            ...state,
+            search: data || [],
+            queried: true,
+          }));
+        } else {
+          setRooms((state) => ({ ...state, rooms: data || [] }));
+        }
       })
       .catch((error) => {
         console.log(error);
@@ -52,7 +71,7 @@ export default function RoomsPage() {
     );
   }
 
-  if (rooms.length === 0) {
+  if (rooms.rooms.length === 0) {
     return (
       <DefaultLayout>
         <div className="flex h-full flex-col items-center justify-center gap-3">
@@ -91,12 +110,15 @@ export default function RoomsPage() {
           size="md"
           value={search}
           variant="bordered"
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setRooms(state => ({...state, queried: false}))
+          }}
           onKeyDown={(e) => e.code === "Enter" && handleFetch()}
         />
-        {rooms.map((room) => (
-          <RoomCard key={room.id} room={room} />
-        ))}
+        {search && rooms.queried
+          ? rooms.search.map((room) => <RoomCard key={room.id} room={room} />)
+          : rooms.rooms.map((room) => <RoomCard key={room.id} room={room} />)}
       </div>
     </DefaultLayout>
   );
