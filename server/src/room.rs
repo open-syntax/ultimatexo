@@ -18,6 +18,8 @@ pub struct RoomInfo {
 
     #[serde(skip_serializing)]
     pub password: Option<String>,
+    #[serde(skip_deserializing)]
+    pub is_protected: bool,
 }
 #[derive(Debug)]
 pub struct Room {

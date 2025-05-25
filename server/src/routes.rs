@@ -221,23 +221,36 @@ async fn handle_socket(
     Ok(())
 }
 
+#[derive(Deserialize)]
+pub struct RoomNameQuery {
+    name: Option<String>,
+}
+
 pub async fn get_rooms(
     State(state): State<Arc<RoomManager>>,
+    Query(RoomNameQuery { name }): Query<RoomNameQuery>,
 ) -> Result<Json<Vec<RoomInfo>>, StatusCode> {
-    let rooms = state
-        .rooms
-        .iter()
-        .map(|room| room.info.clone())
-        .collect::<Vec<RoomInfo>>();
+    let rooms;
+    if name.is_some() {
+        rooms = state
+            .rooms
+            .iter()
+            .map(|room| room.info.clone())
+            .filter(|room| name.as_ref().unwrap().starts_with(&room.name))
+            .collect::<Vec<RoomInfo>>();
+    } else {
+        rooms = state
+            .rooms
+            .iter()
+            .map(|room| room.info.clone())
+            .collect::<Vec<RoomInfo>>();
+    }
     Ok(Json(rooms))
 }
-#[derive(Deserialize)]
-pub struct RoomIdQuery {
-    pub room_id: String,
-}
+
 pub async fn get_room(
     State(state): State<Arc<RoomManager>>,
-    Query(RoomIdQuery { room_id }): Query<RoomIdQuery>,
+    Path(room_id): Path<String>,
 ) -> Result<Json<RoomInfo>, StatusCode> {
     state
         .rooms
@@ -252,6 +265,7 @@ pub async fn new_room(
 ) -> String {
     let room_id = rand::rng().random_range(11111..=99999).to_string();
     let (tx, _) = broadcast::channel(100);
+    let is_protected = payload.password.is_some();
     let room = Arc::new(Room {
         tx,
         game: Arc::new(Mutex::new(Game::new())),
@@ -261,6 +275,7 @@ pub async fn new_room(
             is_public: payload.is_public,
             password: payload.password,
             bot_level: payload.bot_level,
+            is_protected,
         },
     });
 
@@ -268,24 +283,16 @@ pub async fn new_room(
     room_id
 }
 
-#[derive(Deserialize)]
-pub struct RoomPasswordCheck {
-    pub room_id: String,
-    pub password: String,
-}
-
 pub async fn check_room_password(
     State(state): State<Arc<RoomManager>>,
-    Json(payload): Json<RoomPasswordCheck>,
+    Path(room_id): Path<String>,
+    Json(password): Json<String>,
 ) -> Result<Json<Value>, StatusCode> {
-    let room = state
-        .rooms
-        .get(&payload.room_id)
-        .ok_or(StatusCode::NOT_FOUND)?;
+    let room = state.rooms.get(&room_id).ok_or(StatusCode::NOT_FOUND)?;
 
     let is_valid = match &room.info.password {
-        Some(pass) => pass == &payload.password,
-        None => payload.password.is_empty(),
+        Some(pass) => pass == &password,
+        None => password.is_empty(),
     };
 
     Ok(Json(json!({ "valid": is_valid })))
