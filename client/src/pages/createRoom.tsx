@@ -115,9 +115,9 @@ const RoomForm = () => {
                   value={difficulty}
                   onValueChange={(value) => setDifficulty(value as difficulty)}
                 >
-                  <Radio value="Easy">Beginner</Radio>
-                  <Radio value="Medium">Intermediate</Radio>
-                  <Radio value="Hard">Advanced</Radio>
+                  <Radio value="Beginner">Beginner</Radio>
+                  <Radio value="Intermediate">Intermediate</Radio>
+                  <Radio value="Advanced">Advanced</Radio>
                 </RadioGroup>
                 <Button
                   className="mt-auto w-full"
