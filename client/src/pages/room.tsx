@@ -24,6 +24,7 @@ interface roomResponse {
 
 function RoomPage() {
   let { roomId } = useParams();
+  const [password, setPassword] = useState<string>("");
 
   const [board, setBoard] = useState<{
     boards: BoardType;
@@ -46,8 +47,8 @@ function RoomPage() {
   }>({ status: "connecting", message: "" });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const handleWebSocket = (password?: string) => {
-    ws = new WebSocket(`/api/ws/${roomId}${password || ""}`);
+  const handleWebSocket = () => {
+    ws = new WebSocket(`/api/ws/${roomId}${password ? `:${password}` : ""}`);
 
     let playerId: string | null = null;
 
@@ -107,15 +108,14 @@ function RoomPage() {
       },
       body: JSON.stringify({ password }),
     })
-      .then((response) => {
-        console.log(response);
-        if (response.ok) {
-          handleWebSocket(password);
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.valid) {
+          setPassword(password);
+          handleWebSocket();
         }
-
-        return response.json();
-      })
-      .then((data) => console.log(data));
+        console.log(data);
+      });
   };
 
   useEffect(() => {
