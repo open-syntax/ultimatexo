@@ -47,7 +47,7 @@ function RoomPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const handleWebSocket = (password?: string) => {
-    ws = new WebSocket(`/api/ws/${roomId}${password}`);
+    ws = new WebSocket(`/api/ws/${roomId}${password || ""}`);
 
     let playerId: string | null = null;
 
