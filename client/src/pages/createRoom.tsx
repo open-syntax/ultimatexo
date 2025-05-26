@@ -46,7 +46,7 @@ const RoomForm = () => {
     })
       .then((response) => response.json())
       .then((data) => {
-        navgiate(`/room/${data}${password ? "" : `:${password}`}`);
+        navgiate(`/room/${data}`);
       })
       .catch((error) => {
         console.log(error);
