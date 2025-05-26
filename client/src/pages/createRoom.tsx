@@ -14,13 +14,13 @@ import DefaultLayout from "@/layouts/default";
 const { base, header, body } = card();
 
 type mode = "Online" | "Local" | "Bot";
-type difficulty = "Easy" | "Normal" | "Hard";
+type difficulty = "Beginner" | "Intermediate" | "Advanced";
 
 const RoomForm = () => {
   const [isPublic, setIsPublic] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [mode, setMode] = useState<mode>("Online");
-  const [difficulty, setDifficulty] = useState<difficulty>("Easy");
+  const [difficulty, setDifficulty] = useState<difficulty>("Beginner");
   const navgiate = useNavigate();
 
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
@@ -30,6 +30,7 @@ const RoomForm = () => {
 
     const data = new FormData(e.currentTarget);
     const password = (data.get("password") as string) || null;
+    const name = (data.get("name") as string) || "";
 
     fetch(`/api/rooms`, {
       method: "POST",
@@ -38,10 +39,10 @@ const RoomForm = () => {
       },
       body:
         mode === "Online"
-          ? JSON.stringify({ is_public: isPublic, password })
+          ? JSON.stringify({ is_public: isPublic, name, password })
           : mode === "Local"
-            ? JSON.stringify({ isPublic: false })
-            : JSON.stringify({ isPublic: false, bot_level: difficulty }),
+            ? JSON.stringify({ is_public: false })
+            : JSON.stringify({ is_public: false, bot_level: difficulty }),
     })
       .then((response) => response.json())
       .then((data) => {
@@ -77,6 +78,7 @@ const RoomForm = () => {
                 <Switch isSelected={isPublic} onValueChange={setIsPublic}>
                   Public
                 </Switch>
+                <Input label="Name" name="name" size="sm" />
                 <Input
                   label="Password"
                   name="password"
@@ -113,9 +115,9 @@ const RoomForm = () => {
                   value={difficulty}
                   onValueChange={(value) => setDifficulty(value as difficulty)}
                 >
-                  <Radio value="Easy">Easy</Radio>
-                  <Radio value="Medium">Normal</Radio>
-                  <Radio value="Hard">Hard</Radio>
+                  <Radio value="Beginner">Beginner</Radio>
+                  <Radio value="Intermediate">Intermediate</Radio>
+                  <Radio value="Advanced">Advanced</Radio>
                 </RadioGroup>
                 <Button
                   className="mt-auto w-full"

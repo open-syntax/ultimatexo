@@ -165,9 +165,9 @@ async fn handle_socket(
                                     if room.info.bot_level.is_some() {
                                         let level =
                                             match room.info.bot_level.as_ref().unwrap().as_str() {
-                                                "Easy" => 2,
-                                                "Normal" => 2,
-                                                "Hard" => 2,
+                                                "Beginner" => 2,
+                                                "Intermediate" => 5,
+                                                "Advanced" => 9,
                                                 _ => {
                                                     let _ = tx.send(
                                                         ServerMessage::Error {
@@ -221,23 +221,34 @@ async fn handle_socket(
     Ok(())
 }
 
+#[derive(Deserialize)]
+pub struct RoomNameQuery {
+    name: Option<String>,
+}
+
 pub async fn get_rooms(
     State(state): State<Arc<RoomManager>>,
+    Query(RoomNameQuery { name }): Query<RoomNameQuery>,
 ) -> Result<Json<Vec<RoomInfo>>, StatusCode> {
-    let rooms = state
+    let mut rooms = state
         .rooms
         .iter()
         .map(|room| room.info.clone())
+        .filter(|room| room.is_public == true && room.bot_level.is_none())
         .collect::<Vec<RoomInfo>>();
+    if name.is_some() {
+        rooms = rooms
+            .iter()
+            .filter(|room| room.name.starts_with(name.as_ref().unwrap()))
+            .cloned()
+            .collect::<Vec<RoomInfo>>();
+    }
     Ok(Json(rooms))
 }
-#[derive(Deserialize)]
-pub struct RoomIdQuery {
-    pub room_id: String,
-}
+
 pub async fn get_room(
     State(state): State<Arc<RoomManager>>,
-    Query(RoomIdQuery { room_id }): Query<RoomIdQuery>,
+    Path(room_id): Path<String>,
 ) -> Result<Json<RoomInfo>, StatusCode> {
     state
         .rooms
@@ -252,6 +263,7 @@ pub async fn new_room(
 ) -> String {
     let room_id = rand::rng().random_range(11111..=99999).to_string();
     let (tx, _) = broadcast::channel(100);
+    let is_protected = payload.password.is_some();
     let room = Arc::new(Room {
         tx,
         game: Arc::new(Mutex::new(Game::new())),
@@ -261,6 +273,7 @@ pub async fn new_room(
             is_public: payload.is_public,
             password: payload.password,
             bot_level: payload.bot_level,
+            is_protected,
         },
     });
 
@@ -270,21 +283,17 @@ pub async fn new_room(
 
 #[derive(Deserialize)]
 pub struct RoomPasswordCheck {
-    pub room_id: String,
     pub password: String,
 }
-
 pub async fn check_room_password(
     State(state): State<Arc<RoomManager>>,
+    Path(room_id): Path<String>,
     Json(payload): Json<RoomPasswordCheck>,
 ) -> Result<Json<Value>, StatusCode> {
-    let room = state
-        .rooms
-        .get(&payload.room_id)
-        .ok_or(StatusCode::NOT_FOUND)?;
+    let room = state.rooms.get(&room_id).ok_or(StatusCode::NOT_FOUND)?;
 
     let is_valid = match &room.info.password {
-        Some(pass) => pass == &payload.password,
+        Some(password) => password == &payload.password,
         None => payload.password.is_empty(),
     };
 

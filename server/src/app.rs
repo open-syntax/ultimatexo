@@ -14,7 +14,7 @@ pub async fn start_server() -> Result<()> {
         .route("/ws/{room_id}", get(websocket_handler))
         .route("/rooms", get(get_rooms).post(new_room))
         .route("/health", get(health_check))
-        .route("/room", get(get_room).post(check_room_password))
+        .route("/room/{room_id}", get(get_room).post(check_room_password))
         .with_state(state);
 
     let port: String = env::var("PORT").unwrap_or("6767".to_string());

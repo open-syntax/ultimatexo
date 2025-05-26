@@ -72,7 +72,7 @@ function Cell({ mark, board, index, onClick }: CellProps) {
     >
       {mark && (
         <div
-          className={`relative h-full aspect-square animate-appearance-in before:absolute before:left-1/2 before:top-1/2 before:translate-x-[-50%] before:translate-y-[-50%] after:absolute after:left-1/2 after:top-1/2 after:translate-x-[-50%] after:translate-y-[-50%] after:bg-default-800 ${mark === ("X" as unknown as BoardCell) ? "before:block before:h-2 before:w-[calc(100%-4px)] before:rotate-45 before:bg-default-800 after:block after:h-2 after:w-[calc(100%-4px)] after:-rotate-45" : "before:block before:h-[calc(100%-8px)] before:w-[calc(100%-8px)] before:rounded-full before:border-8"}`}
+          className={`relative aspect-square h-full animate-appearance-in before:absolute before:left-1/2 before:top-1/2 before:translate-x-[-50%] before:translate-y-[-50%] after:absolute after:left-1/2 after:top-1/2 after:translate-x-[-50%] after:translate-y-[-50%] after:bg-default-800 ${mark === ("X" as unknown as BoardCell) ? "before:block before:h-2 before:w-[calc(100%-4px)] before:rotate-45 before:bg-default-800 after:block after:h-2 after:w-[calc(100%-4px)] after:-rotate-45" : "before:block before:h-[calc(100%-8px)] before:w-[calc(100%-8px)] before:rounded-full before:border-default-800 before:border-8"}`}
         />
       )}
     </button>

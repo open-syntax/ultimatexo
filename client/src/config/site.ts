@@ -24,7 +24,7 @@ export const siteConfig = {
     },
   ],
   links: {
-    github: "https://github.com/OmarIsADev/ultimate-tic-tac-toe",
+    github: "https://github.com/project-chatty/tic-tac-toe/",
     // discord: "https://discord.gg/",
     // sponsor: "https://patreon.com/",
   },
