@@ -4,13 +4,13 @@ import { Spinner } from "@heroui/spinner";
 import { button as buttonStyles } from "@heroui/theme";
 import { Link } from "@heroui/link";
 import { Button } from "@heroui/button";
+import { Input } from "@heroui/input";
 
 import { Link as LinkIcon } from "@/components/icons";
 import Board from "@/components/board";
 import DefaultLayout from "@/layouts/default";
 import { Board as BoardType, socketEvent } from "@/types";
 import RoomLayout from "@/layouts/room";
-import { Input } from "@heroui/input";
 
 let ws: WebSocket;
 
@@ -24,7 +24,6 @@ interface roomResponse {
 
 function RoomPage() {
   let { roomId } = useParams();
-  const [password, setPassword] = useState<string>("");
 
   const [board, setBoard] = useState<{
     boards: BoardType;
@@ -47,7 +46,7 @@ function RoomPage() {
   }>({ status: "connecting", message: "" });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const handleWebSocket = () => {
+  const handleWebSocket = (password: string) => {
     ws = new WebSocket(`/api/ws/${roomId}${password ? `:${password}` : ""}`);
 
     let playerId: string | null = null;
@@ -106,13 +105,12 @@ function RoomPage() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ password: password }),
     })
       .then((response) => response.json())
       .then((data) => {
         if (data.valid) {
-          setPassword(password);
-          handleWebSocket();
+          handleWebSocket(password);
         }
         console.log(data);
       });
@@ -129,7 +127,7 @@ function RoomPage() {
 
             res.then((data: roomResponse) => {
               if (!data.is_protected) {
-                handleWebSocket();
+                handleWebSocket("");
               } else {
                 setStatus({ status: "auth", message: "" });
               }
