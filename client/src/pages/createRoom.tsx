@@ -46,7 +46,7 @@ const RoomForm = () => {
     })
       .then((response) => response.json())
       .then((data) => {
-        navgiate(`/room/${data}${isPublic ? "" : `:${password}`}`);
+        navgiate(`/room/${data}${password ? "" : `:${password}`}`);
       })
       .catch((error) => {
         console.log(error);
@@ -97,6 +97,7 @@ const RoomForm = () => {
             </Tab>
             <Tab key="Local" title="Local">
               <Form onSubmit={(e) => handleCreate(e)}>
+                <p>Play against your friend from same the device</p>
                 <Button
                   className="mt-auto w-full"
                   color="primary"
