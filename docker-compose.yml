@@ -28,8 +28,8 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - backend
-      - frontend
+      - server
+      - client
     networks:
       - app-network
 

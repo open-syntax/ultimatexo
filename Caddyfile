@@ -1,0 +1,33 @@
+ttt.chatty.social {
+    header {
+        Strict-Transport-Security max-age=31536000;
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    encode gzip
+
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy server:6767 {
+        health_uri /health
+        health_interval 30s
+        health_timeout 5s
+        }
+    }
+
+    handle {
+        reverse_proxy client:80
+        @static {
+            path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2
+        }
+        header @static Cache-Control "public, max-age=31536000, immutable"
+    }
+
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+}
