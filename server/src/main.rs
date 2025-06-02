@@ -1,14 +1,17 @@
 use anyhow::Result;
-use app::start_server;
+use app::app::start_server;
 use dotenv::dotenv;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+mod ai;
+mod api;
 mod app;
+mod error;
 mod game;
-mod minimax;
 mod room;
-mod routes;
+mod types;
 mod utils;
+mod websocket;
 
 #[tokio::main]
 async fn main() -> Result<()> {

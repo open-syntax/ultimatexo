@@ -1,11 +1,15 @@
-use crate::room::RoomManager;
-use crate::routes::{
-    check_room_password, get_room, get_rooms, health_check, new_room, websocket_handler,
-};
-use anyhow::{Context, Result};
-use axum::{Router, routing::get};
+use anyhow::Context;
 use std::{env, sync::Arc};
+
+use anyhow::Result;
+use axum::{Router, routing::get};
 use tokio::signal;
+
+use crate::{
+    api::routes::{check_room_password, get_room, get_rooms, health_check, new_room},
+    room::manager::RoomManager,
+    websocket::handler::websocket_handler,
+};
 
 pub async fn start_server() -> Result<()> {
     let state = Arc::new(RoomManager::new());
