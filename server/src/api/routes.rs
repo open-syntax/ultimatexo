@@ -7,7 +7,6 @@ use axum::{
     http::StatusCode,
 };
 use serde_json::{Value, json};
-use tokio::sync::broadcast;
 
 use crate::{
     room::{manager::RoomManager, room::Room},
@@ -67,9 +66,8 @@ pub async fn new_room(
         password,
         is_protected,
     };
-    let (tx, _) = broadcast::channel(32);
 
-    let room = Arc::new(Room::new(info, tx));
+    let room = Arc::new(Room::new(info));
 
     state.rooms.insert(room_id.clone(), room);
 

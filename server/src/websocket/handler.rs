@@ -1,5 +1,6 @@
 use futures_util::{SinkExt, StreamExt};
 use std::sync::{Arc, atomic::Ordering};
+use tokio::sync::mpsc::unbounded_channel;
 
 use anyhow::Result;
 use axum::{
@@ -14,7 +15,7 @@ use crate::{
     error::AppError,
     room::manager::RoomManager,
     types::{ServerMessage, Status, WebSocketQuery},
-    utils::{handle_event, parse_message, send_board},
+    utils::{handle_event, parse_message},
 };
 
 pub async fn websocket_handler(
@@ -47,7 +48,7 @@ async fn handle_socket(
     payload: WebSocketQuery,
 ) {
     let (mut sender, mut receiver) = socket.split();
-    let (room, player, mut server_rx) = match state
+    let (room, player_id) = match state
         .join(&room_id, payload.password, payload.player_id)
         .await
     {
@@ -59,15 +60,28 @@ async fn handle_socket(
             return;
         }
     };
+    let (player_tx, mut player_rx) = unbounded_channel::<ServerMessage>();
+    if let Some(player) = room
+        .players
+        .lock()
+        .await
+        .iter_mut()
+        .find(|p| p.id == Some(player_id.clone()))
+    {
+        let tx = player.tx.get_or_init(|| async { player_tx }).await;
 
-    let send_ws = tokio::spawn({
+        let msg = ServerMessage::PlayerJoined {
+            player: player.clone(),
+        };
+        let _ = tx.send(msg);
+    }
+    let player_send = tokio::spawn({
         async move {
-            while let Ok(msg) = server_rx.recv().await {
+            while let Some(msg) = player_rx.recv().await {
                 let json_msg = match msg.to_json() {
                     Ok(json) => json,
                     Err(_) => continue,
                 };
-
                 if sender.send(Message::Text(json_msg.into())).await.is_err() {
                     break;
                 }
@@ -83,12 +97,12 @@ async fn handle_socket(
                     Ok(message) => {
                         if let Ok(client_message) = parse_message(message) {
                             if let Err(err) = handle_event(client_message, room.clone()).await {
-                                let _ = room.tx.send(ServerMessage::Error(err));
+                                let _ = room.send(ServerMessage::Error(err));
                             }
                         }
                     }
                     Err(err) => {
-                        let _ = room.tx.send(ServerMessage::Error(err.into()));
+                        let _ = room.send(ServerMessage::Error(err.into()));
                     }
                 }
             }
@@ -97,13 +111,13 @@ async fn handle_socket(
 
     if room.player_counter.load(Ordering::Relaxed) == 2 {
         room.game.lock().await.state.board.status = Status::InProgress;
-        send_board(&room.tx, room.game.clone()).await;
+        room.send_board().await;
     }
 
     tokio::select! {
-        _ = send_ws => {},
         _ = recv_ws => {},
+        _ = player_send => {},
     }
 
-    let _ = state.leave(&room_id, player).await;
+    let _ = state.leave(&room_id, player_id).await;
 }

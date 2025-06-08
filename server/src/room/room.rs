@@ -3,7 +3,7 @@ use std::sync::{
     atomic::{AtomicU8, Ordering},
 };
 
-use tokio::sync::{Mutex, broadcast::Sender};
+use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -15,7 +15,6 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Room {
-    pub tx: Sender<ServerMessage>,
     pub players: Mutex<Vec<Player>>,
     pub player_counter: AtomicU8,
     pub game: Arc<Mutex<Game>>,
@@ -24,9 +23,8 @@ pub struct Room {
 }
 
 impl Room {
-    pub fn new(info: RoomInfo, tx: Sender<ServerMessage>) -> Self {
+    pub fn new(info: RoomInfo) -> Self {
         Self {
-            tx,
             player_counter: AtomicU8::new(0),
             players: Mutex::new(Vec::new()),
             game: Arc::new(Mutex::new(Game::new())),
@@ -34,7 +32,7 @@ impl Room {
             deletion_token: Mutex::new(None),
         }
     }
-    pub async fn add_player(&self) -> Player {
+    pub async fn add_player(&self) -> String {
         let marker = if self.player_counter.load(Ordering::Relaxed) == 1 {
             Marker::O
         } else {
@@ -49,8 +47,8 @@ impl Room {
         self.player_counter.fetch_add(1, Ordering::Relaxed);
 
         self.game.lock().await.state.players.push(player_info);
-
-        player
+        self.players.lock().await.push(player.clone());
+        player.id.unwrap()
     }
 
     pub async fn get_player(&self, player_id: String) -> Result<Player, AppError> {
@@ -60,6 +58,37 @@ impl Room {
             .iter()
             .find(|p| p.id == Some(player_id.clone()))
             .cloned()
-            .ok_or_else(|| AppError::player_not_found(&player_id))
+            .ok_or_else(|| AppError::player_not_found())
+    }
+
+    pub async fn get_other_player(&self, player_id: String) -> Result<Player, AppError> {
+        self.players
+            .lock()
+            .await
+            .iter()
+            .find(|p| p.id != Some(player_id.clone()))
+            .cloned()
+            .ok_or_else(|| AppError::player_not_found())
+    }
+
+    pub async fn send_board(&self) {
+        let game = self.game.lock().await;
+        let msg = ServerMessage::GameUpdate {
+            board: game.state.board.clone(),
+            next_player: game.state.players[0].clone(),
+            next_board: game.state.next_board,
+            last_move: game.state.mv.clone(),
+        };
+        let _ = self.send(msg).await;
+    }
+
+    pub async fn send(&self, msg: ServerMessage) {
+        let players = self.players.lock().await;
+        dbg!(players.len());
+        for player in players.iter() {
+            if let Some(tx) = player.tx.get() {
+                let _ = tx.send(msg.clone());
+            }
+        }
     }
 }

@@ -48,10 +48,20 @@ pub enum ServerMessage {
         next_board: Option<usize>,
         last_move: String,
     },
-    PlayerUpdate {
-        action: PlayerAction,
+
+    PlayerJoined {
         player: Player,
     },
+    PlayerLeft {
+        player: PlayerInfo,
+    },
+    PlayerReconnected {
+        player: PlayerInfo,
+    },
+    PlayerDisconnected {
+        player: PlayerInfo,
+    },
+
     GameRestart {
         action: RestartAction,
     },
@@ -61,11 +71,4 @@ impl ServerMessage {
     pub fn to_json(&self) -> Result<String> {
         Ok(to_string(self)?)
     }
-}
-
-#[derive(Serialize, Clone, Debug)]
-pub enum PlayerAction {
-    PlayerJoined,
-    PlayerLeft,
-    PlayerDisconnected,
 }

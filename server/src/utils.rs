@@ -2,11 +2,9 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use axum::extract::ws::Message;
-use tokio::sync::{Mutex, broadcast::Sender};
 
 use crate::{
     error::AppError,
-    game::game::Game,
     room::room::Room,
     types::{ClientMessage, RestartAction, ServerMessage},
 };
@@ -40,7 +38,7 @@ pub async fn handle_event(event: ClientMessage, room: Arc<Room>) -> Result<(), A
     match event {
         ClientMessage::TextMessage { content, player_id } => {
             let player = room.get_player(player_id).await?;
-            let _ = room.tx.send(ServerMessage::TextMessage {
+            let _ = room.send(ServerMessage::TextMessage {
                 content,
                 player: player.info,
             });
@@ -60,18 +58,18 @@ pub async fn handle_event(event: ClientMessage, room: Arc<Room>) -> Result<(), A
                     .await
                     .generate_move(room.info.bot_level.unwrap());
             }
-            send_board(&room.tx, room.game.clone()).await;
+            room.send_board().await;
         }
         ClientMessage::GameRestart { action } => match action {
             RestartAction::Request => {
-                let _ = room.tx.send(ServerMessage::GameRestart { action });
+                let _ = room.send(ServerMessage::GameRestart { action });
             }
             RestartAction::Accept => {
                 room.game.lock().await.restart_game();
-                let _ = room.tx.send(ServerMessage::GameRestart { action });
+                let _ = room.send(ServerMessage::GameRestart { action });
             }
             RestartAction::Reject => {
-                let _ = room.tx.send(ServerMessage::GameRestart { action });
+                let _ = room.send(ServerMessage::GameRestart { action });
             }
         },
     }
@@ -86,14 +84,4 @@ pub fn parse_message(message: Message) -> Result<ClientMessage, AppError> {
             "Unsupported message type".to_string(),
         )),
     }
-}
-
-pub async fn send_board(tx: &Sender<ServerMessage>, game: Arc<Mutex<Game>>) {
-    let game = game.lock().await;
-    let _ = tx.send(ServerMessage::GameUpdate {
-        board: game.state.board.clone(),
-        next_player: game.state.players[0].clone(),
-        next_board: game.state.next_board,
-        last_move: game.state.mv.clone(),
-    });
 }
