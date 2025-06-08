@@ -17,8 +17,8 @@ impl Game {
         Self::default()
     }
 
-    pub fn make_move(&mut self, position_str: &str) -> Result<()> {
-        let position = parse_tuple(position_str)?;
+    pub fn make_move(&mut self) -> Result<()> {
+        let position = parse_tuple(&self.state.mv)?;
         self.check_position(position)?;
         self.check_win(position)?;
         self.state.toggle_players();

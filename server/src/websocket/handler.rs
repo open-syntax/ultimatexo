@@ -9,8 +9,6 @@ use axum::{
     },
     response::Response,
 };
-use futures_util::stream::{SplitSink, SplitStream};
-use tokio::sync::Mutex;
 
 use crate::{
     error::AppError,
@@ -25,77 +23,52 @@ pub async fn websocket_handler(
     State(state): State<Arc<RoomManager>>,
     Query(payload): Query<WebSocketQuery>,
 ) -> Response {
-    ws.on_upgrade(async move |socket| {
-        let (sender, receiver) = socket.split();
-        let sender = Arc::new(Mutex::new(sender));
-        if let Err(err) = handle_socket(sender.clone(), receiver, state, path, payload).await {
-            let err = ServerMessage::Error(err);
-            let json_msg = match err.to_json() {
-                Ok(json) => json,
-                Err(err) => err.to_string(),
-            };
-            sender
-                .lock()
-                .await
-                .send(Message::Text(json_msg.into()))
-                .await
-                .unwrap();
-        }
-    })
+    ws.on_upgrade(async move |socket| handle_socket(socket, state, path, payload).await)
+}
+async fn send_error_and_close(
+    mut sender: futures_util::stream::SplitSink<WebSocket, axum::extract::ws::Message>,
+    error: AppError,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use axum::extract::ws::Message;
+
+    let error_msg = ServerMessage::Error(error);
+    let json_msg = error_msg.to_json()?;
+
+    sender.send(Message::Text(json_msg.into())).await?;
+    sender.close().await?;
+
+    Ok(())
 }
 
 async fn handle_socket(
-    sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,
-    mut receiver: SplitStream<WebSocket>,
+    socket: WebSocket,
     state: Arc<RoomManager>,
     room_id: String,
     payload: WebSocketQuery,
-) -> Result<(), AppError> {
-    let (room, player, mut rx) = state
+) {
+    let (mut sender, mut receiver) = socket.split();
+    let (room, player, mut server_rx) = match state
         .join(&room_id, payload.password, payload.player_id)
-        .await?;
+        .await
+    {
+        Ok(result) => result,
+        Err(err) => {
+            if let Err(e) = send_error_and_close(sender, err).await {
+                tracing::error!("Failed to send error message: {}", e);
+            }
+            return;
+        }
+    };
 
     let send_ws = tokio::spawn({
-        let player = player.clone();
         async move {
-            let current_id = player.id.unwrap();
-            while let Ok(msg) = rx.recv().await {
-                let json_msg = match &msg {
-                    ServerMessage::PlayerUpdate { action, player } => {
-                        // Clone player so you can modify it without moving
-                        let mut player_clone = player.clone();
-
-                        // Your condition to modify player_clone.id
-                        if let Some(id) = &player_clone.id {
-                            if id != &current_id {
-                                player_clone.id = None;
-                            }
-                        }
-
-                        // Create new message with modified player_clone
-                        let updated_msg = ServerMessage::PlayerUpdate {
-                            action: action.clone(),
-                            player: player_clone,
-                        };
-
-                        match updated_msg.to_json() {
-                            Ok(json) => json,
-                            Err(_) => continue,
-                        }
-                    }
-                    _ => match msg.to_json() {
-                        Ok(json) => json,
-                        Err(_) => continue,
-                    },
+            while let Ok(msg) = server_rx.recv().await {
+                let json_msg = match msg.to_json() {
+                    Ok(json) => json,
+                    Err(_) => continue,
                 };
 
-                if sender
-                    .lock()
-                    .await
-                    .send(Message::Text(json_msg.into()))
-                    .await
-                    .is_err()
-                {
+                if sender.send(Message::Text(json_msg.into())).await.is_err() {
                     break;
                 }
             }
@@ -133,5 +106,4 @@ async fn handle_socket(
     }
 
     let _ = state.leave(&room_id, player).await;
-    Ok(())
 }

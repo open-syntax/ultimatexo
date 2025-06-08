@@ -35,7 +35,7 @@ pub struct RoomPasswordCheck {
     pub password: String,
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Debug, Clone)]
 #[serde(tag = "event", content = "data")]
 pub enum ServerMessage {
     TextMessage {
@@ -46,6 +46,7 @@ pub enum ServerMessage {
         board: Board,
         next_player: PlayerInfo,
         next_board: Option<usize>,
+        last_move: String,
     },
     PlayerUpdate {
         action: PlayerAction,

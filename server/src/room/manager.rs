@@ -59,7 +59,7 @@ impl RoomManager {
             let _ = room.tx.send(msg);
             return Ok((room.clone(), player, rx));
         }
-        Err(AppError::room_not_found())
+        Err(AppError::room_not_found(room_id))
     }
 
     pub async fn leave(&self, room_id: &String, player: Player) -> Result<()> {

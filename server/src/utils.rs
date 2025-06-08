@@ -49,9 +49,10 @@ pub async fn handle_event(event: ClientMessage, room: Arc<Room>) -> Result<(), A
             if !room.game.lock().await.state.players[0].marker
                 == room.get_player(player_id).await?.info.marker
             {
-                return Err(AppError::invalid_turn());
+                return Err(AppError::not_player_turn());
             }
-            room.game.lock().await.make_move(&mv)?;
+            room.game.lock().await.state.mv = mv;
+            room.game.lock().await.make_move()?;
 
             if room.info.bot_level.is_some() {
                 room.game
@@ -80,8 +81,10 @@ pub async fn handle_event(event: ClientMessage, room: Arc<Room>) -> Result<(), A
 pub fn parse_message(message: Message) -> Result<ClientMessage, AppError> {
     match message {
         Message::Text(text) => serde_json::from_str(&text)
-            .map_err(|e| AppError::BadRequest(format!("Invalid JSON: {}", e))),
-        _ => Err(AppError::BadRequest("Unsupported message type".to_string())),
+            .map_err(|e| AppError::internal_error(format!("Invalid JSON: {}", e))),
+        _ => Err(AppError::internal_error(
+            "Unsupported message type".to_string(),
+        )),
     }
 }
 
@@ -90,10 +93,7 @@ pub async fn send_board(tx: &Sender<ServerMessage>, game: Arc<Mutex<Game>>) {
     let _ = tx.send(ServerMessage::GameUpdate {
         board: game.state.board.clone(),
         next_player: game.state.players[0].clone(),
-        next_board: game
-            .state
-            .next_board
-            .map(|b| Some(b))
-            .unwrap_or_else(|| None),
+        next_board: game.state.next_board,
+        last_move: game.state.mv.clone(),
     });
 }

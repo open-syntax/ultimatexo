@@ -60,6 +60,6 @@ impl Room {
             .iter()
             .find(|p| p.id == Some(player_id.clone()))
             .cloned()
-            .ok_or_else(|| AppError::player_not_found())
+            .ok_or_else(|| AppError::player_not_found(&player_id))
     }
 }
