@@ -311,21 +311,3 @@ impl From<tokio::task::JoinError> for AppError {
         }
     }
 }
-
-pub trait ErrorContext<T> {
-    fn with_context(self, context: impl Into<String>) -> Result<T, AppError>;
-    fn with_internal_context(self, context: impl Into<String>) -> Result<T, AppError>;
-}
-
-impl<T, E> ErrorContext<T> for Result<T, E>
-where
-    E: Into<AppError>,
-{
-    fn with_context(self, context: impl Into<String>) -> Result<T, AppError> {
-        self.map_err(|e| e.into().builder().with_context(context).build())
-    }
-
-    fn with_internal_context(self, context: impl Into<String>) -> Result<T, AppError> {
-        self.map_err(|_| AppError::internal_error(context.into()))
-    }
-}

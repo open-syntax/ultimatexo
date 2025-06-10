@@ -14,7 +14,7 @@ use axum::{
 use crate::{
     error::AppError,
     room::manager::RoomManager,
-    types::{ServerMessage, Status, WebSocketQuery},
+    types::{PlayerAction, ServerMessage, Status, WebSocketQuery},
     utils::{handle_event, parse_message},
 };
 
@@ -30,8 +30,6 @@ async fn send_error_and_close(
     mut sender: futures_util::stream::SplitSink<WebSocket, axum::extract::ws::Message>,
     error: AppError,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use axum::extract::ws::Message;
-
     let error_msg = ServerMessage::Error(error);
     let json_msg = error_msg.to_json()?;
 
@@ -70,19 +68,39 @@ async fn handle_socket(
     {
         let tx = player.tx.get_or_init(|| async { player_tx }).await;
 
-        let msg = ServerMessage::PlayerJoined {
+        let msg = ServerMessage::PlayerUpdate {
+            action: PlayerAction::PlayerJoined,
             player: player.clone(),
         };
         let _ = tx.send(msg);
     }
     let player_send = tokio::spawn({
+        let player_id = player_id.clone();
         async move {
             while let Some(msg) = player_rx.recv().await {
-                let json_msg = match msg.to_json() {
+                let json_msg = match &msg {
+                    ServerMessage::PlayerUpdate { action, player } => {
+                        let mut player_clone = player.clone();
+
+                        if let Some(id) = &player_clone.id {
+                            if id != &player_id {
+                                player_clone.id = None;
+                            }
+                        }
+
+                        ServerMessage::PlayerUpdate {
+                            action: action.clone(),
+                            player: player_clone,
+                        }
+                    }
+                    _ => msg,
+                };
+
+                let msg = match json_msg.to_json() {
                     Ok(json) => json,
                     Err(_) => continue,
                 };
-                if sender.send(Message::Text(json_msg.into())).await.is_err() {
+                if sender.send(Message::Text(msg.into())).await.is_err() {
                     break;
                 }
             }

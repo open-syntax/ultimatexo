@@ -6,7 +6,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     error::AppError,
-    types::{ServerMessage, Status},
+    types::{PlayerAction, ServerMessage, Status},
 };
 
 use super::room::Room;
@@ -36,14 +36,26 @@ impl RoomManager {
             if room.player_counter.load(Ordering::Relaxed) >= 2 {
                 return Err(AppError::room_full());
             };
+            if player_id.is_some()
+                && !room
+                    .players
+                    .lock()
+                    .await
+                    .iter()
+                    .map(|player| player.id.clone())
+                    .any(|id| player_id == id)
+            {
+                return Err(AppError::player_not_found());
+            }
             if room.deletion_token.lock().await.is_some() && player_id.is_some() {
                 let mut token_lock = room.deletion_token.lock().await;
                 if let Some(token) = token_lock.take() {
                     token.cancel();
                 }
-                room.game.lock().await.state.board.status = Status::InProgress;
             } else {
-                player_id = Some(room.add_player().await);
+                let player = room.add_player().await;
+                player_id = player.id.clone();
+                room.players.lock().await.push(player);
             }
 
             return Ok((room.clone(), player_id.unwrap()));
@@ -61,8 +73,9 @@ impl RoomManager {
 
                 room.player_counter.fetch_sub(1, Ordering::Relaxed);
                 let player = room.get_player(player_id.clone()).await?;
-                let msg = ServerMessage::PlayerDisconnected {
-                    player: player.info.clone(),
+                let msg = ServerMessage::PlayerUpdate {
+                    action: PlayerAction::PlayerDisconnected,
+                    player: player.clone(),
                 };
                 let _ = room
                     .get_other_player(player_id.clone())
@@ -86,18 +99,20 @@ impl RoomManager {
                     tokio::select! {
                         _ = tokio::time::sleep(std::time::Duration::from_secs(60)) => {
                             let player = room.get_player(player_id).await.unwrap();
-                            let msg = ServerMessage::PlayerLeft {
-                                player: player.info.clone(),
+                            let msg = ServerMessage::PlayerUpdate {
+                                action: PlayerAction::PlayerLeft,
+                                player: player.clone(),
                             };
-                            let _ = room.send(msg).await;
                             room.game.lock().await.state.board.status = Status::Won(!player.info.marker);
                             room.send_board().await;
+                            let _ = room.send(msg).await;
                             drop(room);
                             rooms.remove(&room_id);
                         }
                         _ = token.cancelled() => {
+                            room.game.lock().await.state.board.status = Status::InProgress;
+                            room.send_board().await;
                         }
-
                     }
                 });
             } else {
@@ -105,6 +120,7 @@ impl RoomManager {
                 self.rooms.remove(room_id);
             }
         }
+        dbg!("player left");
         Ok(())
     }
 }

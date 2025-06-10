@@ -32,7 +32,7 @@ impl Room {
             deletion_token: Mutex::new(None),
         }
     }
-    pub async fn add_player(&self) -> String {
+    pub async fn add_player(&self) -> Player {
         let marker = if self.player_counter.load(Ordering::Relaxed) == 1 {
             Marker::O
         } else {
@@ -47,8 +47,7 @@ impl Room {
         self.player_counter.fetch_add(1, Ordering::Relaxed);
 
         self.game.lock().await.state.players.push(player_info);
-        self.players.lock().await.push(player.clone());
-        player.id.unwrap()
+        player
     }
 
     pub async fn get_player(&self, player_id: String) -> Result<Player, AppError> {
@@ -84,7 +83,6 @@ impl Room {
 
     pub async fn send(&self, msg: ServerMessage) {
         let players = self.players.lock().await;
-        dbg!(players.len());
         for player in players.iter() {
             if let Some(tx) = player.tx.get() {
                 let _ = tx.send(msg.clone());
