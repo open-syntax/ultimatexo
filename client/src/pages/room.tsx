@@ -11,6 +11,8 @@ import Board from "@/components/board";
 import DefaultLayout from "@/layouts/default";
 import { Board as BoardType, socketEvent } from "@/types";
 import RoomLayout from "@/layouts/room";
+import { marker, Player } from "@/types/player";
+import { playerActions } from "@/types/actions";
 
 let ws: WebSocket;
 
@@ -22,6 +24,23 @@ interface roomResponse {
   is_protected: boolean;
 }
 
+enum RoomStatus {
+  loading = "loading",
+  connected = "connected",
+  disconnected = "disconnected",
+  opponentLeft = "opponent left",
+  connecting = "connecting",
+  error = "error",
+  auth = "auth required",
+  authFailed = "auth failed",
+  notFound = "room not found",
+}
+
+interface room {
+  status: RoomStatus;
+  message: string;
+}
+
 function RoomPage() {
   let { roomId } = useParams();
 
@@ -30,20 +49,17 @@ function RoomPage() {
     status: string;
   } | null>(null);
   const [availableBoards, setAvailableBoards] = useState<number | null>(null);
-  const [player, setPlayer] = useState<{ id: string; marker: "X" | "O" }>({
+  const [player, setPlayer] = useState<Player>({
     id: "",
-    marker: "X",
+    info: { marker: "X" },
   });
-  const [nextPlayer, setNextPlayer] = useState<{
-    id: string;
-    marker: "X" | "O";
-  } | null>(null);
+  const [nextPlayer, setNextPlayer] = useState<marker>(null);
   const [move, setMove] = useState<string>("");
 
-  const [status, setStatus] = useState<{
-    status: "connected" | "disconnected" | "connecting" | "auth";
-    message: string;
-  }>({ status: "connecting", message: "" });
+  const [status, setStatus] = useState<room>({
+    status: RoomStatus.connecting,
+    message: "",
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const handleWebSocket = (password: string) => {
@@ -53,32 +69,59 @@ function RoomPage() {
 
     // handle on connection established
     ws.onopen = () => {
-      setStatus({ status: "connected", message: "" });
+      setStatus({ status: RoomStatus.connected, message: "" });
     };
 
     // handle on message arrival
     ws.onmessage = (event) => {
-      console.log(JSON.parse(event.data));
+      // console.log(JSON.parse(event.data));
       const e: socketEvent = JSON.parse(event.data);
       const eventName = e.event;
+      console.log(e);
 
       switch (eventName) {
         case "GameUpdate":
           setBoard(e.data.board);
           setAvailableBoards(e.data.next_board);
-          setNextPlayer(e.data.next_player);
+          setNextPlayer(e.data.next_player.marker);
           break;
-        case "PlayerUpdate":
-          if (e.data.action === "PLAYER_JOINED" && !playerId) {
-            playerId = e.data.player.id;
 
-            setPlayer({ ...e.data.player });
+        case "PlayerUpdate":
+          let status: RoomStatus, message: string;
+
+          switch (e.data.action) {
+            case playerActions.PlayerJoined:
+              status = RoomStatus.connected;
+              playerId = e.data.player.id as string;
+              setPlayer(e.data.player);
+              message = "Connected";
+              break;
+
+            case playerActions.PlayerLeft:
+              status = RoomStatus.connected;
+              message = "Player is Connected";
+              break;
+
+            case playerActions.PlayerDisconnected:
+              status = RoomStatus.disconnected;
+              message = "Disconnected";
+              break;
+
+            default:
+              status = RoomStatus.error;
+              message = "Invalid player action";
+              break;
           }
+
+          setStatus({
+            status,
+            message,
+          });
           break;
 
         case "Error":
           setStatus({
-            status: "disconnected",
+            status: RoomStatus.error,
             message: e.data.error,
           });
           break;
@@ -89,7 +132,7 @@ function RoomPage() {
     ws.onclose = () => {
       setStatus((state) => ({
         ...state,
-        status: "disconnected",
+        status: RoomStatus.disconnected,
         message: "Cannot connect",
       }));
     };
@@ -111,8 +154,13 @@ function RoomPage() {
       .then((data) => {
         if (data.valid) {
           handleWebSocket(password);
+        } else {
+          setStatus({
+            status: RoomStatus.authFailed,
+            message: "Wrong password",
+          });
         }
-        console.log(data);
+        // console.log(data);
       });
   };
 
@@ -129,17 +177,16 @@ function RoomPage() {
               if (!data.is_protected) {
                 handleWebSocket("");
               } else {
-                setStatus({ status: "auth", message: "" });
+                setStatus({ status: RoomStatus.auth, message: "" });
               }
             });
           } else if (response.status === 404) {
             return setStatus({
-              status: "disconnected",
+              status: RoomStatus.notFound,
               message: "Room Not Found",
             });
           }
         })
-        .catch((err) => console.log(err))
         .finally(() => setIsLoading(false));
     };
 
@@ -152,15 +199,16 @@ function RoomPage() {
     if (!availableBoards || availableBoards === parseInt(move.split(",")[0])) {
       ws.send(
         JSON.stringify({
-          event: "GameUpdate",
-          move,
-          player_id: player.id,
+          GameUpdate: {
+            mv: move,
+            player_id: player.id,
+          },
         }),
       );
     }
   }, [move]);
 
-  if (status.status === "connecting" || isLoading) {
+  if (status.status === RoomStatus.connecting || isLoading) {
     return (
       <DefaultLayout>
         <div className="container mx-auto flex h-full max-w-7xl flex-grow flex-col items-center justify-center gap-2 px-6">
@@ -173,7 +221,7 @@ function RoomPage() {
 
   return (
     <DefaultLayout>
-      {status.status === "disconnected" ? (
+      {status.status === RoomStatus.disconnected ? (
         <RoomLayout>
           {status.message}
           <div className="flex gap-3">
@@ -185,7 +233,7 @@ function RoomPage() {
             </Link>
           </div>
         </RoomLayout>
-      ) : status.status === "auth" ? (
+      ) : status.status === RoomStatus.auth ? (
         <RoomLayout>
           <form
             className="flex w-full max-w-80 flex-col gap-4"
@@ -206,17 +254,17 @@ function RoomPage() {
       ) : board ? (
         <div className="container mx-auto my-auto flex h-[calc(100svh-64px-48px-64px)] max-w-7xl flex-grow flex-col justify-center gap-4 px-6">
           <p className="w-full text-center font-semibold">
-            You are player: {player.marker}
+            You are player: {player.info.marker}
           </p>
           <p className="w-full text-center font-semibold">
             {board.status
               ? `Player ${board.status} Won!`
-              : `${nextPlayer?.marker}'s turn.`}
+              : `${nextPlayer}'s turn.`}
           </p>
           <Board
             board={board.boards}
             nextMove={
-              nextPlayer?.id === player.id && board.status === null
+              nextPlayer === player.info.marker && board.status === null
                 ? availableBoards
                 : false
             }

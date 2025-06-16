@@ -1,5 +1,8 @@
 import { SVGProps } from "react";
 
+import { marker, Player, PlayerInfo } from "./player";
+import { playerActions, RestartActions } from "./actions";
+
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
 };
@@ -17,12 +20,12 @@ export type Board = [
 ];
 
 export type miniBoard = {
-  cells: BoardCell[];
+  cells: boardCell[];
   status: "InProgress" | "Draw" | "X" | "O";
 };
 
-export type BoardCell = {
-  cells: "O" | "X" | null;
+export type boardCell = {
+  cells: marker;
 };
 
 export type socketEvent =
@@ -30,22 +33,29 @@ export type socketEvent =
       event: "GameUpdate";
       data: {
         board: { boards: Board; status: string };
-        status: string;
-        next_player: {
-          id: string;
-          marker: "X" | "O";
-        };
+        next_player: PlayerInfo;
         next_board: number | null;
+        last_move: string;
       };
     }
   | {
       event: "PlayerUpdate";
       data: {
-        action: "PLAYER_LEFT" | "PLAYER_JOINED";
-        player: {
-          id: string;
-          marker: "X" | "O";
-        };
+        action: playerActions;
+        player: Player;
+      };
+    }
+  | {
+      event: "GameRestart";
+      data: {
+        action: RestartActions;
+      };
+    }
+  | {
+      event: "TextMessage";
+      data: {
+        content: string;
+        player: PlayerInfo;
       };
     }
   | {
