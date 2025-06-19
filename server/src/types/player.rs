@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use tokio::sync::{OnceCell, mpsc::UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 
 use super::{Marker, ServerMessage};
 
@@ -18,7 +18,7 @@ pub struct Player {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     #[serde(skip_serializing)]
-    pub tx: OnceCell<UnboundedSender<ServerMessage>>,
+    pub tx: Option<UnboundedSender<ServerMessage>>,
     pub info: PlayerInfo,
 }
 
@@ -26,7 +26,7 @@ impl Player {
     pub fn new(id: String, marker: Marker) -> Self {
         Self {
             id: Some(id),
-            tx: OnceCell::new(),
+            tx: None,
             info: PlayerInfo::new(marker),
         }
     }

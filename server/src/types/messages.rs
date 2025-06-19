@@ -68,4 +68,5 @@ pub enum PlayerAction {
     PlayerJoined,
     PlayerLeft,
     PlayerDisconnected,
+    PlayerReconnected,
 }

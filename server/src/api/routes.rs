@@ -1,5 +1,6 @@
 use rand::Rng;
 use std::{sync::Arc, time::SystemTime};
+use tokio::sync::mpsc;
 
 use axum::{
     Json,
@@ -57,7 +58,14 @@ pub async fn new_room(
     } = payload;
 
     let is_protected = password.is_some();
-    let room_id = rand::rng().random_range(11111..=99999).to_string();
+    let mut rng = rand::rng();
+    let room_id = loop {
+        let id = rng.random_range(10000..=99999).to_string();
+        if !state.rooms.contains_key(&id) {
+            break id;
+        }
+    };
+
     let info = RoomInfo {
         id: room_id.clone(),
         name,
@@ -66,8 +74,18 @@ pub async fn new_room(
         password,
         is_protected,
     };
-
-    let room = Arc::new(Room::new(info));
+    let (tx, mut rx) = mpsc::channel(32);
+    let room = Arc::new(Room::new(info, tx));
+    tokio::spawn({
+        let room = room.clone();
+        async move {
+            while let Some(msg) = rx.recv().await {
+                for player in room.players.lock().await.iter() {
+                    let _ = player.tx.as_ref().unwrap().send(msg.clone());
+                }
+            }
+        }
+    });
 
     state.rooms.insert(room_id.clone(), room);
 

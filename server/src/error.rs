@@ -72,6 +72,9 @@ pub enum RoomError {
     #[error("Invalid room password")]
     InvalidPassword,
 
+    #[error("Room is Closed")]
+    Closed,
+
     #[error("Access denied to room: {reason}")]
     AccessDenied { reason: String },
 
@@ -125,6 +128,9 @@ impl AppError {
 
     pub fn room_full() -> Self {
         AppError::Room(RoomError::Full)
+    }
+    pub fn room_closed() -> Self {
+        AppError::Room(RoomError::Closed)
     }
 
     pub fn invalid_password() -> Self {

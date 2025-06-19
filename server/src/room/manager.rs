@@ -13,13 +13,13 @@ use super::room::Room;
 
 #[derive(Debug)]
 pub struct RoomManager {
-    pub rooms: DashMap<String, Arc<Room>>,
+    pub rooms: Arc<DashMap<String, Arc<Room>>>,
 }
 
 impl RoomManager {
     pub fn new() -> Self {
         Self {
-            rooms: DashMap::new(),
+            rooms: Arc::new(DashMap::new()),
         }
     }
 
@@ -27,100 +27,122 @@ impl RoomManager {
         &self,
         room_id: &String,
         password: Option<String>,
-        mut player_id: Option<String>,
+        player_id: Option<String>,
     ) -> Result<(Arc<Room>, String), AppError> {
-        if let Some(room) = self.rooms.get(room_id) {
-            if !(password == room.info.password) {
-                return Err(AppError::invalid_password());
-            }
-            if room.player_counter.load(Ordering::Relaxed) >= 2 {
-                return Err(AppError::room_full());
-            };
-            if player_id.is_some()
-                && !room
-                    .players
-                    .lock()
-                    .await
-                    .iter()
-                    .map(|player| player.id.clone())
-                    .any(|id| player_id == id)
-            {
-                return Err(AppError::player_not_found());
-            }
-            if room.deletion_token.lock().await.is_some() && player_id.is_some() {
-                let mut token_lock = room.deletion_token.lock().await;
-                if let Some(token) = token_lock.take() {
+        let room = self
+            .rooms
+            .get(room_id)
+            .ok_or_else(|| AppError::room_not_found())?;
+
+        if password != room.info.password {
+            return Err(AppError::invalid_password());
+        }
+
+        if let Some(id) = &player_id {
+            if let Ok(_) = room.get_player(&id).await {
+                if let Some(token) = room.deletion_token.lock().await.take() {
                     token.cancel();
                 }
+                tracing::info!("Player {} reconnected to room {}", &id, room_id);
+                return Ok((room.clone(), id.clone()));
             } else {
-                let player = room.add_player().await;
-                player_id = player.id.clone();
-                room.players.lock().await.push(player);
+                return Err(AppError::player_not_found());
+            }
+        } else {
+            let current_count = room.player_counter.load(Ordering::SeqCst);
+            if current_count >= 2 {
+                return Err(AppError::room_full());
             }
 
-            return Ok((room.clone(), player_id.unwrap()));
+            let new_player = room.add_player().await?;
+            let new_player_id = new_player.id.clone().unwrap();
+
+            room.players.lock().await.push(new_player);
+            room.player_counter
+                .store(current_count + 1, Ordering::SeqCst);
+
+            tracing::info!("Player {} connected to room {}", &new_player_id, room_id);
+            return Ok((room.clone(), new_player_id));
         }
-        Err(AppError::room_not_found())
     }
 
     pub async fn leave(&self, room_id: &String, player_id: String) -> Result<()> {
-        if let Some(room) = self.rooms.get(room_id) {
-            let last_player =
-                room.player_counter.load(Ordering::Relaxed) == 1 || room.info.bot_level.is_some();
+        let room = match self.rooms.get(room_id) {
+            Some(room) => room,
+            None => return Ok(()),
+        };
 
-            if !last_player {
-                room.game.lock().await.state.board.status = Status::Paused;
+        let current_count = room.player_counter.load(Ordering::SeqCst);
+        let is_last_player = current_count <= 1
+            || room.info.bot_level.is_some()
+            || room.deletion_token.lock().await.is_some();
 
-                room.player_counter.fetch_sub(1, Ordering::Relaxed);
-                let player = room.get_player(player_id.clone()).await?;
-                let msg = ServerMessage::PlayerUpdate {
-                    action: PlayerAction::PlayerDisconnected,
-                    player: player.clone(),
-                };
-                let _ = room
-                    .get_other_player(player_id.clone())
-                    .await?
-                    .tx
-                    .get()
-                    .unwrap()
-                    .send(msg);
+        if is_last_player {
+            drop(room);
+            self.rooms.remove(room_id);
+            tracing::info!("Room {} removed - last player left", room_id);
+        } else {
+            let leaving_player = room.get_player(&player_id).await?;
+            room.game.lock().await.state.board.status = Status::Paused;
 
-                let token = CancellationToken::new();
-                {
-                    let mut token_lock = room.deletion_token.lock().await;
-                    *token_lock = Some(token.clone());
+            let disconnect_msg = ServerMessage::PlayerUpdate {
+                action: PlayerAction::PlayerDisconnected,
+                player: leaving_player.clone(),
+            };
+
+            if let Ok(other_player) = room.get_other_player(&player_id).await {
+                if let Some(tx) = other_player.tx {
+                    let _ = tx.send(disconnect_msg);
                 }
-
-                let room_id = room_id.clone();
-                let rooms = self.rooms.clone();
-                let room = room.clone();
-
-                tokio::spawn(async move {
-                    tokio::select! {
-                        _ = tokio::time::sleep(std::time::Duration::from_secs(60)) => {
-                            let player = room.get_player(player_id).await.unwrap();
-                            let msg = ServerMessage::PlayerUpdate {
-                                action: PlayerAction::PlayerLeft,
-                                player: player.clone(),
-                            };
-                            room.game.lock().await.state.board.status = Status::Won(!player.info.marker);
-                            room.send_board().await;
-                            let _ = room.send(msg).await;
-                            drop(room);
-                            rooms.remove(&room_id);
-                        }
-                        _ = token.cancelled() => {
-                            room.game.lock().await.state.board.status = Status::InProgress;
-                            room.send_board().await;
-                        }
-                    }
-                });
-            } else {
-                drop(room);
-                self.rooms.remove(room_id);
             }
+
+            let cleanup_token = CancellationToken::new();
+            *room.deletion_token.lock().await = Some(cleanup_token.clone());
+
+            self.schedule_room_cleanup(room_id.clone(), player_id, room.clone(), cleanup_token)
+                .await;
         }
-        dbg!("player left");
         Ok(())
+    }
+
+    async fn schedule_room_cleanup(
+        &self,
+        room_id: String,
+        player_id: String,
+        room: Arc<Room>,
+        cleanup_token: CancellationToken,
+    ) {
+        let rooms = self.rooms.clone();
+        tokio::spawn(async move {
+            tokio::select! {
+                _ = tokio::time::sleep(std::time::Duration::from_secs(60)) => {
+                    tracing::info!("Player {} timed out in room {}", player_id, room_id);
+
+                    if !rooms.contains_key(&room_id) {
+                        return;
+                    }
+
+                    if let Ok(leaving_player) = room.get_player(&player_id).await {
+                        let mut game_lock = room.game.lock().await;
+                        game_lock.state.board.status = Status::Won(!leaving_player.info.marker);
+                        drop(game_lock);
+
+                        let leave_msg = ServerMessage::PlayerUpdate {
+                            action: PlayerAction::PlayerLeft,
+                            player: leaving_player,
+                        };
+
+                        room.send_board().await;
+                        let _ = room.tx.send(leave_msg).await;
+                    }
+
+                    room.shutdown().await;
+                    drop(room);
+                    rooms.remove(&room_id).unwrap();
+                    tracing::info!("Room {} removed due to player timeout", room_id);
+                }
+                _ = cleanup_token.cancelled() => {}
+            }
+        });
     }
 }

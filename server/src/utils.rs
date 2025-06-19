@@ -12,7 +12,6 @@ use crate::{
 pub fn parse_tuple(s: &str) -> Result<(usize, usize), AppError> {
     let trimmed = s.trim();
 
-    // Handle empty input
     if trimmed.is_empty() {
         return Err(AppError::internal_error("Input cannot be empty"));
     }
@@ -37,15 +36,18 @@ pub fn parse_tuple(s: &str) -> Result<(usize, usize), AppError> {
 pub async fn handle_event(event: ClientMessage, room: Arc<Room>) -> Result<(), AppError> {
     match event {
         ClientMessage::TextMessage { content, player_id } => {
-            let player = room.get_player(player_id).await?;
-            let _ = room.send(ServerMessage::TextMessage {
-                content,
-                player: player.info,
-            });
+            let player = room.get_player(&player_id).await.unwrap();
+            let _ = room
+                .tx
+                .send(ServerMessage::TextMessage {
+                    content,
+                    player: player.info,
+                })
+                .await;
         }
         ClientMessage::GameUpdate { mv, player_id } => {
             if !room.game.lock().await.state.players[0].marker
-                == room.get_player(player_id).await?.info.marker
+                == room.get_player(&player_id).await.unwrap().info.marker
             {
                 return Err(AppError::not_player_turn());
             }
@@ -62,14 +64,14 @@ pub async fn handle_event(event: ClientMessage, room: Arc<Room>) -> Result<(), A
         }
         ClientMessage::GameRestart { action } => match action {
             RestartAction::Request => {
-                let _ = room.send(ServerMessage::GameRestart { action });
+                let _ = room.tx.send(ServerMessage::GameRestart { action }).await;
             }
             RestartAction::Accept => {
                 room.game.lock().await.restart_game();
-                let _ = room.send(ServerMessage::GameRestart { action });
+                let _ = room.tx.send(ServerMessage::GameRestart { action }).await;
             }
             RestartAction::Reject => {
-                let _ = room.send(ServerMessage::GameRestart { action });
+                let _ = room.tx.send(ServerMessage::GameRestart { action }).await;
             }
         },
     }

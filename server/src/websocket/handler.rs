@@ -26,14 +26,16 @@ pub async fn websocket_handler(
 ) -> Response {
     ws.on_upgrade(async move |socket| handle_socket(socket, state, path, payload).await)
 }
+
 async fn send_error_and_close(
     mut sender: futures_util::stream::SplitSink<WebSocket, axum::extract::ws::Message>,
     error: AppError,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let error_msg = ServerMessage::Error(error);
+    let error_msg = ServerMessage::Error(error.clone());
     let json_msg = error_msg.to_json()?;
 
     sender.send(Message::Text(json_msg.into())).await?;
+    dbg!(&error);
     sender.close().await?;
 
     Ok(())
@@ -46,8 +48,9 @@ async fn handle_socket(
     payload: WebSocketQuery,
 ) {
     let (mut sender, mut receiver) = socket.split();
+
     let (room, player_id) = match state
-        .join(&room_id, payload.password, payload.player_id)
+        .join(&room_id, payload.password, payload.player_id.clone())
         .await
     {
         Ok(result) => result,
@@ -59,26 +62,46 @@ async fn handle_socket(
         }
     };
     let (player_tx, mut player_rx) = unbounded_channel::<ServerMessage>();
-    if let Some(player) = room
-        .players
-        .lock()
-        .await
-        .iter_mut()
-        .find(|p| p.id == Some(player_id.clone()))
     {
-        let tx = player.tx.get_or_init(|| async { player_tx }).await;
+        let mut players_guard = room.players.lock().await;
+        let player = players_guard
+            .iter_mut()
+            .find(|p| p.id.as_ref() == Some(&player_id))
+            .unwrap();
 
-        let msg = ServerMessage::PlayerUpdate {
-            action: PlayerAction::PlayerJoined,
+        let join_action = match payload.player_id.is_some() {
+            true => PlayerAction::PlayerReconnected,
+            false => PlayerAction::PlayerJoined,
+        };
+        player.tx = Some(player_tx);
+
+        let join_msg = ServerMessage::PlayerUpdate {
+            action: join_action,
             player: player.clone(),
         };
-        let _ = tx.send(msg);
+
+        let _ = room.tx.send(join_msg).await;
     }
-    let player_send = tokio::spawn({
+
+    let should_start_game = {
+        let player_count = room.player_counter.load(Ordering::SeqCst);
+        let game_status = room.game.lock().await.state.board.status;
+
+        player_count == 2 && matches!(game_status, Status::WaitingForPlayers | Status::Paused)
+    };
+
+    if should_start_game {
+        room.game.lock().await.state.board.status = Status::InProgress;
+        room.send_board().await;
+        tracing::info!("Game started in room {}", room_id);
+    }
+
+    // Task to send messages to this player
+    let player_send_task = tokio::spawn({
         let player_id = player_id.clone();
         async move {
             while let Some(msg) = player_rx.recv().await {
-                let json_msg = match &msg {
+                let filtered_msg = match &msg {
                     ServerMessage::PlayerUpdate { action, player } => {
                         let mut player_clone = player.clone();
 
@@ -87,7 +110,6 @@ async fn handle_socket(
                                 player_clone.id = None;
                             }
                         }
-
                         ServerMessage::PlayerUpdate {
                             action: action.clone(),
                             player: player_clone,
@@ -96,46 +118,83 @@ async fn handle_socket(
                     _ => msg,
                 };
 
-                let msg = match json_msg.to_json() {
+                let json_msg = match filtered_msg.to_json() {
                     Ok(json) => json,
-                    Err(_) => continue,
+                    Err(e) => {
+                        dbg!(&e);
+                        tracing::error!("Failed to serialize message: {}", e);
+                        continue;
+                    }
                 };
-                if sender.send(Message::Text(msg.into())).await.is_err() {
+                if let Err(e) = sender.send(Message::Text(json_msg.into())).await {
+                    dbg!(&e);
+                    tracing::debug!("WebSocket sender closed for player {}", player_id);
                     break;
                 }
             }
         }
     });
 
-    let recv_ws = tokio::spawn({
+    let message_receive_task = tokio::spawn({
         let room = room.clone();
+        let player_id = player_id.clone();
         async move {
             while let Some(message_result) = receiver.next().await {
                 match message_result {
-                    Ok(message) => {
-                        if let Ok(client_message) = parse_message(message) {
+                    Ok(message) => match parse_message(message) {
+                        Ok(client_message) => {
                             if let Err(err) = handle_event(client_message, room.clone()).await {
-                                let _ = room.send(ServerMessage::Error(err));
+                                let error_msg = ServerMessage::Error(err);
+                                let _ = room
+                                    .get_player(&player_id)
+                                    .await
+                                    .unwrap()
+                                    .tx
+                                    .unwrap()
+                                    .send(error_msg);
                             }
                         }
-                    }
+                        Err(e) => {
+                            dbg!(&e);
+                            tracing::warn!(
+                                "Failed to parse message from player {}: {}",
+                                player_id,
+                                e
+                            );
+                        }
+                    },
                     Err(err) => {
-                        let _ = room.send(ServerMessage::Error(err.into()));
+                        dbg!(&err);
+                        tracing::warn!("WebSocket error for player {}: {}", player_id, err);
+                        let error_msg = ServerMessage::Error(err.into());
+                        let _ = room
+                            .get_player(&player_id)
+                            .await
+                            .unwrap()
+                            .tx
+                            .unwrap()
+                            .send(error_msg);
+                        break;
                     }
                 }
             }
+            dbg!("err");
+            tracing::debug!("Message receive task ended for player {}", player_id);
         }
     });
 
-    if room.player_counter.load(Ordering::Relaxed) == 2 {
-        room.game.lock().await.state.board.status = Status::InProgress;
-        room.send_board().await;
-    }
-
     tokio::select! {
-        _ = recv_ws => {},
-        _ = player_send => {},
+        _ = message_receive_task => {
+            tracing::debug!("Player {} WebSocket receive task ended", player_id);
+        },
+        _ = player_send_task => {
+            tracing::debug!("Player {} WebSocket send task ended", player_id);
+        },
+    };
+
+    if let Err(e) = state.leave(&room_id, player_id.clone()).await {
+        tracing::error!("Error during player {} leave: {}", player_id, e);
     }
 
-    let _ = state.leave(&room_id, player_id).await;
+    tracing::info!("Player {} disconnected from room {}", player_id, room_id);
 }
