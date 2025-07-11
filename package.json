@@ -1,0 +1,15 @@
+{
+  "name": "ultimate-ttt",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "client-dev": "cd ./client && pnpm dev",
+    "server-start": "./server/target/release/server",
+    "dev": "concurrently \"pnpm run client-dev\" \"pnpm run server-start\"",
+    "build": "cd ./client && pnpm i ; cd ../server/ && cargo build --release"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.7.0"
+}

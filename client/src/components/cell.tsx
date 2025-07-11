@@ -1,9 +1,9 @@
 import { cn } from "@heroui/theme";
 
-import { BoardCell } from "@/types";
+import { boardCell } from "@/types";
 
 interface CellProps {
-  mark: BoardCell;
+  mark: boardCell;
   board: number;
   index: number;
 
@@ -52,8 +52,8 @@ function Cell({ mark, board, index, onClick }: CellProps) {
   }
 
   if (
-    mark === ("X" as unknown as BoardCell) ||
-    mark === ("O" as unknown as BoardCell)
+    mark === ("X" as unknown as boardCell) ||
+    mark === ("O" as unknown as boardCell)
   ) {
     uxClasses = "text-default-800 pointer-events-none";
   } else {
@@ -72,7 +72,7 @@ function Cell({ mark, board, index, onClick }: CellProps) {
     >
       {mark && (
         <div
-          className={`relative aspect-square h-full animate-appearance-in before:absolute before:left-1/2 before:top-1/2 before:translate-x-[-50%] before:translate-y-[-50%] after:absolute after:left-1/2 after:top-1/2 after:translate-x-[-50%] after:translate-y-[-50%] after:bg-default-800 ${mark === ("X" as unknown as BoardCell) ? "before:block before:h-2 before:w-[calc(100%-4px)] before:rotate-45 before:bg-default-800 after:block after:h-2 after:w-[calc(100%-4px)] after:-rotate-45" : "before:block before:h-[calc(100%-8px)] before:w-[calc(100%-8px)] before:rounded-full before:border-default-800 before:border-8"}`}
+          className={`relative aspect-square h-full animate-appearance-in before:absolute before:left-1/2 before:top-1/2 before:translate-x-[-50%] before:translate-y-[-50%] after:absolute after:left-1/2 after:top-1/2 after:translate-x-[-50%] after:translate-y-[-50%] after:bg-default-800 ${mark === ("X" as unknown as boardCell) ? "before:block before:h-2 before:w-[calc(100%-4px)] before:rotate-45 before:bg-default-800 after:block after:h-2 after:w-[calc(100%-4px)] after:-rotate-45" : "before:block before:h-[calc(100%-8px)] before:w-[calc(100%-8px)] before:rounded-full before:border-default-800 before:border-8"}`}
         />
       )}
     </button>

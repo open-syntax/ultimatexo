@@ -20,7 +20,7 @@ export const Navbar = () => {
     <HeroUINavbar maxWidth="xl" position="sticky">
       <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
         <NavbarBrand className="gap-3 max-w-fit">
-          <p className="font-bold text-inherit">Ulitamte TTT</p>
+          <p className="font-bold text-inherit">Ultimate TTT</p>
         </NavbarBrand>
         <div className="hidden sm:flex gap-4 justify-start ml-2">
           {siteConfig.navItems.map((item) => (
