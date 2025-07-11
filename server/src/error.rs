@@ -1,3 +1,4 @@
+#![allow(unused)]
 use axum::extract::rejection::{JsonRejection, PathRejection, QueryRejection};
 use serde::Serialize;
 use thiserror::Error;
@@ -32,27 +33,12 @@ pub enum AppError {
 
     #[error("Not found: {message}")]
     NotFound { message: String },
-
-    #[error("Conflict: {message}")]
-    Conflict { message: String },
-
-    #[error("Payload too large: {message}")]
-    PayloadTooLarge { message: String },
-
-    #[error("Too many requests: {message}")]
-    TooManyRequests {
-        message: String,
-        retry_after: Option<u64>,
-    },
 }
 
 #[derive(Error, Debug, Clone, Serialize)]
 pub enum GameError {
     #[error("Invalid move")]
     InvalidMove,
-
-    #[error("Game has already ended")]
-    AlreadyEnded,
 
     #[error("Game has not started yet")]
     NotStarted,
@@ -74,12 +60,6 @@ pub enum RoomError {
 
     #[error("Room is Closed")]
     Closed,
-
-    #[error("Access denied to room: {reason}")]
-    AccessDenied { reason: String },
-
-    #[error("Room creation failed: {reason}")]
-    CreationFailed { reason: String },
 }
 
 #[derive(Error, Debug, Clone, Serialize)]
@@ -102,7 +82,7 @@ pub struct ErrorBuilder {
 }
 
 impl ErrorBuilder {
-    pub fn new(error: AppError) -> Self {
+    fn new(error: AppError) -> Self {
         Self { error }
     }
 
@@ -160,10 +140,15 @@ impl AppError {
         }
     }
 
-    pub fn too_many_requests(message: impl Into<String>, retry_after: Option<u64>) -> Self {
-        AppError::TooManyRequests {
-            message: message.into(),
-            retry_after,
+    pub fn unsupported_room_type() -> Self {
+        Self::BadRequest {
+            message: "Unsupported room type".to_string(),
+        }
+    }
+
+    pub fn reconnect_not_allowed() -> Self {
+        Self::BadRequest {
+            message: "Reconnection not allowed for this room type".to_string(),
         }
     }
 
@@ -197,7 +182,6 @@ impl From<anyhow::Error> for AppError {
     }
 }
 
-// Axum extraction rejections
 impl From<JsonRejection> for AppError {
     fn from(rejection: JsonRejection) -> Self {
         match rejection {
@@ -250,7 +234,6 @@ impl From<std::env::VarError> for AppError {
     }
 }
 
-// String parsing errors
 impl From<std::num::ParseIntError> for AppError {
     fn from(err: std::num::ParseIntError) -> Self {
         AppError::Validation(ValidationError::InvalidFormat {
@@ -298,7 +281,6 @@ impl From<QueryRejection> for AppError {
     }
 }
 
-// WebSocket related errors (if using axum websockets)
 impl From<axum::Error> for AppError {
     fn from(err: axum::Error) -> Self {
         AppError::Internal {
@@ -308,7 +290,6 @@ impl From<axum::Error> for AppError {
     }
 }
 
-// Tokio join error
 impl From<tokio::task::JoinError> for AppError {
     fn from(err: tokio::task::JoinError) -> Self {
         AppError::Internal {

@@ -1,25 +1,69 @@
-use crate::{
-    error::AppError,
-    game::game::Game,
-    types::{Marker, Player, PlayerInfo, RoomInfo, ServerMessage},
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, AtomicUsize, Ordering},
 };
-use std::{
-    ops::Not,
-    sync::{
-        Arc,
-        atomic::{AtomicBool, AtomicU8, Ordering},
-    },
-};
-use tokio::sync::{Mutex, OnceCell, mpsc::Sender};
+
+use serde::{Deserialize, Deserializer, Serialize, de};
+use tokio::sync::{Mutex, mpsc::Sender};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
+
+use crate::{
+    error::AppError,
+    models::{Marker, Player, PlayerInfo, ServerMessage},
+    services::GameService,
+};
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(default)]
+pub struct RoomInfo {
+    pub id: String,
+    pub name: String,
+    pub is_public: bool,
+    pub room_type: RoomType,
+    #[serde(skip_serializing, deserialize_with = "deserialize_bot_level")]
+    pub bot_level: Option<u8>,
+    #[serde(skip_serializing)]
+    pub password: Option<String>,
+    #[serde(skip_deserializing)]
+    pub is_protected: bool,
+}
+
+fn deserialize_bot_level<'de, D>(deserializer: D) -> Result<Option<u8>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let opt = Option::<String>::deserialize(deserializer)?;
+
+    let level = match opt.as_deref() {
+        Some("Beginner") => Some(2),
+        Some("Intermediate") => Some(5),
+        Some("Advanced") => Some(9),
+        Some(_) => return Err(de::Error::custom("InvalidBotLevel")),
+        None => None,
+    };
+
+    Ok(level)
+}
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq)]
+pub enum RoomType {
+    Standard,
+    BotMatch,
+}
+
+impl Default for RoomType {
+    fn default() -> Self {
+        Self::Standard
+    }
+}
+impl Eq for RoomType {}
 
 #[derive(Debug)]
 pub struct Room {
     pub tx: Sender<ServerMessage>,
     pub players: Mutex<Vec<Player>>,
-    pub player_counter: AtomicU8,
-    pub game: Arc<Mutex<Game>>,
+    pub player_counter: AtomicUsize,
+    pub game: Arc<Mutex<GameService>>,
     pub info: RoomInfo,
     pub deletion_token: Mutex<Option<CancellationToken>>,
     pub is_shutdown: AtomicBool,
@@ -29,10 +73,10 @@ impl Room {
     pub fn new(info: RoomInfo, tx: Sender<ServerMessage>) -> Self {
         Self {
             tx,
-            player_counter: AtomicU8::new(0),
+            player_counter: AtomicUsize::new(0),
             players: Mutex::new(Vec::new()),
-            game: Arc::new(Mutex::new(Game::new())),
             info,
+            game: Arc::new(Mutex::new(GameService::new())),
             deletion_token: Mutex::new(None),
             is_shutdown: AtomicBool::new(false),
         }
@@ -51,8 +95,8 @@ impl Room {
         let player_id = Uuid::new_v4().to_string();
         let player_info = PlayerInfo { marker };
         let player = Player::new(player_id, marker);
-        self.player_counter.fetch_add(1, Ordering::Relaxed);
-        self.game.lock().await.state.players.push(player_info);
+        self.player_counter.fetch_add(1, Ordering::SeqCst);
+        self.game.lock().await.push_player(player_info);
         Ok(player)
     }
 
@@ -120,6 +164,7 @@ impl Room {
         if let Some(token) = self.deletion_token.lock().await.as_ref() {
             token.cancel();
         }
+        let _ = self.tx.send(ServerMessage::Close).await;
 
         self.tx.closed().await;
     }
@@ -130,15 +175,15 @@ impl Room {
 
     pub async fn send_board(&self) {
         if self.is_closed() {
-            return; // Don't send if room is closed
+            return;
         }
 
         let game = self.game.lock().await;
         let msg = ServerMessage::GameUpdate {
-            board: game.state.board.clone(),
-            next_player: game.state.players[0].clone(),
-            next_board: game.state.next_board,
-            last_move: game.state.mv.clone(),
+            board: game.get_board(),
+            next_player: game.get_next_player(),
+            next_board: game.get_next_board(),
+            last_move: game.get_last_move(),
         };
         let _ = self.tx.send(msg).await;
     }

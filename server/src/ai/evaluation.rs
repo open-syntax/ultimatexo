@@ -1,13 +1,13 @@
 use crate::{
-    game::game::Game,
-    types::{GameState, Marker, Status},
+    domain::GameEngine,
+    models::{GameState, Marker, Status},
 };
 
 #[derive(Default)]
 pub struct Evaluator;
 
 impl minimax::Evaluator for Evaluator {
-    type G = Game;
+    type G = GameEngine;
     fn evaluate(&self, state: &GameState) -> minimax::Evaluation {
         let mut score = 0;
         let win_conditions = [

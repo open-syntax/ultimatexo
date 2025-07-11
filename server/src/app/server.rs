@@ -1,24 +1,23 @@
 use anyhow::Context;
-use std::{env, sync::Arc};
+use std::{env, net::SocketAddr, sync::Arc};
 
 use anyhow::Result;
 use axum::{Router, routing::get};
 use tokio::signal;
 
 use crate::{
-    api::routes::{check_room_password, get_room, get_rooms, health_check, new_room},
-    room::manager::RoomManager,
-    websocket::handler::websocket_handler,
+    app::state::AppState,
+    handlers::{create_room, get_room, get_rooms, health_check, websocket_handler},
 };
 
 pub async fn start_server() -> Result<()> {
-    let state = Arc::new(RoomManager::new());
+    let state = Arc::new(AppState::new());
 
     let app = Router::new()
         .route("/ws/{room_id}", get(websocket_handler))
-        .route("/rooms", get(get_rooms).post(new_room))
+        .route("/rooms", get(get_rooms).post(create_room))
         .route("/health", get(health_check))
-        .route("/room/{room_id}", get(get_room).post(check_room_password))
+        .route("/room/{room_id}", get(get_room))
         .with_state(state);
 
     let port: String = env::var("PORT").unwrap_or("6767".to_string());
@@ -30,10 +29,13 @@ pub async fn start_server() -> Result<()> {
 
     tracing::info!("Server listening on {}:{}", host, port);
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await
-        .context("Server error")?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await
+    .context("Server error")?;
 
     Ok(())
 }

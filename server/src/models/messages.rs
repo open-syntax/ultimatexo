@@ -6,11 +6,13 @@ use crate::error::AppError;
 
 use super::{Board, Player, PlayerInfo};
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub enum ClientMessage {
     TextMessage { content: String, player_id: String },
     GameUpdate { mv: String, player_id: String },
     GameRestart { action: RestartAction },
+    Close(String),
+    Pong(String),
 }
 #[derive(Serialize, Debug, Deserialize, Clone)]
 pub enum RestartAction {
@@ -28,11 +30,6 @@ pub struct WebSocketQuery {
 #[derive(Deserialize)]
 pub struct RoomNameQuery {
     pub name: Option<String>,
-}
-
-#[derive(Deserialize)]
-pub struct RoomPasswordCheck {
-    pub password: String,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -55,6 +52,10 @@ pub enum ServerMessage {
     GameRestart {
         action: RestartAction,
     },
+    #[serde(skip_serializing)]
+    Close,
+    Ping,
+    Pong,
     Error(AppError),
 }
 impl ServerMessage {

@@ -1,6 +1,6 @@
 use crate::{
-    game::game::Game,
-    types::{GameState, Marker, Status},
+    domain::GameEngine,
+    models::{GameState, Marker, Status},
 };
 
 #[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
@@ -10,7 +10,7 @@ pub struct Place {
     p_board: Option<usize>,
 }
 
-impl minimax::Game for Game {
+impl minimax::Game for GameEngine {
     type S = GameState;
     type M = Place;
 
