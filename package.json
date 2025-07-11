@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "client-dev": "cd ./client && pnpm dev",
+    "client-dev": "cd ./client/ && pnpm dev ; cd ../",
+    "server-build": "cd ./server/ ; cargo build --release ; cd ../",
     "server-start": "./server/target/release/server",
     "dev": "concurrently \"pnpm run client-dev\" \"pnpm run server-start\"",
-    "build": "cd ./client && pnpm i ; cd ../server/ && cargo build --release"
+    "build": "cd ./client/ && pnpm i ; cd ../ ; pnpm server-build"
   },
   "keywords": [],
   "author": "",
