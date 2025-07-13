@@ -6,11 +6,9 @@ interface MiniBoardProps {
   board: miniBoard;
   isNextBoard: boolean;
   index: number;
-
-  setMove: Function;
 }
 
-function MiniBoard({ board, index, setMove, isNextBoard }: MiniBoardProps) {
+function MiniBoard({ board, index, isNextBoard }: MiniBoardProps) {
   if (board.status === "O" || board.status === "X") {
     return (
       <div className="flex h-full w-full items-center justify-center border border-default-400">
@@ -26,7 +24,7 @@ function MiniBoard({ board, index, setMove, isNextBoard }: MiniBoardProps) {
       className={`grid aspect-square h-full w-full grid-cols-3 grid-rows-3 place-items-center border border-default-400 p-2 transition-shadow duration-500 ${isNextBoard ? "z-10 shadow-lg shadow-primary" : ""}`}
     >
       {board.cells.map((cell: boardCell, i) => (
-        <Cell key={i} board={index} index={i} mark={cell} onClick={setMove} />
+        <Cell key={i} board={index} index={i} mark={cell} />
       ))}
     </div>
   );

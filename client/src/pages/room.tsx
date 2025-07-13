@@ -11,10 +11,9 @@ import Board from "@/components/board";
 import DefaultLayout from "@/layouts/default";
 import { Board as BoardType, socketEvent } from "@/types";
 import RoomLayout from "@/layouts/room";
-import { marker, Player } from "@/types/player";
+import { marker } from "@/types/player";
 import { playerActions } from "@/types/actions";
-
-let ws: WebSocket;
+import PlayerStore from "@/store/player";
 
 interface roomResponse {
   id: string;
@@ -44,17 +43,13 @@ interface room {
 function RoomPage() {
   let { roomId } = useParams();
 
+  const { player, setPlayer, ws, setWs, availableBoards, setAvailableBoards, nextPlayer, setNextPlayer } =
+    PlayerStore();
+
   const [board, setBoard] = useState<{
     boards: BoardType;
     status: string;
   } | null>(null);
-  const [availableBoards, setAvailableBoards] = useState<number | null>(null);
-  const [player, setPlayer] = useState<Player>({
-    id: "",
-    info: { marker: "X" },
-  });
-  const [nextPlayer, setNextPlayer] = useState<marker>(null);
-  const [move, setMove] = useState<string>("");
 
   const [status, setStatus] = useState<room>({
     status: RoomStatus.connecting,
@@ -63,7 +58,11 @@ function RoomPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const handleWebSocket = (password: string) => {
-    ws = new WebSocket(`/api/ws/${roomId}${password ? `:${password}` : ""}`);
+    setWs(new WebSocket(`/api/ws/${roomId}${password ? `:${password}` : ""}`));
+  };
+
+  useEffect(() => {
+    if (!ws) return;
 
     let playerId: string | null = null;
 
@@ -92,10 +91,15 @@ function RoomPage() {
           switch (e.data.action) {
             case playerActions.PlayerJoined:
               status = RoomStatus.connected;
-              playerId = e.data.player.id as string;
-              setPlayer(e.data.player);
-              message = "Connected";
-              break;
+              if (playerId || player.id) {
+                message = "PlayerJoined";
+                break;
+              } else {
+                playerId = e.data.player.id as string;
+                setPlayer(e.data.player);
+                message = "Connected";
+                break;
+              }
 
             case playerActions.PlayerLeft:
               status = RoomStatus.connected;
@@ -119,6 +123,10 @@ function RoomPage() {
           });
           break;
 
+        case "Ping":
+          ws.send(JSON.stringify({ Pong: playerId }));
+          break;
+
         case "Error":
           setStatus({
             status: RoomStatus.error,
@@ -136,7 +144,7 @@ function RoomPage() {
         message: "Cannot connect",
       }));
     };
-  };
+  }, [ws]);
 
   const handlePassword = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -194,19 +202,19 @@ function RoomPage() {
   }, [roomId]);
 
   // handle move
-  useEffect(() => {
-    if (!move || !status === ("connected" as any)) return;
-    if (!availableBoards || availableBoards === parseInt(move.split(",")[0])) {
-      ws.send(
-        JSON.stringify({
-          GameUpdate: {
-            mv: move,
-            player_id: player.id,
-          },
-        }),
-      );
-    }
-  }, [move]);
+  // useEffect(() => {
+  //   if (!move || !status === ("connected" as any)) return;
+  //   if (!availableBoards || availableBoards === parseInt(move.split(",")[0])) {
+  //     const packet: GameMove = {
+  //       GameUpdate: {
+  //         mv: move,
+  //         player_id: player.id,
+  //       },
+  //     };
+
+  //     ws.send(JSON.stringify(packet));
+  //   }
+  // }, [move]);
 
   if (status.status === RoomStatus.connecting || isLoading) {
     return (
@@ -268,7 +276,6 @@ function RoomPage() {
                 ? availableBoards
                 : false
             }
-            setMove={setMove}
           />
         </div>
       ) : (

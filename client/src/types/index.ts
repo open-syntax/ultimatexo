@@ -63,4 +63,7 @@ export type socketEvent =
       data: {
         error: string;
       };
+    }
+  | {
+      event: "Ping";
     };

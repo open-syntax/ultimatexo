@@ -45,8 +45,8 @@ const RoomForm = () => {
             : JSON.stringify({ is_public: false, bot_level: difficulty }),
     })
       .then((response) => response.json())
-      .then((data) => {
-        navgiate(`/room/${data}`);
+      .then((data: { room_id: number }) => {
+        navgiate(`/room/${data.room_id}`);
       })
       .catch((error) => {
         console.log(error);
