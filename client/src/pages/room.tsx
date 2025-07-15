@@ -11,9 +11,10 @@ import Board from "@/components/board";
 import DefaultLayout from "@/layouts/default";
 import { Board as BoardType, socketEvent } from "@/types";
 import RoomLayout from "@/layouts/room";
-import { marker } from "@/types/player";
 import { playerActions } from "@/types/actions";
 import PlayerStore from "@/store/player";
+import RoomStore from "@/store/room";
+import Chat from "@/components/chat";
 
 interface roomResponse {
   id: string;
@@ -43,8 +44,18 @@ interface room {
 function RoomPage() {
   let { roomId } = useParams();
 
-  const { player, setPlayer, ws, setWs, availableBoards, setAvailableBoards, nextPlayer, setNextPlayer } =
-    PlayerStore();
+  const {
+    player,
+    setPlayer,
+    ws,
+    setWs,
+    availableBoards,
+    setAvailableBoards,
+    nextPlayer,
+    setNextPlayer,
+  } = PlayerStore();
+
+  // const { setRoomId, setPassword, password } = RoomStore();
 
   const [board, setBoard] = useState<{
     boards: BoardType;
@@ -91,7 +102,8 @@ function RoomPage() {
           switch (e.data.action) {
             case playerActions.PlayerJoined:
               status = RoomStatus.connected;
-              if (playerId || player.id) {
+              console.log(e.data.player)
+              if (playerId && !e.data.player.id) {
                 message = "PlayerJoined";
                 break;
               } else {
@@ -201,21 +213,6 @@ function RoomPage() {
     return checkRoom();
   }, [roomId]);
 
-  // handle move
-  // useEffect(() => {
-  //   if (!move || !status === ("connected" as any)) return;
-  //   if (!availableBoards || availableBoards === parseInt(move.split(",")[0])) {
-  //     const packet: GameMove = {
-  //       GameUpdate: {
-  //         mv: move,
-  //         player_id: player.id,
-  //       },
-  //     };
-
-  //     ws.send(JSON.stringify(packet));
-  //   }
-  // }, [move]);
-
   if (status.status === RoomStatus.connecting || isLoading) {
     return (
       <DefaultLayout>
@@ -269,14 +266,17 @@ function RoomPage() {
               ? `Player ${board.status} Won!`
               : `${nextPlayer}'s turn.`}
           </p>
-          <Board
-            board={board.boards}
-            nextMove={
-              nextPlayer === player.info.marker && board.status === null
-                ? availableBoards
-                : false
-            }
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <Board
+              board={board.boards}
+              nextMove={
+                nextPlayer === player.info.marker && board.status === null
+                  ? availableBoards
+                  : false
+              }
+            />
+            <Chat />
+          </div>
         </div>
       ) : (
         <RoomLayout>

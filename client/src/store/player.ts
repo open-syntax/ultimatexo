@@ -45,7 +45,7 @@ const PlayerStore = create<Store>()((set) => ({
   setPlayer: (player) => set({ player: player }),
   setNextPlayer: (marker) => set({ nextPlayer: marker }),
   setAvailableBoards: (boards) => set({ availableBoards: boards }),
-  setWs: (ws) => set({ ws: ws }),
+  setWs: (ws) => set({ ws }),
 }));
 
 export default PlayerStore;
