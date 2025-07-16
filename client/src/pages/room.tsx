@@ -266,7 +266,7 @@ function RoomPage() {
               ? `Player ${board.status} Won!`
               : `${nextPlayer}'s turn.`}
           </p>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2">
             <Board
               board={board.boards}
               nextMove={

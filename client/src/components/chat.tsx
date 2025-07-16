@@ -84,6 +84,7 @@ const Chat = () => {
   }, [ws]);
 
   useEffect(() => {
+    if (!chat.length) return;
     const element = document.getElementById(`message-${chat.length - 1}`);
 
     element?.scrollIntoView({ behavior: "smooth" });
@@ -117,20 +118,25 @@ const Chat = () => {
     setIsRead(true);
   };
 
-  if (width && width < 768) {
+  if (width && width < 1024) {
     return (
       <>
         <Button
-          className="fixed bottom-4 right-4 size-12 min-w-12 rounded-full p-0 z-[5] overflow-visible"
+          className="fixed bottom-4 right-4 z-[5] size-12 min-w-12 overflow-visible rounded-full p-0"
           variant="bordered"
           onPress={() => handleOnOpen()}
         >
           <ChatIcon />
           {!isRead && (
-            <i className="absolute -right-1 -top-1 size-4 z-10 rounded-full bg-danger-400" />
+            <i className="absolute -right-1 -top-1 z-10 size-4 rounded-full bg-danger-400" />
           )}
         </Button>
-        <Drawer isOpen={isOpen} placement="bottom" size="xl" onOpenChange={onOpenChange}>
+        <Drawer
+          isOpen={isOpen}
+          placement="bottom"
+          size="xl"
+          onOpenChange={onOpenChange}
+        >
           <DrawerContent className="h-full">
             <DrawerBody className="h-full">
               <ChatLayout
