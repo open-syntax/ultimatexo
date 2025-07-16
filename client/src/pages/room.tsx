@@ -9,12 +9,13 @@ import { Input } from "@heroui/input";
 import { Link as LinkIcon } from "@/components/icons";
 import Board from "@/components/board";
 import DefaultLayout from "@/layouts/default";
-import { Board as BoardType, socketEvent } from "@/types";
+import { BoardStatus, Board as BoardType, socketEvent } from "@/types";
 import RoomLayout from "@/layouts/room";
 import { playerActions } from "@/types/actions";
 import PlayerStore from "@/store/player";
 import RoomStore from "@/store/room";
 import Chat from "@/components/chat";
+import GameStatus from "@/components/room/status";
 
 interface roomResponse {
   id: string;
@@ -59,7 +60,7 @@ function RoomPage() {
 
   const [board, setBoard] = useState<{
     boards: BoardType;
-    status: string;
+    status: BoardStatus;
   } | null>(null);
 
   const [status, setStatus] = useState<room>({
@@ -102,7 +103,6 @@ function RoomPage() {
           switch (e.data.action) {
             case playerActions.PlayerJoined:
               status = RoomStatus.connected;
-              console.log(e.data.player)
               if (playerId && !e.data.player.id) {
                 message = "PlayerJoined";
                 break;
@@ -261,11 +261,9 @@ function RoomPage() {
           <p className="w-full text-center font-semibold">
             You are player: {player.info.marker}
           </p>
-          <p className="w-full text-center font-semibold">
-            {board.status
-              ? `Player ${board.status} Won!`
-              : `${nextPlayer}'s turn.`}
-          </p>
+          <div className="flex flex-col items-center gap-2">
+            <GameStatus boardStatus={BoardStatus.O} />
+          </div>
           <div className="grid gap-4 lg:grid-cols-2">
             <Board
               board={board.boards}

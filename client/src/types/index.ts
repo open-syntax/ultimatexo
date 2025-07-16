@@ -7,6 +7,18 @@ export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
 };
 
+export enum BoardStatus {
+  WaitingForPlayers = "WaitingForPlayers",
+  InProgress = "InProgress",
+  Paused = "Paused",
+
+  // Won
+  X = "X",
+  O = "O",
+
+  Draw = "Draw",
+}
+
 export type Board = [
   miniBoard,
   miniBoard,
@@ -32,7 +44,7 @@ export type socketEvent =
   | {
       event: "GameUpdate";
       data: {
-        board: { boards: Board; status: string };
+        board: { boards: Board; status: BoardStatus };
         next_player: PlayerInfo;
         next_board: number | null;
         last_move: string;
@@ -49,6 +61,7 @@ export type socketEvent =
       event: "GameRestart";
       data: {
         action: RestartActions;
+        player: marker;
       };
     }
   | {
