@@ -75,7 +75,7 @@ async fn handle_socket(
     let (player_tx, player_rx) = tokio::sync::mpsc::unbounded_channel();
 
     handle_player_connection(
-        &room,
+        room.clone(),
         &player_id,
         player_tx.clone(),
         payload.player_id.is_some(),
@@ -83,14 +83,14 @@ async fn handle_socket(
     .await
     .unwrap();
 
-    handle_game_start(&room).await;
+    handle_game_start(room.clone()).await;
 
-    let heartbeat_task = spawn_heartbeat_task(player_tx.clone(), player_id.clone());
+    // let heartbeat_task = spawn_heartbeat_task(player_tx.clone(), player_id.clone());
     let send_task = spawn_send_task(sender, player_rx, player_id.clone());
-    let receive_task = spawn_receive_task(receiver, room.clone(), player_id.clone());
+    let receive_task = spawn_receive_task(receiver, room, player_id.clone());
 
     tokio::select! {
-        _ = heartbeat_task => {},
+        // _ = heartbeat_task => {},
         _ = send_task => {},
         _ = receive_task => {},
     }
@@ -99,7 +99,7 @@ async fn handle_socket(
     tracing::info!("Player {} disconnected from room {}", player_id, room_id);
 }
 
-async fn handle_game_start(room: &Arc<crate::models::Room>) {
+async fn handle_game_start(room: Arc<Room>) {
     use crate::models::Status;
     use std::sync::atomic::Ordering;
 
@@ -112,7 +112,7 @@ async fn handle_game_start(room: &Arc<crate::models::Room>) {
     }
 }
 async fn handle_player_connection(
-    room: &Room,
+    room: Arc<Room>,
     player_id: &str,
     player_tx: UnboundedSender<ServerMessage>,
     is_reconnection: bool,

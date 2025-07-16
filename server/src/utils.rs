@@ -5,15 +5,11 @@ use anyhow::Context;
 use axum::extract::ws::Message;
 use std::sync::Arc;
 
-pub struct MessageHandler {
-    game_service: GameService,
-}
+pub struct MessageHandler {}
 
 impl MessageHandler {
     pub fn new() -> Self {
-        Self {
-            game_service: GameService::new(),
-        }
+        Self {}
     }
 
     pub async fn handle_client_message(
@@ -23,19 +19,18 @@ impl MessageHandler {
     ) -> Result<(), AppError> {
         match message {
             ClientMessage::TextMessage { content, player_id } => {
-                self.handle_text_message(room, content, player_id).await
+                Self::handle_text_message(room, content, player_id).await
             }
             ClientMessage::GameUpdate { mv, player_id } => {
-                self.handle_game_update(room, mv, player_id).await
+                Self::handle_game_update(room, mv, player_id).await
             }
-            ClientMessage::GameRestart { action } => self.handle_game_restart(room, action).await,
-            ClientMessage::Close(player_id) => self.handle_close(room, &player_id).await,
-            ClientMessage::Pong(player_id) => self.handle_pong(room, &player_id).await,
+            ClientMessage::GameRestart { action } => Self::handle_game_restart(room, action).await,
+            ClientMessage::Close(player_id) => Self::handle_close(room, &player_id).await,
+            ClientMessage::Pong(player_id) => Self::handle_pong(room, &player_id).await,
         }
     }
 
     async fn handle_text_message(
-        &self,
         room: Arc<Room>,
         content: String,
         player_id: String,
@@ -50,7 +45,6 @@ impl MessageHandler {
     }
 
     async fn handle_game_update(
-        &mut self,
         room: Arc<Room>,
         mv: String,
         player_id: String,
@@ -62,24 +56,20 @@ impl MessageHandler {
             return Err(AppError::not_player_turn());
         }
 
-        self.game_service.make_move(mv)?;
+        room.game.lock().await.make_move(mv)?;
 
         if let Some(bot_level) = room.info.bot_level {
-            self.game_service.generate_ai_move(bot_level).await?;
+            room.game.lock().await.generate_ai_move(bot_level).await?;
         }
 
         room.send_board().await;
         Ok(())
     }
 
-    async fn handle_game_restart(
-        &mut self,
-        room: Arc<Room>,
-        action: RestartAction,
-    ) -> Result<(), AppError> {
+    async fn handle_game_restart(room: Arc<Room>, action: RestartAction) -> Result<(), AppError> {
         match action {
             RestartAction::Accept => {
-                self.game_service.restart_game();
+                room.game.lock().await.restart_game();
             }
             _ => {}
         }
@@ -89,7 +79,7 @@ impl MessageHandler {
         Ok(())
     }
 
-    async fn handle_close(&self, room: Arc<Room>, player_id: &String) -> Result<(), AppError> {
+    async fn handle_close(room: Arc<Room>, player_id: &String) -> Result<(), AppError> {
         let _ = room
             .get_player(&player_id)
             .await
@@ -99,7 +89,7 @@ impl MessageHandler {
             .send(ServerMessage::Close);
         Ok(())
     }
-    async fn handle_pong(&self, room: Arc<Room>, player_id: &String) -> Result<(), AppError> {
+    async fn handle_pong(room: Arc<Room>, player_id: &String) -> Result<(), AppError> {
         let _ = room
             .get_player(&player_id)
             .await

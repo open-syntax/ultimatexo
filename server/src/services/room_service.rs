@@ -52,9 +52,9 @@ impl RoomService {
             .can_join_room(&room.info, current_count, password)?;
 
         if let Some(existing_id) = player_id {
-            self.handle_reconnection(&room, &existing_id).await
+            self.handle_reconnection(room, &existing_id).await
         } else {
-            self.handle_new_connection(&room).await
+            self.handle_new_connection(room).await
         }
     }
 
@@ -121,7 +121,7 @@ impl RoomService {
 
     async fn handle_reconnection(
         &self,
-        room: &Arc<Room>,
+        room: Arc<Room>,
         player_id: &String,
     ) -> Result<(Arc<Room>, String), AppError> {
         if room.get_player(player_id).await.is_ok() {
@@ -129,7 +129,7 @@ impl RoomService {
                 token.cancel();
             }
             tracing::info!("Player {} reconnected to room {}", player_id, room.info.id);
-            Ok((room.clone(), player_id.to_string()))
+            Ok((room, player_id.to_string()))
         } else {
             Err(AppError::player_not_found())
         }
@@ -137,7 +137,7 @@ impl RoomService {
 
     async fn handle_new_connection(
         &self,
-        room: &Arc<Room>,
+        room: Arc<Room>,
     ) -> Result<(Arc<Room>, String), AppError> {
         let current_count = room.player_counter.load(Ordering::SeqCst);
         if current_count >= 2 {
@@ -150,7 +150,7 @@ impl RoomService {
         room.players.lock().await.push(new_player);
 
         tracing::info!("Player {} joined room {}", new_player_id, room.info.id);
-        Ok((room.clone(), new_player_id))
+        Ok((room, new_player_id))
     }
 
     async fn handle_player_disconnect(
