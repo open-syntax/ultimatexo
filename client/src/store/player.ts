@@ -10,7 +10,7 @@ type Store = {
   setPlayer: (player: Player) => void;
   setNextPlayer: (player: marker) => void;
   setAvailableBoards: (boards: number | null) => void;
-  setWs: (ws: WebSocket) => void;
+  setWs: (ws: WebSocket | undefined) => void;
 
   availableBoards: number | null;
 

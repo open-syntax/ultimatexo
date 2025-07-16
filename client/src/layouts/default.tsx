@@ -1,12 +1,24 @@
 import { Link } from "@heroui/link";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 import { Navbar } from "@/components/navbar";
+import PlayerStore from "@/store/player";
+
 
 export default function DefaultLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const location = useLocation();
+  const { ws } = PlayerStore();
+
+  useEffect(() => {
+    if (!ws) return;
+    ws.close();
+  }, [location.pathname]);
+
   return (
     <div className="relative flex h-[100dvh] flex-col">
       <Navbar />

@@ -262,7 +262,7 @@ function RoomPage() {
             You are player: {player.info.marker}
           </p>
           <div className="flex flex-col items-center gap-2">
-            <GameStatus boardStatus={BoardStatus.O} />
+            <GameStatus boardStatus={board.status} />
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
             <Board
