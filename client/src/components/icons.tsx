@@ -277,7 +277,7 @@ export const Chat = ({ size = 24, ...props }: IconSvgProps) => (
       />
       <path
         d="M8 12h.009m3.982 0H12m3.991 0H16"
-        opacity={0.5}
+        opacity={1}
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={2}

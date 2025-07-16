@@ -66,7 +66,9 @@ const Chat = () => {
   } = PlayerStore();
 
   const { width } = useWindowSize();
+
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [isRead, setIsRead] = useState<boolean>(true);
   const [chat, setChat] = useState<Message[]>([]);
 
   useEffect(() => {
@@ -85,6 +87,10 @@ const Chat = () => {
     const element = document.getElementById(`message-${chat.length - 1}`);
 
     element?.scrollIntoView({ behavior: "smooth" });
+
+    if (!isOpen) {
+      setIsRead(false);
+    }
   }, [chat]);
 
   const handleMessageSend = (e: React.FormEvent<HTMLFormElement>) => {
@@ -106,22 +112,30 @@ const Chat = () => {
     e.currentTarget.reset();
   };
 
+  const handleOnOpen = () => {
+    onOpen();
+    setIsRead(true);
+  };
+
   if (width && width < 768) {
     return (
       <>
         <Button
-          className="fixed bottom-4 right-4 size-12 min-w-12 rounded-full p-0"
+          className="fixed bottom-4 right-4 size-12 min-w-12 rounded-full p-0 z-[5] overflow-visible"
           variant="bordered"
-          onPress={() => onOpen()}
+          onPress={() => handleOnOpen()}
         >
           <ChatIcon />
+          {!isRead && (
+            <i className="absolute -right-1 -top-1 size-4 z-10 rounded-full bg-danger-400" />
+          )}
         </Button>
-        <Drawer isOpen={isOpen} placement="bottom" onOpenChange={onOpenChange}>
-          <DrawerContent>
-            <DrawerBody>
+        <Drawer isOpen={isOpen} placement="bottom" size="xl" onOpenChange={onOpenChange}>
+          <DrawerContent className="h-full">
+            <DrawerBody className="h-full">
               <ChatLayout
                 chat={chat}
-                className="!h-screen"
+                className="!h-full"
                 handleMessageSend={handleMessageSend}
                 marker={marker}
               />
