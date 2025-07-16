@@ -14,6 +14,7 @@
     "@heroui/card": "^2.2.18",
     "@heroui/code": "2.2.12",
     "@heroui/divider": "^2.2.11",
+    "@heroui/drawer": "^2.2.20",
     "@heroui/dropdown": "2.3.17",
     "@heroui/form": "^2.1.18",
     "@heroui/input": "2.4.17",

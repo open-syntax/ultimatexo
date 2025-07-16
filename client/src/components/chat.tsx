@@ -1,10 +1,60 @@
 import { Button } from "@heroui/button";
+import { Drawer, DrawerBody, DrawerContent } from "@heroui/drawer";
+import { useDisclosure } from "@heroui/use-disclosure";
 import { Input } from "@heroui/input";
 import { useEffect, useState } from "react";
+
+import { Chat as ChatIcon } from "./icons";
 
 import PlayerStore from "@/store/player";
 import { socketEvent } from "@/types";
 import { Message } from "@/types/messages";
+import { marker } from "@/types/player";
+import useWindowSize from "@/hooks/useWindowSize";
+
+interface props {
+  chat: Message[];
+  marker: marker;
+  className?: string;
+  handleMessageSend: (e: React.FormEvent<HTMLFormElement>) => void;
+}
+
+const ChatLayout = ({ className, chat, marker, handleMessageSend }: props) => {
+  return (
+    <div
+      className={
+        "flex flex-col gap-4 rounded-3xl bg-default-50 p-4 " + className
+      }
+      style={{ height: document.getElementById("board")?.offsetHeight }}
+    >
+      <h1 className="text-center text-2xl font-bold">Chat</h1>
+      <div className="flex h-full w-full flex-col gap-2 overflow-y-scroll pr-2">
+        {chat.map((message, i) => (
+          <div
+            key={i}
+            className={`flex h-fit w-full gap-2 text-pretty ${message.player.marker === marker ? "justify-end" : "justify-start"}`}
+            id={`message-${i}`}
+          >
+            <p
+              className={`max-w-[80%] rounded-3xl px-4 py-2 text-start ${message.player.marker === marker ? "bg-primary" : "bg-default-200"}`}
+            >
+              {message.content}
+            </p>
+          </div>
+        ))}
+      </div>
+      <form
+        className="flex h-fit w-full gap-2"
+        onSubmit={(e) => handleMessageSend(e)}
+      >
+        <Input name="message" placeholder="Message" />
+        <Button color="primary" type="submit">
+          Send
+        </Button>
+      </form>
+    </div>
+  );
+};
 
 const Chat = () => {
   const {
@@ -15,12 +65,12 @@ const Chat = () => {
     },
   } = PlayerStore();
 
+  const { width } = useWindowSize();
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [chat, setChat] = useState<Message[]>([]);
 
   useEffect(() => {
-    console.log("socket")
     if (!ws) return;
-    console.log("socket connected")
 
     ws.onmessage = (e) => {
       const event: socketEvent = JSON.parse(e.data);
@@ -56,37 +106,38 @@ const Chat = () => {
     e.currentTarget.reset();
   };
 
-  return (
-    <div
-      className="flex flex-col gap-4 rounded-3xl bg-default-50 p-4"
-      style={{ height: document.getElementById("board")?.offsetHeight }}
-    >
-      <h1 className="text-center text-2xl font-bold">Chat</h1>
-      <div className="flex h-full w-full flex-col gap-2 overflow-y-scroll pr-2">
-        {chat.map((message, i) => (
-          <div
-            key={i}
-            className={`flex h-fit w-full gap-2 text-pretty ${message.player.marker === marker ? "justify-end" : "justify-start"}`}
-            id={`message-${i}`}
-          >
-            <p
-              className={`max-w-[80%] rounded-3xl px-4 py-2 text-start ${message.player.marker === marker ? "bg-primary" : "bg-default-200"}`}
-            >
-              {message.content}
-            </p>
-          </div>
-        ))}
-      </div>
-      <form
-        className="flex h-fit w-full gap-2"
-        onSubmit={(e) => handleMessageSend(e)}
-      >
-        <Input name="message" placeholder="Message" />
-        <Button color="primary" type="submit">
-          Send
+  if (width && width < 768) {
+    return (
+      <>
+        <Button
+          className="fixed bottom-4 right-4 size-12 min-w-12 rounded-full p-0"
+          variant="bordered"
+          onPress={() => onOpen()}
+        >
+          <ChatIcon />
         </Button>
-      </form>
-    </div>
+        <Drawer isOpen={isOpen} placement="bottom" onOpenChange={onOpenChange}>
+          <DrawerContent>
+            <DrawerBody>
+              <ChatLayout
+                chat={chat}
+                className="!h-screen"
+                handleMessageSend={handleMessageSend}
+                marker={marker}
+              />
+            </DrawerBody>
+          </DrawerContent>
+        </Drawer>
+      </>
+    );
+  }
+
+  return (
+    <ChatLayout
+      chat={chat}
+      handleMessageSend={handleMessageSend}
+      marker={marker}
+    />
   );
 };
 
