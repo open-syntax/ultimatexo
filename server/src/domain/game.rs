@@ -52,7 +52,6 @@ impl GameEngine {
 
     fn apply_move(&mut self, (a, b): (usize, usize)) -> Result<(), AppError> {
         self.state.board.boards[a].cells[b] = self.state.players[0].marker;
-        self.state.mv = format!("{},{}", a, b);
         Ok(())
     }
 
@@ -60,7 +59,7 @@ impl GameEngine {
         self.check_board_win(a)?;
         self.check_game_win()?;
         self.update_next_board(b);
-
+        self.update_last_move(a, b);
         Ok(())
     }
 
@@ -143,6 +142,9 @@ impl GameEngine {
         } else {
             self.state.next_board = None;
         }
+    }
+    fn update_last_move(&mut self, a: usize, b: usize) {
+        self.state.last_move = Some((a, b));
     }
 
     pub async fn generate_move(&mut self, level: u8) -> Result<(), AppError> {

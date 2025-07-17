@@ -93,7 +93,7 @@ pub struct GameState {
     pub players: Vec<PlayerInfo>,
     pub board: Board,
     pub next_board: Option<usize>,
-    pub mv: String,
+    pub last_move: Option<(usize, usize)>,
 }
 impl GameState {
     pub fn toggle_players(&mut self) {

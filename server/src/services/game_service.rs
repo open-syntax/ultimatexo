@@ -1,6 +1,6 @@
 use crate::domain::GameEngine;
 use crate::error::AppError;
-use crate::models::{Board, PlayerInfo, Status};
+use crate::models::{Board, Marker, PlayerInfo, Status};
 
 #[derive(Debug)]
 pub struct GameService(GameEngine);
@@ -32,7 +32,11 @@ impl GameService {
     }
 
     pub fn push_player(&mut self, player: PlayerInfo) {
+        let marker = player.marker.clone();
         self.0.state.players.push(player);
+        if self.0.state.players.len() == 2 && marker == Marker::X {
+            self.0.state.toggle_players();
+        }
     }
 
     pub fn get_board(&self) -> Board {
@@ -47,8 +51,8 @@ impl GameService {
         self.0.state.next_board
     }
 
-    pub fn get_last_move(&self) -> String {
-        self.0.state.mv.clone()
+    pub fn get_last_move(&self) -> Option<(usize, usize)> {
+        self.0.state.last_move
     }
 
     pub async fn generate_ai_move(&mut self, level: u8) -> Result<(), AppError> {

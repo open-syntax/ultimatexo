@@ -43,7 +43,7 @@ pub enum ServerMessage {
         board: Board,
         next_player: PlayerInfo,
         next_board: Option<usize>,
-        last_move: String,
+        last_move: Option<(usize, usize)>,
     },
     PlayerUpdate {
         action: PlayerAction,

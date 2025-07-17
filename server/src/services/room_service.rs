@@ -33,7 +33,7 @@ impl RoomService {
         let (tx, rx) = mpsc::channel(32);
         let room = Arc::new(Room::new(room_info, tx));
 
-        self.spawn_message_broadcaster(room.clone(), rx);
+        Room::spawn_message_broadcaster(room.clone(), rx);
 
         self.rooms.insert(room_id.clone(), room);
         Ok(room_id)
@@ -200,22 +200,6 @@ impl RoomService {
             room.shutdown().await;
             tracing::info!("Room {} removed", room_id);
         }
-    }
-
-    fn spawn_message_broadcaster(&self, room: Arc<Room>, mut rx: mpsc::Receiver<ServerMessage>) {
-        tokio::spawn(async move {
-            while let Some(msg) = rx.recv().await {
-                if matches!(msg, ServerMessage::Close) {
-                    break;
-                }
-
-                let players = room.players.lock().await;
-                for player in players.iter() {
-                    if let Some(tx) = &player.tx {
-                        let _ = tx.send(msg.clone());
-                    }
-                }
-            }
-        });
+        self.rooms.remove(room_id);
     }
 }

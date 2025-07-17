@@ -1,9 +1,7 @@
 use axum::extract::ws::Message;
-use axum::extract::{ConnectInfo, Path, Query, State, WebSocketUpgrade, ws::WebSocket};
-use axum::http::HeaderMap;
+use axum::extract::{Path, Query, State, WebSocketUpgrade, ws::WebSocket};
 use axum::response::Response;
 use futures_util::{SinkExt, StreamExt};
-use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -23,25 +21,13 @@ async fn send_error_and_close(
     Ok(())
 }
 
-fn extract_real_ip(headers: &HeaderMap, addr: SocketAddr) -> String {
-    headers
-        .get("x-forwarded-for")
-        .and_then(|value| value.to_str().ok())
-        .and_then(|s| s.split(',').next().map(str::to_string))
-        .unwrap_or_else(|| addr.ip().to_string())
-}
-
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    headers: HeaderMap,
     Path(room_id): Path<String>,
     State(state): State<Arc<AppState>>,
     Query(payload): Query<WebSocketQuery>,
 ) -> Response {
-    let ip = extract_real_ip(&headers, addr);
-
-    ws.on_upgrade(async move |socket| handle_socket(socket, state, room_id, payload, ip).await)
+    ws.on_upgrade(async move |socket| handle_socket(socket, state, room_id, payload).await)
 }
 
 async fn handle_socket(
@@ -49,7 +35,6 @@ async fn handle_socket(
     state: Arc<AppState>,
     room_id: String,
     payload: WebSocketQuery,
-    user_ip: String,
 ) {
     let (sender, receiver) = socket.split();
 

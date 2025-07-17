@@ -4,8 +4,12 @@ use std::sync::{
 };
 
 use serde::{Deserialize, Deserializer, Serialize, de};
-use tokio::sync::{Mutex, mpsc::Sender};
+use tokio::sync::{
+    Mutex,
+    mpsc::{Receiver, Sender},
+};
 use tokio_util::sync::CancellationToken;
+use tracing::debug;
 use uuid::Uuid;
 
 use crate::{
@@ -83,20 +87,27 @@ impl Room {
     }
 
     pub async fn add_player(&self) -> Result<Player, AppError> {
+        use rand::Rng;
+
         if self.is_closed() {
             return Err(AppError::room_closed());
         }
 
-        let marker = if self.player_counter.load(Ordering::Relaxed) == 1 {
-            Marker::O
+        let marker = if self.player_counter.load(Ordering::Relaxed) == 0 {
+            if rand::rng().random_bool(0.5) {
+                Marker::O
+            } else {
+                Marker::X
+            }
         } else {
-            Marker::X
+            !self.players.lock().await[0].info.marker
         };
         let player_id = Uuid::new_v4().to_string();
         let player_info = PlayerInfo { marker };
         let player = Player::new(player_id, marker);
         self.player_counter.fetch_add(1, Ordering::SeqCst);
         self.game.lock().await.push_player(player_info);
+
         Ok(player)
     }
 
@@ -167,6 +178,30 @@ impl Room {
         let _ = self.tx.send(ServerMessage::Close).await;
 
         self.tx.closed().await;
+    }
+
+    pub fn spawn_message_broadcaster(room: Arc<Self>, mut rx: Receiver<ServerMessage>) {
+        tokio::spawn(async move {
+            while let Some(msg) = rx.recv().await {
+                if matches!(msg, ServerMessage::Close) {
+                    break;
+                }
+
+                let players = {
+                    // Lock and clone inside block to minimize lock duration
+                    let guard = room.players.lock().await;
+                    guard.clone()
+                };
+
+                for player in players.iter() {
+                    if let Some(tx) = &player.tx {
+                        if tx.send(msg.clone()).is_err() {
+                            debug!("Failed to send message to player {:?}", player.id);
+                        }
+                    }
+                }
+            }
+        });
     }
 
     pub fn is_closed(&self) -> bool {
