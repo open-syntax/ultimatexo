@@ -1,32 +1,32 @@
 import { Button } from "@heroui/button";
-import { useEffect, useState } from "react";
 
-import PlayerStore from "@/store/player";
-import { BoardStatus, socketEvent } from "@/types";
+import { BoardStatus } from "@/types";
 import { RestartActions } from "@/types/actions";
+import { GameStore, RoomStore } from "@/store";
 
 interface props {
   boardStatus: BoardStatus;
 }
 
 const GameStatus = ({ boardStatus }: props) => {
-  const { nextPlayer, ws } = PlayerStore();
+  const { ws } = RoomStore();
+  const { nextPlayer } = GameStore();
 
-  const [restartRequest, setRestartRequest] = useState<boolean>(false);
+  // const [restartRequest, setRestartRequest] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (!ws) return;
+  // useEffect(() => {
+  //   if (!ws) return;
 
-    ws.onmessage = (e) => {
-      const event: socketEvent = JSON.parse(e.data);
+  //   ws.onmessage = (e) => {
+  //     const event: socketEvent = JSON.parse(e.data);
 
-      if (event.event !== "GameRestart") return;
+  //     if (event.event !== "GameRestart") return;
 
-      if (event.data.action === RestartActions.Requested) {
-        setRestartRequest(true);
-      }
-    };
-  }, [ws]);
+  //     if (event.data.action === RestartActions.Requested) {
+  //       setRestartRequest(true);
+  //     }
+  //   };
+  // }, [ws]);
 
   const handleRematch = (action: RestartActions) => {
     ws?.send(
@@ -38,7 +38,7 @@ const GameStatus = ({ boardStatus }: props) => {
     );
   };
 
-  if (restartRequest)
+  if (false) // TODO: Handle Restart request
     return (
       <div className="flex animate-appearance-in gap-2">
         <Button

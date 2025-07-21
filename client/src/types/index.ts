@@ -47,7 +47,7 @@ export type socketEvent =
         board: { boards: Board; status: BoardStatus };
         next_player: PlayerInfo;
         next_board: number | null;
-        last_move: string;
+        last_move: [number, number] | null;
       };
     }
   | {
@@ -78,5 +78,5 @@ export type socketEvent =
       };
     }
   | {
-      event: "Ping";
+      event: "PING";
     };

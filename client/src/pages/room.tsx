@@ -9,13 +9,11 @@ import { Input } from "@heroui/input";
 import { Link as LinkIcon } from "@/components/icons";
 import Board from "@/components/board";
 import DefaultLayout from "@/layouts/default";
-import { BoardStatus, Board as BoardType, socketEvent } from "@/types";
 import RoomLayout from "@/layouts/room";
-import { playerActions } from "@/types/actions";
-import PlayerStore from "@/store/player";
-import RoomStore from "@/store/room";
 import Chat from "@/components/chat";
 import GameStatus from "@/components/room/status";
+import useGame from "@/hooks/useGame";
+import { RoomStore } from "@/store";
 
 interface roomResponse {
   id: string;
@@ -37,126 +35,16 @@ enum RoomStatus {
   notFound = "room not found",
 }
 
-interface room {
-  status: RoomStatus;
-  message: string;
-}
-
 function RoomPage() {
   let { roomId } = useParams();
+  const { player, board, status, setStatus } = useGame();
+  const { setWs } = RoomStore();
 
-  const {
-    player,
-    setPlayer,
-    ws,
-    setWs,
-    availableBoards,
-    setAvailableBoards,
-    nextPlayer,
-    setNextPlayer,
-  } = PlayerStore();
-
-  // const { setRoomId, setPassword, password } = RoomStore();
-
-  const [board, setBoard] = useState<{
-    boards: BoardType;
-    status: BoardStatus;
-  } | null>(null);
-
-  const [status, setStatus] = useState<room>({
-    status: RoomStatus.connecting,
-    message: "",
-  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const handleWebSocket = (password: string) => {
     setWs(new WebSocket(`/api/ws/${roomId}${password ? `:${password}` : ""}`));
   };
-
-  useEffect(() => {
-    if (!ws) return;
-
-    let playerId: string | null = null;
-
-    // handle on connection established
-    ws.onopen = () => {
-      setStatus({ status: RoomStatus.connected, message: "" });
-    };
-
-    // handle on message arrival
-    ws.onmessage = (event) => {
-      // console.log(JSON.parse(event.data));
-      const e: socketEvent = JSON.parse(event.data);
-      const eventName = e.event;
-      console.log(e);
-
-      switch (eventName) {
-        case "GameUpdate":
-          setBoard(e.data.board);
-          setAvailableBoards(e.data.next_board);
-          setNextPlayer(e.data.next_player.marker);
-          break;
-
-        case "PlayerUpdate":
-          let status: RoomStatus, message: string;
-
-          switch (e.data.action) {
-            case playerActions.PlayerJoined:
-              status = RoomStatus.connected;
-              if (playerId && !e.data.player.id) {
-                message = "PlayerJoined";
-                break;
-              } else {
-                playerId = e.data.player.id as string;
-                setPlayer(e.data.player);
-                message = "Connected";
-                break;
-              }
-
-            case playerActions.PlayerLeft:
-              status = RoomStatus.connected;
-              message = "Player is Connected";
-              break;
-
-            case playerActions.PlayerDisconnected:
-              status = RoomStatus.disconnected;
-              message = "Disconnected";
-              break;
-
-            default:
-              status = RoomStatus.error;
-              message = "Invalid player action";
-              break;
-          }
-
-          setStatus({
-            status,
-            message,
-          });
-          break;
-
-        case "Ping":
-          ws.send(JSON.stringify({ Pong: playerId }));
-          break;
-
-        case "Error":
-          setStatus({
-            status: RoomStatus.error,
-            message: e.data.error,
-          });
-          break;
-      }
-    };
-
-    // handle on disconnection
-    ws.onclose = () => {
-      setStatus((state) => ({
-        ...state,
-        status: RoomStatus.disconnected,
-        message: "Cannot connect",
-      }));
-    };
-  }, [ws]);
 
   const handlePassword = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -265,14 +153,7 @@ function RoomPage() {
             <GameStatus boardStatus={board.status} />
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
-            <Board
-              board={board.boards}
-              nextMove={
-                nextPlayer === player.info.marker && board.status === null
-                  ? availableBoards
-                  : false
-              }
-            />
+            <Board board={board.boards} />
             <Chat />
           </div>
         </div>

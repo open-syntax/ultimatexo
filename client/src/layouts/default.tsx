@@ -3,8 +3,7 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 import { Navbar } from "@/components/navbar";
-import PlayerStore from "@/store/player";
-
+import { RoomStore } from "@/store";
 
 export default function DefaultLayout({
   children,
@@ -12,7 +11,7 @@ export default function DefaultLayout({
   children: React.ReactNode;
 }) {
   const location = useLocation();
-  const { ws } = PlayerStore();
+  const { ws } = RoomStore();
 
   useEffect(() => {
     if (!ws) return;

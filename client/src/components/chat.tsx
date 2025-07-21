@@ -6,11 +6,10 @@ import { useEffect, useState } from "react";
 
 import { Chat as ChatIcon } from "./icons";
 
-import PlayerStore from "@/store/player";
-import { socketEvent } from "@/types";
 import { Message } from "@/types/messages";
 import { marker } from "@/types/player";
 import useWindowSize from "@/hooks/useWindowSize";
+import { PlayerStore, RoomStore } from "@/store";
 
 interface props {
   chat: Message[];
@@ -58,30 +57,16 @@ const ChatLayout = ({ className, chat, marker, handleMessageSend }: props) => {
 
 const Chat = () => {
   const {
-    ws,
     player: {
-      id,
       info: { marker },
     },
   } = PlayerStore();
+  const { chat, sendMessage } = RoomStore();
 
   const { width } = useWindowSize();
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [isRead, setIsRead] = useState<boolean>(true);
-  const [chat, setChat] = useState<Message[]>([]);
-
-  useEffect(() => {
-    if (!ws) return;
-
-    ws.onmessage = (e) => {
-      const event: socketEvent = JSON.parse(e.data);
-
-      if (event.event !== "TextMessage") return;
-
-      setChat((prev) => [...prev, event.data]);
-    };
-  }, [ws]);
 
   useEffect(() => {
     if (!chat.length) return;
@@ -101,14 +86,7 @@ const Chat = () => {
 
     if (!message) return;
 
-    ws?.send(
-      JSON.stringify({
-        TextMessage: {
-          content: message,
-          player_id: id,
-        },
-      }),
-    );
+    sendMessage(message);
 
     e.currentTarget.reset();
   };
