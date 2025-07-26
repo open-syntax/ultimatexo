@@ -18,6 +18,9 @@ pub enum AppError {
     #[error("Validation error: {0}")]
     Validation(#[from] ValidationError),
 
+    #[error("Sanitization error: {0}")]
+    SanitizeError(#[from] SanitizeError),
+
     #[error("Internal server error: {message}")]
     Internal {
         message: String,
@@ -45,6 +48,12 @@ pub enum GameError {
 
     #[error("Not player's turn")]
     NotPlayerTurn,
+
+    #[error("Game is still Ongoing")]
+    Ongoing,
+
+    #[error("Game has Ended")]
+    Ended,
 }
 
 #[derive(Error, Debug, Clone, Serialize)]
@@ -75,6 +84,14 @@ pub enum ValidationError {
         field: String,
         expected_format: String,
     },
+}
+
+#[derive(Error, Debug, Clone, Serialize)]
+pub enum SanitizeError {
+    #[error("Message exceeds maximum length of {max} characters")]
+    TooLong { max: usize },
+    #[error("Message is empty after sanitization")]
+    Empty,
 }
 
 pub struct ErrorBuilder {
@@ -129,8 +146,30 @@ impl AppError {
         AppError::Game(GameError::NotPlayerTurn)
     }
 
+    pub fn not_allowed() -> Self {
+        AppError::Forbidden {
+            message: "Forbidden".to_string(),
+        }
+    }
+
     pub fn game_not_started() -> Self {
         AppError::Game(GameError::NotStarted)
+    }
+
+    pub fn game_still_ongoing() -> Self {
+        AppError::Game(GameError::Ongoing)
+    }
+
+    pub fn game_has_ended() -> Self {
+        AppError::Game(GameError::Ended)
+    }
+
+    pub fn empty_text_message() -> Self {
+        AppError::SanitizeError(SanitizeError::Empty)
+    }
+
+    pub fn too_long_text_message(max: usize) -> Self {
+        AppError::SanitizeError(SanitizeError::TooLong { max })
     }
 
     pub fn internal_error(message: impl Into<String>) -> Self {

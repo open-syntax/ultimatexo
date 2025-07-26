@@ -1,5 +1,6 @@
 use crate::domain::GameEngine;
 use crate::error::AppError;
+use crate::models::room::BotLevel;
 use crate::models::{Board, Marker, PlayerInfo, Status};
 
 #[derive(Debug)]
@@ -9,9 +10,8 @@ impl GameService {
         Self(GameEngine::new())
     }
 
-    pub fn make_move(&mut self, move_str: String) -> Result<(), AppError> {
-        let position = crate::utils::parse_tuple(&move_str)?;
-        self.0.make_move(position)?;
+    pub fn make_move(&mut self, mv: [usize; 2]) -> Result<(), AppError> {
+        self.0.make_move(mv)?;
         Ok(())
     }
 
@@ -19,8 +19,8 @@ impl GameService {
         self.0.state.players[0].clone()
     }
 
-    pub fn restart_game(&mut self) {
-        self.0.restart_game();
+    pub fn rematch_game(&mut self) {
+        self.0.rematch_game();
     }
 
     pub fn get_board_status(&self) -> Status {
@@ -51,11 +51,43 @@ impl GameService {
         self.0.state.next_board
     }
 
-    pub fn get_last_move(&self) -> Option<(usize, usize)> {
+    pub fn get_last_move(&self) -> Option<[usize; 2]> {
         self.0.state.last_move
     }
 
-    pub async fn generate_ai_move(&mut self, level: u8) -> Result<(), AppError> {
+    pub fn has_pending_rematch(&self) -> bool {
+        self.0.state.pending_rematch.is_some()
+    }
+
+    pub fn is_pending_rematch_from(&self, id: &str) -> bool {
+        self.0.state.pending_rematch.as_deref() == Some(id)
+    }
+
+    pub fn request_rematch(&mut self, id: String) {
+        self.0.state.pending_rematch = Some(id);
+    }
+
+    pub fn clear_rematch_request(&mut self) {
+        self.0.state.pending_rematch = None;
+    }
+
+    pub fn has_pending_draw(&self) -> bool {
+        self.0.state.pending_draw.is_some()
+    }
+
+    pub fn is_pending_draw_from(&self, id: &str) -> bool {
+        self.0.state.pending_draw.as_deref() == Some(id)
+    }
+
+    pub fn request_draw(&mut self, id: String) {
+        self.0.state.pending_draw = Some(id);
+    }
+
+    pub fn clear_draw_request(&mut self) {
+        self.0.state.pending_draw = None;
+    }
+
+    pub async fn generate_ai_move(&mut self, level: BotLevel) -> Result<(), AppError> {
         self.0.generate_move(level).await?;
         Ok(())
     }

@@ -4,9 +4,11 @@ use axum::response::Response;
 use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
+use tracing::warn;
 
 use crate::app::state::AppState;
 use crate::error::AppError;
+use crate::handlers::tasks::ConnectionContext;
 use crate::handlers::{spawn_heartbeat_task, spawn_receive_task, spawn_send_task};
 use crate::models::{PlayerAction, Room, ServerMessage, WebSocketQuery};
 
@@ -27,35 +29,25 @@ pub async fn websocket_handler(
     State(state): State<Arc<AppState>>,
     Query(payload): Query<WebSocketQuery>,
 ) -> Response {
-    ws.on_upgrade(async move |socket| handle_socket(socket, state, room_id, payload).await)
+    ws.on_upgrade(async move |socket| {
+        handle_socket(socket, state, room_id, payload)
+            .await
+            .unwrap()
+    })
 }
-
 async fn handle_socket(
     socket: WebSocket,
     state: Arc<AppState>,
     room_id: String,
     payload: WebSocketQuery,
-) {
+) -> Result<(), AppError> {
     let (sender, receiver) = socket.split();
 
-    let room_service = match state.get_room_service(&room_id).await {
-        Some(service) => service,
-        None => {
-            let _ = send_error_and_close(sender, AppError::room_not_found()).await;
-            return;
-        }
-    };
+    let room_service = state.get_room_service(&room_id).await.unwrap();
 
-    let (room, player_id) = match room_service
+    let (room, player_id) = room_service
         .join_room(&room_id, payload.password, payload.player_id.clone())
-        .await
-    {
-        Ok(result) => result,
-        Err(err) => {
-            let _ = send_error_and_close(sender, err).await;
-            return;
-        }
-    };
+        .await?;
 
     let (player_tx, player_rx) = tokio::sync::mpsc::unbounded_channel();
 
@@ -69,19 +61,26 @@ async fn handle_socket(
     .unwrap();
 
     handle_game_start(room.clone()).await;
+    let connection_ctx = Arc::new(ConnectionContext::new(player_id.clone(), player_tx));
 
-    // let heartbeat_task = spawn_heartbeat_task(player_tx.clone(), player_id.clone());
-    let send_task = spawn_send_task(sender, player_rx, player_id.clone());
-    let receive_task = spawn_receive_task(receiver, room, player_id.clone());
+    let heartbeat_task = spawn_heartbeat_task(connection_ctx.clone());
+    let send_task = spawn_send_task(sender, player_rx, connection_ctx.clone())?;
+    let receive_task = spawn_receive_task(receiver, room.clone(), connection_ctx.clone())?;
 
     tokio::select! {
-        // _ = heartbeat_task => {},
+        _ = heartbeat_task => {},
         _ = send_task => {},
         _ = receive_task => {},
     }
 
-    let _ = room_service.leave_room(&room_id, &player_id).await;
+    if let Err(e) = room_service
+        .handle_player_leaving(&room_id.as_str(), &player_id.as_str())
+        .await
+    {
+        warn!("Error during player disconnect cleanup: {}", e);
+    }
     tracing::info!("Player {} disconnected from room {}", player_id, room_id);
+    Ok(())
 }
 
 async fn handle_game_start(room: Arc<Room>) {

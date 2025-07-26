@@ -1,5 +1,6 @@
 use crate::ai::evaluation::Evaluator;
 use crate::error::AppError;
+use crate::models::room::BotLevel;
 use crate::models::{GameState, Marker, Status};
 use anyhow::Result;
 
@@ -14,15 +15,17 @@ impl GameEngine {
             state: GameState::default(),
         }
     }
-    pub fn make_move(&mut self, position: (usize, usize)) -> Result<(), AppError> {
-        self.validate_move(position)?;
-        self.apply_move(position)?;
-        self.update_game_state(position)?;
+    pub fn make_move(&mut self, mv: [usize; 2]) -> Result<(), AppError> {
+        self.validate_move(mv)?;
+        self.apply_move(mv)?;
+        self.update_game_state(mv)?;
         self.state.toggle_players();
         Ok(())
     }
 
-    fn validate_move(&self, (a, b): (usize, usize)) -> Result<(), AppError> {
+    fn validate_move(&self, mv: [usize; 2]) -> Result<(), AppError> {
+        let a = mv[0];
+        let b = mv[1];
         if self.state.board.status != Status::InProgress {
             return Err(AppError::game_not_started());
         }
@@ -50,16 +53,16 @@ impl GameEngine {
         Ok(())
     }
 
-    fn apply_move(&mut self, (a, b): (usize, usize)) -> Result<(), AppError> {
-        self.state.board.boards[a].cells[b] = self.state.players[0].marker;
+    fn apply_move(&mut self, mv: [usize; 2]) -> Result<(), AppError> {
+        self.state.board.boards[mv[0]].cells[mv[1]] = self.state.players[0].marker;
         Ok(())
     }
 
-    fn update_game_state(&mut self, (a, b): (usize, usize)) -> Result<(), AppError> {
-        self.check_board_win(a)?;
+    fn update_game_state(&mut self, mv: [usize; 2]) -> Result<(), AppError> {
+        self.check_board_win(mv[0])?;
         self.check_game_win()?;
-        self.update_next_board(b);
-        self.update_last_move(a, b);
+        self.update_next_board(mv[1]);
+        self.update_last_move(mv);
         Ok(())
     }
 
@@ -143,21 +146,20 @@ impl GameEngine {
             self.state.next_board = None;
         }
     }
-    fn update_last_move(&mut self, a: usize, b: usize) {
-        self.state.last_move = Some((a, b));
+    fn update_last_move(&mut self, mv: [usize; 2]) {
+        self.state.last_move = Some(mv);
     }
 
-    pub async fn generate_move(&mut self, level: u8) -> Result<(), AppError> {
-        use minimax::Strategy;
-        let mut strategy = minimax::Negamax::new(Evaluator, level);
-        if let Some(best_move) = strategy.choose_move(&self.state) {
-            let position = (best_move.board as usize, best_move.cell as usize);
-            self.make_move(position)?;
-        }
+    pub async fn generate_move(&mut self, level: BotLevel) -> Result<(), AppError> {
+        // use minimax::Strategy;
+        // let mut strategy = minimax::Negamax::new(Evaluator, level);
+        // if let Some(best_move) = strategy.choose_move(&self.state) {
+        //     self.make_move([best_move.board, best_move.cell])?;
+        // }
         Ok(())
     }
 
-    pub fn restart_game(&mut self) {
+    pub fn rematch_game(&mut self) {
         self.state = GameState::default();
     }
 }

@@ -2,23 +2,25 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string;
 
-use crate::error::AppError;
+use crate::{error::AppError, models::Marker};
 
 use super::{Board, Player, PlayerInfo};
 
 #[derive(Deserialize, Clone, Debug)]
 pub enum ClientMessage {
-    TextMessage { content: String, player_id: String },
-    GameUpdate { mv: String, player_id: String },
-    GameRestart { action: RestartAction },
-    Close(String),
-    Pong(String),
+    TextMessage { content: String },
+    GameUpdate { mv: [usize; 2] },
+    GameRestart { action: Action },
+    DrawRequest { action: Action },
+    Resign,
+    Pong,
+    Close,
 }
 #[derive(Serialize, Debug, Deserialize, Clone)]
-pub enum RestartAction {
+pub enum Action {
     Request,
     Accept,
-    Reject,
+    Decline,
 }
 
 #[derive(Debug, Deserialize)]
@@ -43,19 +45,23 @@ pub enum ServerMessage {
         board: Board,
         next_player: PlayerInfo,
         next_board: Option<usize>,
-        last_move: Option<(usize, usize)>,
+        last_move: Option<[usize; 2]>,
     },
     PlayerUpdate {
         action: PlayerAction,
         player: Player,
     },
     GameRestart {
-        action: RestartAction,
+        action: Action,
+        player: Marker,
+    },
+    DrawRequest {
+        action: Action,
+        player: Marker,
     },
     #[serde(skip_serializing)]
     Close,
     Ping,
-    Pong,
     Error(AppError),
 }
 impl ServerMessage {

@@ -1,15 +1,21 @@
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, AtomicUsize, Ordering},
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
+    },
+    time::Duration,
 };
 
 use serde::{Deserialize, Deserializer, Serialize, de};
-use tokio::sync::{
-    Mutex,
-    mpsc::{Receiver, Sender},
+use tokio::{
+    sync::{
+        Mutex,
+        mpsc::{Receiver, Sender},
+    },
+    time::timeout,
 };
 use tokio_util::sync::CancellationToken;
-use tracing::debug;
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 use crate::{
@@ -25,30 +31,21 @@ pub struct RoomInfo {
     pub name: String,
     pub is_public: bool,
     pub room_type: RoomType,
-    #[serde(skip_serializing, deserialize_with = "deserialize_bot_level")]
-    pub bot_level: Option<u8>,
+    #[serde(skip_serializing)]
+    pub bot_level: Option<BotLevel>,
     #[serde(skip_serializing)]
     pub password: Option<String>,
     #[serde(skip_deserializing)]
     pub is_protected: bool,
 }
 
-fn deserialize_bot_level<'de, D>(deserializer: D) -> Result<Option<u8>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let opt = Option::<String>::deserialize(deserializer)?;
-
-    let level = match opt.as_deref() {
-        Some("Beginner") => Some(2),
-        Some("Intermediate") => Some(5),
-        Some("Advanced") => Some(9),
-        Some(_) => return Err(de::Error::custom("InvalidBotLevel")),
-        None => None,
-    };
-
-    Ok(level)
+#[derive(Debug, Clone, Deserialize)]
+pub enum BotLevel {
+    Beginner,
+    Intermediate,
+    Advanced,
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq)]
 pub enum RoomType {
     Standard,
@@ -84,6 +81,10 @@ impl Room {
             deletion_token: Mutex::new(None),
             is_shutdown: AtomicBool::new(false),
         }
+    }
+
+    pub fn get_player_count(&self) -> usize {
+        self.player_counter.load(Ordering::SeqCst)
     }
 
     pub async fn add_player(&self) -> Result<Player, AppError> {
@@ -125,6 +126,7 @@ impl Room {
             .ok_or(AppError::player_not_found())
     }
 
+    #[allow(dead_code)]
     pub async fn get_player_mut<F, R>(&self, player_id: &String, f: F) -> Option<R>
     where
         F: FnOnce(&mut Player) -> R,
@@ -154,6 +156,7 @@ impl Room {
             .ok_or(AppError::player_not_found())
     }
 
+    #[allow(dead_code)]
     pub async fn get_other_player_mut<F, R>(&self, current_player_id: &String, f: F) -> Option<R>
     where
         F: FnOnce(&mut Player) -> R,
@@ -170,25 +173,60 @@ impl Room {
     }
 
     pub async fn shutdown(&self) {
-        self.is_shutdown.store(true, Ordering::Relaxed);
-
-        if let Some(token) = self.deletion_token.lock().await.as_ref() {
-            token.cancel();
+        if self.is_shutdown.swap(true, Ordering::Relaxed) {
+            debug!("Room {} already shutting down", self.room_id());
+            return;
         }
-        let _ = self.tx.send(ServerMessage::Close).await;
 
-        self.tx.closed().await;
+        info!("Starting shutdown for room {}", self.room_id());
+
+        self.disconnect_all_players().await;
+
+        self.close_broadcast_channel().await;
+
+        info!("Room {} shutdown complete", self.room_id());
+    }
+
+    async fn disconnect_all_players(&self) {
+        let close_message = ServerMessage::Close;
+
+        if let Err(_) = self.tx.send(close_message).await {
+            debug!(
+                "Broadcast channel already closed or no receivers for room {}",
+                self.room_id()
+            );
+        }
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+
+    async fn close_broadcast_channel(&self) {
+        const CLOSE_TIMEOUT: Duration = Duration::from_secs(5);
+
+        match timeout(CLOSE_TIMEOUT, self.tx.closed()).await {
+            Ok(_) => {
+                debug!(
+                    "Broadcast channel closed successfully for room {}",
+                    self.room_id()
+                );
+            }
+            Err(_) => {
+                warn!(
+                    "Timeout waiting for broadcast channel to close for room {}",
+                    self.room_id()
+                );
+            }
+        }
+    }
+
+    fn room_id(&self) -> String {
+        self.info.id.clone()
     }
 
     pub fn spawn_message_broadcaster(room: Arc<Self>, mut rx: Receiver<ServerMessage>) {
         tokio::spawn(async move {
             while let Some(msg) = rx.recv().await {
-                if matches!(msg, ServerMessage::Close) {
-                    break;
-                }
-
                 let players = {
-                    // Lock and clone inside block to minimize lock duration
                     let guard = room.players.lock().await;
                     guard.clone()
                 };
@@ -200,12 +238,16 @@ impl Room {
                         }
                     }
                 }
+
+                if matches!(msg, ServerMessage::Close) {
+                    break;
+                }
             }
         });
     }
 
     pub fn is_closed(&self) -> bool {
-        self.is_shutdown.load(Ordering::Relaxed)
+        self.is_shutdown.load(Ordering::SeqCst)
     }
 
     pub async fn send_board(&self) {

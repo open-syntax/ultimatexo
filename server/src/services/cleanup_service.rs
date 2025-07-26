@@ -1,7 +1,10 @@
-use crate::models::{PlayerAction, Room, ServerMessage, Status};
-use dashmap::DashMap;
 use std::sync::Arc;
+
+use dashmap::DashMap;
 use tokio_util::sync::CancellationToken;
+use tracing::{debug, info, warn};
+
+use crate::models::{PlayerAction, Room, ServerMessage, Status};
 
 pub struct CleanupService;
 
@@ -13,60 +16,78 @@ impl CleanupService {
     pub async fn schedule_room_cleanup(
         &self,
         room_id: String,
-        player_id: String,
+        disconnected_player_id: String,
         room: Arc<Room>,
         rooms: Arc<DashMap<String, Arc<Room>>>,
         cleanup_token: CancellationToken,
         timeout_duration: std::time::Duration,
         timeout_game_state: Status,
     ) {
+        info!(
+            "Scheduling cleanup for room {} in {:?}",
+            room_id, timeout_duration
+        );
+
         tokio::spawn(async move {
             tokio::select! {
                 _ = tokio::time::sleep(timeout_duration) => {
-                    Self::handle_cleanup_timeout(
+                    Self::execute_timeout_cleanup(
                         room_id,
-                        player_id,
+                        disconnected_player_id,
                         room,
                         rooms,
                         timeout_game_state
                     ).await;
                 }
                 _ = cleanup_token.cancelled() => {
-                    tracing::info!("Cleanup cancelled for room {}", room_id);
+                    info!("Cleanup cancelled for room {} (player likely reconnected)", room_id);
                 }
             }
         });
     }
 
-    async fn handle_cleanup_timeout(
+    async fn execute_timeout_cleanup(
         room_id: String,
-        player_id: String,
+        disconnected_player_id: String,
         room: Arc<Room>,
         rooms: Arc<DashMap<String, Arc<Room>>>,
         timeout_game_state: Status,
     ) {
-        tracing::info!("Player {} timed out in room {}", player_id, room_id);
+        info!(
+            "Executing timeout cleanup for room {} (player {} timed out)",
+            room_id, disconnected_player_id
+        );
 
         if !rooms.contains_key(&room_id) {
+            debug!("Room {} already removed, skipping timeout cleanup", room_id);
             return;
         }
 
-        if let Ok(leaving_player) = room.get_player(&player_id).await {
-            let mut game_lock = room.game.lock().await;
-            game_lock.set_board_status(timeout_game_state);
-            drop(game_lock);
+        if let Ok(timed_out_player) = room.get_player(&disconnected_player_id).await {
+            {
+                let mut game_lock = room.game.lock().await;
+                game_lock.set_board_status(timeout_game_state);
+            }
 
-            let leave_msg = ServerMessage::PlayerUpdate {
+            let timeout_msg = ServerMessage::PlayerUpdate {
                 action: PlayerAction::PlayerLeft,
-                player: leaving_player,
+                player: timed_out_player,
             };
 
             room.send_board().await;
-            let _ = room.tx.send(leave_msg).await;
+            if let Err(_) = room.tx.send(timeout_msg).await {
+                warn!("Failed to send timeout notification for room {}", room_id);
+            }
         }
 
         room.shutdown().await;
-        rooms.remove(&room_id);
-        tracing::info!("Room {} removed due to player timeout", room_id);
+        if rooms.remove(&room_id).is_some() {
+            info!("Room {} removed due to timeout cleanup", room_id);
+        } else {
+            debug!(
+                "Room {} was already removed during timeout cleanup",
+                room_id
+            );
+        }
     }
 }

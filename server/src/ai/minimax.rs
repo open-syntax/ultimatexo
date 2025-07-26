@@ -5,8 +5,8 @@ use crate::{
 
 #[derive(Copy, Clone, PartialEq, Eq, Default, Debug)]
 pub struct Place {
-    pub board: u8,
-    pub cell: u8,
+    pub board: usize,
+    pub cell: usize,
     p_board: Option<usize>,
 }
 
@@ -20,8 +20,8 @@ impl minimax::Game for GameEngine {
             for cell_index in 0..board.cells.len() {
                 if board.cells[cell_index] == Marker::Empty {
                     ms.push(Place {
-                        cell: cell_index as u8,
-                        board: state.next_board.unwrap() as u8,
+                        cell: cell_index,
+                        board: state.next_board.unwrap(),
                         p_board: state.next_board,
                     });
                 }
@@ -31,8 +31,8 @@ impl minimax::Game for GameEngine {
                 for cell_index in 0..macro_board.cells.len() {
                     if macro_board.cells[cell_index] == Marker::Empty {
                         ms.push(Place {
-                            cell: cell_index as u8,
-                            board: board_index as u8,
+                            cell: cell_index,
+                            board: board_index,
                             p_board: state.next_board,
                         });
                     }

@@ -33,7 +33,7 @@ impl RoomRules for StandardRoomRules {
         _has_bot: bool,
         has_pending_cleanup: bool,
     ) -> bool {
-        current_player_count <= 1 || has_pending_cleanup
+        current_player_count < 1 || has_pending_cleanup
     }
 
     fn get_disconnect_game_state(&self) -> Status {
@@ -45,7 +45,7 @@ impl RoomRules for StandardRoomRules {
     }
 
     fn get_cleanup_timeout(&self) -> std::time::Duration {
-        std::time::Duration::from_secs(60)
+        std::time::Duration::from_secs(10)
     }
 
     fn can_reconnect(&self, _room_info: &RoomInfo, _player: &Player) -> bool {

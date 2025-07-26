@@ -3,6 +3,7 @@ use std::sync::{Arc, atomic::Ordering};
 use dashmap::DashMap;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
+use tracing::{debug, info, warn};
 
 use crate::{
     domain::RoomRules,
@@ -14,7 +15,6 @@ use crate::{
 pub struct RoomService {
     rooms: Arc<DashMap<String, Arc<Room>>>,
     rules: Arc<dyn RoomRules>,
-    cleanup_service: Arc<CleanupService>,
 }
 
 impl RoomService {
@@ -22,7 +22,6 @@ impl RoomService {
         Self {
             rooms: Arc::new(DashMap::new()),
             rules,
-            cleanup_service: Arc::new(CleanupService::new()),
         }
     }
 
@@ -58,27 +57,113 @@ impl RoomService {
         }
     }
 
-    pub async fn leave_room(&self, room_id: &str, player_id: &String) -> Result<(), AppError> {
+    pub async fn handle_player_leaving(
+        &self,
+        room_id: &str,
+        player_id: &str,
+    ) -> Result<(), AppError> {
         let room = match self.rooms.get(room_id) {
-            Some(room) => room,
-            None => return Ok(()),
+            Some(room) => room.clone(),
+            None => {
+                debug!("Room {} not found, already cleaned up", room_id);
+                return Ok(());
+            }
         };
 
-        let current_count = room.player_counter.load(Ordering::SeqCst);
+        let remaining_count = room.player_counter.fetch_sub(1, Ordering::SeqCst) - 1;
+
+        info!(
+            "Player {} leaving room {}. Remaining players: {}",
+            player_id, room_id, remaining_count
+        );
+
+        self.cancel_pending_cleanup(&room).await;
+
         let has_bot = room.info.bot_level.is_some();
         let has_pending_cleanup = room.deletion_token.lock().await.is_some();
 
         if self
             .rules
-            .should_delete_room_immediately(current_count, has_bot, has_pending_cleanup)
+            .should_delete_room_immediately(remaining_count, has_bot, has_pending_cleanup)
         {
-            self.remove_room(room_id).await;
+            info!("Immediately removing room {} per rules", room_id);
+            self.remove_room_immediately(room, room_id).await;
         } else {
             self.handle_player_disconnect(&room, player_id).await?;
-            self.schedule_cleanup(&room, room_id, player_id).await;
+
+            if remaining_count == 1 && !has_bot {
+                self.schedule_delayed_cleanup(room, room_id, player_id)
+                    .await;
+            }
         }
 
         Ok(())
+    }
+
+    async fn handle_player_disconnect(
+        &self,
+        room: &Arc<Room>,
+        leaving_player_id: &str,
+    ) -> Result<(), AppError> {
+        let leaving_player = room.get_player(&leaving_player_id.to_string()).await?;
+
+        {
+            let mut game = room.game.lock().await;
+            game.set_board_status(self.rules.get_disconnect_game_state());
+        }
+
+        let disconnect_msg = ServerMessage::PlayerUpdate {
+            action: PlayerAction::PlayerDisconnected,
+            player: leaving_player.clone(),
+        };
+
+        if let Ok(other_player) = room.get_other_player(&leaving_player_id.to_string()).await {
+            if let Some(tx) = &other_player.tx {
+                if let Err(_) = tx.send(disconnect_msg) {
+                    warn!("Failed to notify other player of disconnect");
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn cancel_pending_cleanup(&self, room: &Arc<Room>) {
+        if let Some(token) = room.deletion_token.lock().await.take() {
+            token.cancel();
+            debug!("Cancelled pending cleanup for room");
+        }
+    }
+
+    async fn schedule_delayed_cleanup(&self, room: Arc<Room>, room_id: &str, player_id: &str) {
+        let cleanup_token = CancellationToken::new();
+        *room.deletion_token.lock().await = Some(cleanup_token.clone());
+
+        let cleanup_service = CleanupService::new();
+        cleanup_service
+            .schedule_room_cleanup(
+                room_id.to_string(),
+                player_id.to_string(),
+                room.clone(),
+                self.rooms.clone(),
+                cleanup_token,
+                self.rules.get_cleanup_timeout(),
+                Status::Paused,
+            )
+            .await;
+    }
+
+    async fn remove_room_immediately(&self, room: Arc<Room>, room_id: &str) {
+        if let Some(token) = room.deletion_token.lock().await.take() {
+            token.cancel();
+        }
+
+        if let Some((_, removed_room)) = self.rooms.remove(room_id) {
+            removed_room.shutdown().await;
+            info!("Room {} immediately removed", room_id);
+        } else {
+            debug!("Room {} was already removed", room_id);
+        }
     }
 
     pub fn get_public_rooms(&self, name_filter: Option<&str>) -> Vec<RoomInfo> {
@@ -95,10 +180,6 @@ impl RoomService {
             .get(room_id)
             .map(|room| room.info.clone())
             .ok_or_else(|| AppError::room_not_found())
-    }
-
-    pub fn has_room(&self, room_id: &str) -> bool {
-        self.rooms.contains_key(room_id)
     }
 
     fn get_room(&self, room_id: &str) -> Result<Arc<Room>, AppError> {
@@ -151,55 +232,5 @@ impl RoomService {
 
         tracing::info!("Player {} joined room {}", new_player_id, room.info.id);
         Ok((room, new_player_id))
-    }
-
-    async fn handle_player_disconnect(
-        &self,
-        room: &Arc<Room>,
-        player_id: &String,
-    ) -> Result<(), AppError> {
-        let leaving_player = room.get_player(player_id).await?;
-
-        let mut game = room.game.lock().await;
-        game.set_board_status(self.rules.get_disconnect_game_state());
-        drop(game);
-
-        let disconnect_msg = ServerMessage::PlayerUpdate {
-            action: PlayerAction::PlayerDisconnected,
-            player: leaving_player.clone(),
-        };
-
-        if let Ok(other_player) = room.get_other_player(player_id).await {
-            if let Some(tx) = &other_player.tx {
-                let _ = tx.send(disconnect_msg);
-            }
-        }
-
-        Ok(())
-    }
-
-    async fn schedule_cleanup(&self, room: &Arc<Room>, room_id: &str, player_id: &str) {
-        let cleanup_token = CancellationToken::new();
-        *room.deletion_token.lock().await = Some(cleanup_token.clone());
-
-        self.cleanup_service
-            .schedule_room_cleanup(
-                room_id.to_string(),
-                player_id.to_string(),
-                room.clone(),
-                self.rooms.clone(),
-                cleanup_token,
-                self.rules.get_cleanup_timeout(),
-                Status::Paused,
-            )
-            .await;
-    }
-
-    async fn remove_room(&self, room_id: &str) {
-        if let Some((_, room)) = self.rooms.remove(room_id) {
-            room.shutdown().await;
-            tracing::info!("Room {} removed", room_id);
-        }
-        self.rooms.remove(room_id);
     }
 }

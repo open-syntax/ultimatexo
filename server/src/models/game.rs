@@ -93,7 +93,9 @@ pub struct GameState {
     pub players: Vec<PlayerInfo>,
     pub board: Board,
     pub next_board: Option<usize>,
-    pub last_move: Option<(usize, usize)>,
+    pub last_move: Option<[usize; 2]>,
+    pub pending_rematch: Option<String>,
+    pub pending_draw: Option<String>,
 }
 impl GameState {
     pub fn toggle_players(&mut self) {
