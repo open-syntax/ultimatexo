@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Board, BoardStatus, socketEvent } from "@/types";
-import { playerActions } from "@/types/actions";
+import { playerActions, RestartActions } from "@/types/actions";
 import { GameStore, PlayerStore, RoomStore } from "@/store";
 
 // interface roomResponse {
@@ -34,6 +34,10 @@ const useGame = () => {
   const { setMove, setNextPlayer } = GameStore();
   const { pushMessage, ws } = RoomStore();
 
+  const [rematchStatus, setRematchStatus] = useState<RestartActions | null>(
+    null,
+  );
+
   const [board, setBoard] = useState<{
     boards: Board;
     status: BoardStatus;
@@ -46,7 +50,8 @@ const useGame = () => {
 
   useEffect(() => {
     if (!ws) return;
-    console.log("Connected");
+    // eslint-disable-next-line no-console
+    console.info("Connected");
 
     let playerId: string | null = null;
 
@@ -59,6 +64,8 @@ const useGame = () => {
     ws.onmessage = (event) => {
       const e: socketEvent = JSON.parse(event.data);
       const eventName = e.event;
+
+      // eslint-disable-next-line no-console
       console.log(e);
 
       switch (eventName) {
@@ -82,6 +89,13 @@ const useGame = () => {
                 break;
               } else {
                 playerId = e.data.player.id as string;
+
+                sessionStorage.setItem(
+                  "roomId",
+                  window.location.pathname.split("/")[2],
+                );
+                sessionStorage.setItem("playerId", playerId);
+
                 setPlayer(e.data.player);
                 message = "Connected";
                 break;
@@ -109,6 +123,10 @@ const useGame = () => {
           });
           break;
 
+        case "GameRestart":
+          setRematchStatus(e.data.action);
+          break;
+
         case "TextMessage":
           pushMessage({
             content: e.data.content,
@@ -116,8 +134,8 @@ const useGame = () => {
           });
           break;
 
-        case "PING":
-          ws.send("PONG");
+        case "Ping":
+          ws.send(JSON.stringify("Pong"));
           break;
 
         case "Error":
@@ -139,27 +157,13 @@ const useGame = () => {
     };
   }, [ws]);
 
-  // const playMove = (mv: string) => {
-  //   if (ws) {
-  //     ws.send(
-  //       JSON.stringify({
-  //         GameUpdate: {
-  //           mv,
-  //         },
-  //       }),
-  //     );
-  //   } else {
-  //     console.warn("WebSocket is undefined");
-  //   }
-  // };
-
   return {
     ws,
     board,
     status,
+    rematchStatus,
     setStatus,
     player,
-    // playMove,
   };
 };
 

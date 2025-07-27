@@ -1,9 +1,9 @@
 import { create } from "zustand";
 
 import RoomStore from "./room";
-import PlayerStore from "./player";
 
 import { marker } from "@/types/player";
+import { RestartActions } from "@/types/actions";
 
 type move = {
   nextMove: number | null;
@@ -17,7 +17,9 @@ interface store {
   setNextPlayer: (marker: marker) => void;
   setMove: (move: move) => void;
 
-  playMove: (mv: string) => void;
+  playMove: (mv: [number, number]) => void;
+  rematch: (action: RestartActions) => void;
+  resign: () => void;
 }
 
 const GameStore = create<store>((set) => ({
@@ -31,18 +33,26 @@ const GameStore = create<store>((set) => ({
   setMove: (move) => set({ move }),
 
   playMove: (mv) =>
-    set((state) => {
-      RoomStore.getState().ws?.send(
-        JSON.stringify({
-          GameUpdate: {
-            mv,
-            player_id: PlayerStore.getState().player.id,
-          },
-        }),
-      );
+    RoomStore.getState().ws?.send(
+      JSON.stringify({
+        GameUpdate: {
+          mv,
+        },
+      }),
+    ),
+  rematch: (action) => {
+    RoomStore.getState().ws?.send(
+      JSON.stringify({
+        GameRestart: {
+          action,
+        },
+      }),
+    );
+  },
 
-      return state;
-    }),
+  resign: () => {
+    RoomStore.getState().ws?.send(JSON.stringify("Resign"));
+  },
 }));
 
 export default GameStore;

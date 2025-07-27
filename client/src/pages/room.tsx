@@ -7,10 +7,10 @@ import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 
 import { Link as LinkIcon } from "@/components/icons";
-import Board from "@/components/board";
+import Board from "@/components/room/board";
 import DefaultLayout from "@/layouts/default";
 import RoomLayout from "@/layouts/room";
-import Chat from "@/components/chat";
+import Chat from "@/components/room/chat";
 import GameStatus from "@/components/room/status";
 import useGame from "@/hooks/useGame";
 import { RoomStore } from "@/store";
@@ -37,12 +37,26 @@ enum RoomStatus {
 
 function RoomPage() {
   let { roomId } = useParams();
-  const { player, board, status, setStatus } = useGame();
+  const { player, board, status, rematchStatus, setStatus } = useGame();
   const { setWs } = RoomStore();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const handleWebSocket = (password: string) => {
+    // get playerId from localStorage if exists
+    const player_id = sessionStorage.getItem("playerId") || null;
+    const room_id = sessionStorage.getItem("roomId") || null;
+
+    if (room_id && room_id === roomId) {
+      setWs(
+        new WebSocket(
+          `/api/ws/${roomId}${password ? `:${password}?player_id=${player_id}` : `?player_id=${player_id}`}`,
+        ),
+      );
+
+      return;
+    }
+
     setWs(new WebSocket(`/api/ws/${roomId}${password ? `:${password}` : ""}`));
   };
 
@@ -150,7 +164,10 @@ function RoomPage() {
             You are player: {player.info.marker}
           </p>
           <div className="flex flex-col items-center gap-2">
-            <GameStatus boardStatus={board.status} />
+            <GameStatus
+              boardStatus={board.status}
+              rematchStatus={rematchStatus}
+            />
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
             <Board board={board.boards} />

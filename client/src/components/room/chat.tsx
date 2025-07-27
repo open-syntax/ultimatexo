@@ -4,7 +4,7 @@ import { useDisclosure } from "@heroui/use-disclosure";
 import { Input } from "@heroui/input";
 import { useEffect, useState } from "react";
 
-import { Chat as ChatIcon } from "./icons";
+import { Chat as ChatIcon } from "../icons";
 
 import { Message } from "@/types/messages";
 import { marker } from "@/types/player";

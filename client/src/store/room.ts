@@ -1,7 +1,5 @@
 import { create } from "zustand";
 
-import PlayerStore from "./player";
-
 import { Message } from "@/types/messages";
 
 type Store = {
@@ -39,7 +37,6 @@ const RoomStore = create<Store>()((set) => ({
         JSON.stringify({
           TextMessage: {
             content: message,
-            player_id: PlayerStore.getState().player.id,
           },
         }),
       );

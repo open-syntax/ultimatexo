@@ -24,7 +24,7 @@ function Cell({ mark, board, index }: CellProps) {
 
   const handleClick = () => {
     if (!isAvailable) return;
-    playMove(`${board},${index}`);
+    playMove([board, index]);
   };
 
   let defaultClasses =

@@ -2,56 +2,30 @@ import { Button } from "@heroui/button";
 
 import { BoardStatus } from "@/types";
 import { RestartActions } from "@/types/actions";
-import { GameStore, RoomStore } from "@/store";
+import { GameStore } from "@/store";
 
 interface props {
   boardStatus: BoardStatus;
+  rematchStatus: RestartActions | null;
 }
 
-const GameStatus = ({ boardStatus }: props) => {
-  const { ws } = RoomStore();
-  const { nextPlayer } = GameStore();
+const GameStatus = ({ boardStatus, rematchStatus }: props) => {
+  const { nextPlayer, rematch, resign } = GameStore();
 
-  // const [restartRequest, setRestartRequest] = useState<boolean>(false);
-
-  // useEffect(() => {
-  //   if (!ws) return;
-
-  //   ws.onmessage = (e) => {
-  //     const event: socketEvent = JSON.parse(e.data);
-
-  //     if (event.event !== "GameRestart") return;
-
-  //     if (event.data.action === RestartActions.Requested) {
-  //       setRestartRequest(true);
-  //     }
-  //   };
-  // }, [ws]);
-
-  const handleRematch = (action: RestartActions) => {
-    ws?.send(
-      JSON.stringify({
-        GameRestart: {
-          action,
-        },
-      }),
-    );
-  };
-
-  if (false) // TODO: Handle Restart request
+  if (rematchStatus === RestartActions.Requested)
     return (
       <div className="flex animate-appearance-in gap-2">
         <Button
           color="primary"
-          onPress={() => handleRematch(RestartActions.Accepted)}
+          onPress={() => rematch(RestartActions.Accepted)}
         >
           Accept
         </Button>
         <Button
           color="default"
-          onPress={() => handleRematch(RestartActions.Rejected)}
+          onPress={() => rematch(RestartActions.Declined)}
         >
-          Reject
+          Decline
         </Button>
       </div>
     );
@@ -61,23 +35,22 @@ const GameStatus = ({ boardStatus }: props) => {
       return <p>Game Paused.</p>;
     case BoardStatus.X:
       return (
-        <Rematch
-          player="X"
-          onClick={() => handleRematch(RestartActions.Requested)}
-        />
+        <Rematch player="X" onClick={() => rematch(RestartActions.Requested)} />
       );
     case BoardStatus.O:
       return (
-        <Rematch
-          player="O"
-          onClick={() => handleRematch(RestartActions.Requested)}
-        />
+        <Rematch player="O" onClick={() => rematch(RestartActions.Requested)} />
       );
     case BoardStatus.Draw:
       return <p>Draw.</p>;
   }
 
-  return <p>{nextPlayer}&apos;s Turn.</p>;
+  return (
+    <>
+      <p>{nextPlayer}&apos;s Turn.</p>
+      <Button onPress={() => resign()}>Resign</Button>
+    </>
+  );
 };
 
 const Rematch = ({

@@ -7,5 +7,5 @@ export enum playerActions {
 export enum RestartActions {
   Requested = "Request",
   Accepted = "Accept",
-  Rejected = "Reject",
+  Declined = "Decline",
 }

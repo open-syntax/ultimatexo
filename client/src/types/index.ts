@@ -78,5 +78,5 @@ export type socketEvent =
       };
     }
   | {
-      event: "PING";
+      event: "Ping";
     };
