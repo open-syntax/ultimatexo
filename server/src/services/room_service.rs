@@ -1,6 +1,5 @@
-use std::sync::{Arc, atomic::Ordering};
-
 use dashmap::DashMap;
+use std::sync::{Arc, atomic::Ordering};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
@@ -8,7 +7,7 @@ use tracing::{debug, info, warn};
 use crate::{
     domain::RoomRules,
     error::AppError,
-    models::{PlayerAction, Room, RoomInfo, ServerMessage, Status},
+    models::{PlayerAction, Room, RoomInfo, RoomType, ServerMessage},
     services::CleanupService,
 };
 
@@ -30,6 +29,7 @@ impl RoomService {
         room_info.id = room_id.clone();
 
         let (tx, rx) = mpsc::channel(32);
+        room_info.room_type = RoomType::BotRoom;
         let room = Arc::new(Room::new(room_info, tx));
 
         Room::spawn_message_broadcaster(room.clone(), rx);
@@ -45,7 +45,7 @@ impl RoomService {
         player_id: Option<String>,
     ) -> Result<(Arc<Room>, String), AppError> {
         let room = self.get_room(room_id)?;
-        let current_count = room.player_counter.load(Ordering::SeqCst);
+        let current_count = room.get_player_count();
 
         self.rules
             .can_join_room(&room.info, current_count, password)?;
@@ -92,8 +92,7 @@ impl RoomService {
             self.handle_player_disconnect(&room, player_id).await?;
 
             if remaining_count == 1 && !has_bot {
-                self.schedule_delayed_cleanup(room, room_id, player_id)
-                    .await;
+                self.schedule_delayed_cleanup(room, player_id).await;
             }
         }
 
@@ -105,24 +104,20 @@ impl RoomService {
         room: &Arc<Room>,
         leaving_player_id: &str,
     ) -> Result<(), AppError> {
-        let leaving_player = room.get_player(&leaving_player_id.to_string()).await?;
-
         {
             let mut game = room.game.lock().await;
             game.set_board_status(self.rules.get_disconnect_game_state());
         }
 
         let disconnect_msg = ServerMessage::PlayerUpdate {
-            action: PlayerAction::PlayerDisconnected,
-            player: leaving_player.clone(),
+            action: PlayerAction::Disconnected,
         };
 
-        if let Ok(other_player) = room.get_other_player(&leaving_player_id.to_string()).await {
-            if let Some(tx) = &other_player.tx {
-                if let Err(_) = tx.send(disconnect_msg) {
-                    warn!("Failed to notify other player of disconnect");
-                }
-            }
+        if let Ok(other_player) = room.get_other_player(&leaving_player_id.to_string()).await
+            && let Some(tx) = &other_player.tx
+            && tx.send(disconnect_msg).is_err()
+        {
+            warn!("Failed to notify other player of disconnect");
         }
 
         Ok(())
@@ -135,20 +130,18 @@ impl RoomService {
         }
     }
 
-    async fn schedule_delayed_cleanup(&self, room: Arc<Room>, room_id: &str, player_id: &str) {
+    async fn schedule_delayed_cleanup(&self, room: Arc<Room>, player_id: &str) {
         let cleanup_token = CancellationToken::new();
         *room.deletion_token.lock().await = Some(cleanup_token.clone());
 
         let cleanup_service = CleanupService::new();
         cleanup_service
             .schedule_room_cleanup(
-                room_id.to_string(),
                 player_id.to_string(),
                 room.clone(),
                 self.rooms.clone(),
                 cleanup_token,
-                self.rules.get_cleanup_timeout(),
-                Status::Paused,
+                self.rules.clone(),
             )
             .await;
     }
@@ -171,7 +164,7 @@ impl RoomService {
             .iter()
             .map(|entry| entry.value().info.clone())
             .filter(|room| room.is_public && room.bot_level.is_none())
-            .filter(|room| name_filter.map_or(true, |filter| room.name.starts_with(filter)))
+            .filter(|room| name_filter.is_none_or(|filter| room.name.starts_with(filter)))
             .collect()
     }
 
@@ -179,14 +172,14 @@ impl RoomService {
         self.rooms
             .get(room_id)
             .map(|room| room.info.clone())
-            .ok_or_else(|| AppError::room_not_found())
+            .ok_or(AppError::room_not_found())
     }
 
     fn get_room(&self, room_id: &str) -> Result<Arc<Room>, AppError> {
         self.rooms
             .get(room_id)
             .map(|entry| entry.value().clone())
-            .ok_or_else(|| AppError::room_not_found())
+            .ok_or(AppError::room_not_found())
     }
 
     fn generate_room_id(&self) -> String {
@@ -220,16 +213,12 @@ impl RoomService {
         &self,
         room: Arc<Room>,
     ) -> Result<(Arc<Room>, String), AppError> {
-        let current_count = room.player_counter.load(Ordering::SeqCst);
+        let current_count = room.get_player_count();
         if current_count >= 2 {
             return Err(AppError::room_full());
         }
 
-        let new_player = room.add_player().await?;
-        let new_player_id = new_player.id.clone().unwrap();
-
-        room.players.lock().await.push(new_player);
-
+        let new_player_id = room.add_player().await?;
         tracing::info!("Player {} joined room {}", new_player_id, room.info.id);
         Ok((room, new_player_id))
     }

@@ -1,7 +1,8 @@
-use crate::ai::evaluation::Evaluator;
-use crate::error::AppError;
-use crate::models::room::BotLevel;
-use crate::models::{GameState, Marker, Status};
+use crate::{
+    ai::{MinimaxAI, Move},
+    error::AppError,
+    models::{Board, GameState, Marker, PlayerInfo, Status},
+};
 use anyhow::Result;
 
 #[derive(Debug)]
@@ -10,9 +11,9 @@ pub struct GameEngine {
 }
 
 impl GameEngine {
-    pub fn new() -> Self {
+    pub fn new(difficulty: Option<u8>) -> Self {
         Self {
-            state: GameState::default(),
+            state: GameState::new(difficulty, None),
         }
     }
     pub fn make_move(&mut self, mv: [usize; 2]) -> Result<(), AppError> {
@@ -36,10 +37,10 @@ impl GameEngine {
 
         let target_board = &self.state.board.boards[a];
 
-        if let Some(required_board) = self.state.next_board {
-            if required_board != a {
-                return Err(AppError::invalid_move());
-            }
+        if let Some(required_board) = self.state.next_board
+            && required_board != a
+        {
+            return Err(AppError::invalid_move());
         }
 
         if target_board.status != Status::InProgress {
@@ -54,7 +55,8 @@ impl GameEngine {
     }
 
     fn apply_move(&mut self, mv: [usize; 2]) -> Result<(), AppError> {
-        self.state.board.boards[mv[0]].cells[mv[1]] = self.state.players[0].marker;
+        self.state.board.boards[mv[0]].cells[mv[1]] =
+            self.state.players[self.state.current_index].marker;
         Ok(())
     }
 
@@ -111,7 +113,7 @@ impl GameEngine {
             [2, 4, 6],
         ];
 
-        let current_player_marker = self.state.players[0].marker;
+        let current_player_marker = self.state.players[self.state.current_index].marker;
 
         for condition in win_conditions {
             if self.state.board.boards[condition[0]].status == Status::Won(current_player_marker)
@@ -150,16 +152,93 @@ impl GameEngine {
         self.state.last_move = Some(mv);
     }
 
-    pub async fn generate_move(&mut self, level: BotLevel) -> Result<(), AppError> {
-        // use minimax::Strategy;
-        // let mut strategy = minimax::Negamax::new(Evaluator, level);
-        // if let Some(best_move) = strategy.choose_move(&self.state) {
-        //     self.make_move([best_move.board, best_move.cell])?;
-        // }
-        Ok(())
+    pub fn get_current_player(&self) -> PlayerInfo {
+        self.state.players[self.state.current_index].clone()
     }
 
-    pub fn rematch_game(&mut self) {
-        self.state = GameState::default();
+    pub fn get_board_status(&self) -> Status {
+        self.state.board.status
+    }
+
+    pub fn set_board_status(&mut self, status: Status) {
+        self.state.board.status = status;
+    }
+
+    pub fn push_player(&mut self, player: PlayerInfo) {
+        let marker = player.marker;
+        self.state.players.push(player);
+        if self.state.players.len() == 2 && marker == Marker::X {
+            self.state.toggle_players();
+        }
+    }
+
+    pub fn get_board(&self) -> Board {
+        self.state.board.clone()
+    }
+
+    pub fn get_next_player(&self) -> PlayerInfo {
+        self.state.players[self.state.current_index].clone()
+    }
+
+    pub fn get_next_board(&self) -> Option<usize> {
+        self.state.next_board
+    }
+
+    pub fn get_last_move(&self) -> Option<[usize; 2]> {
+        self.state.last_move
+    }
+
+    pub fn has_pending_rematch(&self) -> bool {
+        self.state.pending_rematch.is_some()
+    }
+
+    pub fn is_pending_rematch_from(&self, id: &str) -> bool {
+        self.state.pending_rematch.as_deref() == Some(id)
+    }
+
+    pub fn request_rematch(&mut self, id: String) {
+        self.state.pending_rematch = Some(id);
+    }
+
+    pub fn clear_rematch_request(&mut self) {
+        self.state.pending_rematch = None;
+    }
+
+    pub fn has_pending_draw(&self) -> bool {
+        self.state.pending_draw.is_some()
+    }
+
+    pub fn is_pending_draw_from(&self, id: &str) -> bool {
+        self.state.pending_draw.as_deref() == Some(id)
+    }
+
+    pub fn request_draw(&mut self, id: String) {
+        self.state.pending_draw = Some(id);
+    }
+
+    pub fn clear_draw_request(&mut self) {
+        self.state.pending_draw = None;
+    }
+
+    pub async fn get_ai_move(&self, ai_player: Marker) -> Option<Move> {
+        let ai = MinimaxAI::new(self.state.difficulty.min(5) as usize);
+        ai.find_best_move_parallel(&self.state, ai_player).await
+    }
+
+    pub async fn apply_ai_move(&mut self, ai_player: Marker) -> Option<Move> {
+        if let Some(ai_move) = self.get_ai_move(ai_player).await {
+            let ai = MinimaxAI::new(1);
+            let mut temp_state = self.state.clone();
+            ai.apply_move(&mut temp_state, ai_move, ai_player);
+            self.state = temp_state;
+            Some(ai_move)
+        } else {
+            None
+        }
+    }
+
+    pub fn rematch_game(&mut self, difficulty: Option<u8>) {
+        let players = self.state.players.clone();
+        self.state = GameState::new(difficulty, Some(players));
     }
 }

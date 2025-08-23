@@ -94,30 +94,6 @@ pub enum SanitizeError {
     Empty,
 }
 
-pub struct ErrorBuilder {
-    error: AppError,
-}
-
-impl ErrorBuilder {
-    fn new(error: AppError) -> Self {
-        Self { error }
-    }
-
-    pub fn with_context(mut self, context: impl Into<String>) -> Self {
-        match &mut self.error {
-            AppError::Internal { message, .. } => {
-                *message = format!("{}: {}", context.into(), message);
-            }
-            _ => {}
-        }
-        self
-    }
-
-    pub fn build(self) -> AppError {
-        self.error
-    }
-}
-
 impl AppError {
     pub fn room_not_found() -> Self {
         AppError::Room(RoomError::NotFound)
@@ -189,10 +165,6 @@ impl AppError {
         Self::BadRequest {
             message: "Reconnection not allowed for this room type".to_string(),
         }
-    }
-
-    pub fn builder(self) -> ErrorBuilder {
-        ErrorBuilder::new(self)
     }
 }
 impl From<tokio::time::error::Elapsed> for AppError {

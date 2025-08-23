@@ -5,16 +5,16 @@ use crate::{
 };
 
 #[derive(Default)]
-pub struct StandardRoomRules;
+pub struct LocalRoomRules;
 
-impl RoomRules for StandardRoomRules {
+impl RoomRules for LocalRoomRules {
     fn can_join_room(
         &self,
         room_info: &RoomInfo,
         current_player_count: usize,
         provided_password: Option<String>,
     ) -> Result<(), AppError> {
-        if current_player_count >= 2 {
+        if current_player_count >= 1 {
             return Err(AppError::room_full());
         }
 
@@ -33,20 +33,20 @@ impl RoomRules for StandardRoomRules {
         &self,
         current_player_count: usize,
         _has_bot: bool,
-        has_pending_cleanup: bool,
+        _has_pending_cleanup: bool,
     ) -> bool {
-        current_player_count < 1 || has_pending_cleanup
+        current_player_count == 0
     }
 
     fn get_disconnect_game_state(&self) -> Status {
         Status::Paused
     }
 
-    fn get_timeout_game_state(&self, leaving_player_marker: Marker) -> Status {
-        Status::Won(!leaving_player_marker)
+    fn get_timeout_game_state(&self, _leaving_player_marker: Marker) -> Status {
+        Status::Draw
     }
 
     fn get_cleanup_timeout(&self) -> std::time::Duration {
-        std::time::Duration::from_secs(10)
+        std::time::Duration::from_secs(30)
     }
 }

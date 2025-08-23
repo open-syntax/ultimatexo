@@ -1,3 +1,9 @@
+use crate::{
+    domain::GameEngine,
+    error::AppError,
+    models::{Marker, Player, ServerMessage},
+};
+use serde::{Deserialize, Serialize};
 use std::{
     sync::{
         Arc,
@@ -5,8 +11,6 @@ use std::{
     },
     time::Duration,
 };
-
-use serde::{Deserialize, Deserializer, Serialize, de};
 use tokio::{
     sync::{
         Mutex,
@@ -17,12 +21,6 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
-
-use crate::{
-    error::AppError,
-    models::{Marker, Player, PlayerInfo, ServerMessage},
-    services::GameService,
-};
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default)]
@@ -46,10 +44,11 @@ pub enum BotLevel {
     Advanced,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum RoomType {
     Standard,
-    BotMatch,
+    BotRoom,
+    LocalRoom,
 }
 
 impl Default for RoomType {
@@ -57,14 +56,13 @@ impl Default for RoomType {
         Self::Standard
     }
 }
-impl Eq for RoomType {}
 
 #[derive(Debug)]
 pub struct Room {
     pub tx: Sender<ServerMessage>,
     pub players: Mutex<Vec<Player>>,
     pub player_counter: AtomicUsize,
-    pub game: Arc<Mutex<GameService>>,
+    pub game: Arc<Mutex<GameEngine>>,
     pub info: RoomInfo,
     pub deletion_token: Mutex<Option<CancellationToken>>,
     pub is_shutdown: AtomicBool,
@@ -72,29 +70,42 @@ pub struct Room {
 
 impl Room {
     pub fn new(info: RoomInfo, tx: Sender<ServerMessage>) -> Self {
+        let difficulty: Option<u8> = match info.bot_level.as_ref() {
+            Some(BotLevel::Beginner) => Some(2),
+            Some(BotLevel::Intermediate) => Some(5),
+            Some(BotLevel::Advanced) => Some(8),
+            None => None,
+        };
         Self {
             tx,
             player_counter: AtomicUsize::new(0),
             players: Mutex::new(Vec::new()),
             info,
-            game: Arc::new(Mutex::new(GameService::new())),
+            game: Arc::new(Mutex::new(GameEngine::new(difficulty))),
             deletion_token: Mutex::new(None),
             is_shutdown: AtomicBool::new(false),
         }
+    }
+
+    pub async fn add_bot(&self, marker: Marker) -> Result<(), AppError> {
+        let player = Player::new_bot(marker);
+        self.game.lock().await.push_player(player.info.clone());
+        self.players.lock().await.push(player);
+        Ok(())
     }
 
     pub fn get_player_count(&self) -> usize {
         self.player_counter.load(Ordering::SeqCst)
     }
 
-    pub async fn add_player(&self) -> Result<Player, AppError> {
+    pub async fn add_player(&self) -> Result<String, AppError> {
         use rand::Rng;
 
         if self.is_closed() {
             return Err(AppError::room_closed());
         }
 
-        let marker = if self.player_counter.load(Ordering::Relaxed) == 0 {
+        let marker = if self.get_player_count() == 0 {
             if rand::rng().random_bool(0.5) {
                 Marker::O
             } else {
@@ -103,13 +114,16 @@ impl Room {
         } else {
             !self.players.lock().await[0].info.marker
         };
-        let player_id = Uuid::new_v4().to_string();
-        let player_info = PlayerInfo { marker };
-        let player = Player::new(player_id, marker);
-        self.player_counter.fetch_add(1, Ordering::SeqCst);
-        self.game.lock().await.push_player(player_info);
 
-        Ok(player)
+        let player_id = Uuid::new_v4().to_string();
+        let player = Player::new(player_id.clone(), marker);
+        self.player_counter.fetch_add(1, Ordering::SeqCst);
+        self.game.lock().await.push_player(player.info.clone());
+        self.players.lock().await.push(player);
+        if self.info.room_type != RoomType::Standard {
+            self.add_bot(!marker).await?;
+        }
+        Ok(player_id)
     }
 
     pub async fn get_player(&self, player_id: &String) -> Result<Player, AppError> {
@@ -190,7 +204,7 @@ impl Room {
     async fn disconnect_all_players(&self) {
         let close_message = ServerMessage::Close;
 
-        if let Err(_) = self.tx.send(close_message).await {
+        if self.tx.send(close_message).await.is_err() {
             debug!(
                 "Broadcast channel already closed or no receivers for room {}",
                 self.room_id()
@@ -232,10 +246,10 @@ impl Room {
                 };
 
                 for player in players.iter() {
-                    if let Some(tx) = &player.tx {
-                        if tx.send(msg.clone()).is_err() {
-                            debug!("Failed to send message to player {:?}", player.id);
-                        }
+                    if let Some(tx) = &player.tx
+                        && tx.send(msg.clone()).is_err()
+                    {
+                        debug!("Failed to send message to player {:?}", player.id);
                     }
                 }
 

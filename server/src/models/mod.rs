@@ -1,9 +1,9 @@
-pub mod game;
-pub mod messages;
-pub mod player;
-pub mod room;
+mod game;
+mod messages;
+mod player;
+mod room;
 
-pub use game::{Board, GameState, Marker, Status};
+pub use game::{Board, GameState, MacroBoard, Marker, Status};
 pub use messages::{
     Action, ClientMessage, PlayerAction, RoomNameQuery, ServerMessage, WebSocketQuery,
 };

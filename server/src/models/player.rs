@@ -1,7 +1,6 @@
+use super::{Marker, ServerMessage};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::UnboundedSender;
-
-use super::{Marker, ServerMessage};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PlayerInfo {
@@ -26,6 +25,13 @@ impl Player {
     pub fn new(id: String, marker: Marker) -> Self {
         Self {
             id: Some(id),
+            tx: None,
+            info: PlayerInfo::new(marker),
+        }
+    }
+    pub fn new_bot(marker: Marker) -> Self {
+        Self {
+            id: None,
             tx: None,
             info: PlayerInfo::new(marker),
         }

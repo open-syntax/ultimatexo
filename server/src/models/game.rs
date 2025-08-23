@@ -1,9 +1,7 @@
-use std::ops::Not;
-
+use super::PlayerInfo;
 use anyhow::Result;
 use serde::{Deserialize, Serialize, Serializer};
-
-use super::PlayerInfo;
+use std::ops::Not;
 
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize, Eq)]
 pub enum Marker {
@@ -41,20 +39,16 @@ impl Not for Marker {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Status {
     WaitingForPlayers,
+    #[default]
     InProgress,
     Paused,
     Won(Marker),
     Draw,
 }
 
-impl Default for Status {
-    fn default() -> Self {
-        Status::InProgress
-    }
-}
 impl Serialize for Status {
     fn serialize<T>(&self, serializer: T) -> Result<T::Ok, T::Error>
     where
@@ -82,25 +76,37 @@ pub struct Board {
 }
 impl Default for Board {
     fn default() -> Self {
-        Self {
+        Board {
             boards: [MacroBoard::default(); 9],
             status: Status::WaitingForPlayers,
         }
     }
 }
-#[derive(Default, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct GameState {
     pub players: Vec<PlayerInfo>,
+    pub current_index: usize,
     pub board: Board,
     pub next_board: Option<usize>,
     pub last_move: Option<[usize; 2]>,
     pub pending_rematch: Option<String>,
     pub pending_draw: Option<String>,
+    pub difficulty: u8,
 }
 impl GameState {
+    pub fn new(difficulty: Option<u8>, players: Option<Vec<PlayerInfo>>) -> Self {
+        Self {
+            players: players.unwrap_or_default(),
+            current_index: 0,
+            board: Board::default(),
+            next_board: None,
+            last_move: None,
+            pending_rematch: None,
+            pending_draw: None,
+            difficulty: difficulty.unwrap_or_default(),
+        }
+    }
     pub fn toggle_players(&mut self) {
-        let temp = self.players[0].clone();
-        self.players[0] = self.players[1].clone();
-        self.players[1] = temp;
+        self.current_index = 1 - self.current_index;
     }
 }

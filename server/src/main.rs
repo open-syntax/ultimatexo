@@ -1,5 +1,5 @@
 use anyhow::Result;
-use app::server::start_server;
+use app::start_server;
 use dotenv::dotenv;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 

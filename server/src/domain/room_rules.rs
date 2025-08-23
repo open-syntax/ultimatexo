@@ -1,5 +1,7 @@
-use crate::error::AppError;
-use crate::models::{Marker, Player, RoomInfo, Status};
+use crate::{
+    error::AppError,
+    models::{Marker, RoomInfo, Status},
+};
 
 pub trait RoomRules: Send + Sync {
     fn can_join_room(
@@ -21,6 +23,4 @@ pub trait RoomRules: Send + Sync {
     fn get_timeout_game_state(&self, leaving_player_marker: Marker) -> Status;
 
     fn get_cleanup_timeout(&self) -> std::time::Duration;
-
-    fn can_reconnect(&self, room_info: &RoomInfo, player: &Player) -> bool;
 }

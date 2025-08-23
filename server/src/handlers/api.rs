@@ -1,3 +1,7 @@
+use crate::{
+    app::AppState,
+    models::{RoomInfo, RoomNameQuery},
+};
 use axum::{
     Json,
     extract::{Path, Query, State},
@@ -5,11 +9,6 @@ use axum::{
 };
 use serde_json::{Value, json};
 use std::sync::Arc;
-
-use crate::{
-    app::state::AppState,
-    models::{RoomInfo, RoomNameQuery},
-};
 
 pub async fn get_rooms(
     State(state): State<Arc<AppState>>,

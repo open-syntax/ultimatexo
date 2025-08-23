@@ -1,8 +1,6 @@
-use anyhow::Context;
-use std::{env, net::SocketAddr, sync::Arc};
-
-use anyhow::Result;
+use anyhow::{Context, Result};
 use axum::{Router, routing::get};
+use std::{env, net::SocketAddr, sync::Arc};
 use tokio::signal;
 
 use crate::{

@@ -1,10 +1,11 @@
-use std::sync::Arc;
-
+use crate::{
+    domain::RoomRules,
+    models::{PlayerAction, Room, ServerMessage, Status},
+};
 use dashmap::DashMap;
+use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
-
-use crate::models::{PlayerAction, Room, ServerMessage, Status};
 
 pub struct CleanupService;
 
@@ -15,14 +16,21 @@ impl CleanupService {
 
     pub async fn schedule_room_cleanup(
         &self,
-        room_id: String,
         disconnected_player_id: String,
         room: Arc<Room>,
         rooms: Arc<DashMap<String, Arc<Room>>>,
         cleanup_token: CancellationToken,
-        timeout_duration: std::time::Duration,
-        timeout_game_state: Status,
+        game_rules: Arc<dyn RoomRules>,
     ) {
+        let timeout_duration = game_rules.get_cleanup_timeout();
+        let timeout_game_state = game_rules.get_timeout_game_state(
+            room.get_other_player(&disconnected_player_id)
+                .await
+                .unwrap()
+                .info
+                .marker,
+        );
+        let room_id = room.info.id.clone();
         info!(
             "Scheduling cleanup for room {} in {:?}",
             room_id, timeout_duration
@@ -70,12 +78,11 @@ impl CleanupService {
             }
 
             let timeout_msg = ServerMessage::PlayerUpdate {
-                action: PlayerAction::PlayerLeft,
-                player: timed_out_player,
+                action: PlayerAction::Left,
             };
 
             room.send_board().await;
-            if let Err(_) = room.tx.send(timeout_msg).await {
+            if room.tx.send(timeout_msg).await.is_err() {
                 warn!("Failed to send timeout notification for room {}", room_id);
             }
         }
