@@ -27,7 +27,7 @@ const ChatLayout = ({ className, chat, marker, handleMessageSend }: props) => {
       style={{ height: document.getElementById("board")?.offsetHeight }}
     >
       <h1 className="text-center text-2xl font-bold">Chat</h1>
-      <div className="flex h-full w-full flex-col gap-2 overflow-y-scroll pr-2">
+      <div className="flex h-full w-full flex-col gap-2 overflow-y-auto pr-2">
         {chat.map((message, i) => (
           <div
             key={i}
@@ -46,7 +46,7 @@ const ChatLayout = ({ className, chat, marker, handleMessageSend }: props) => {
         className="flex h-fit w-full gap-2"
         onSubmit={(e) => handleMessageSend(e)}
       >
-        <Input name="message" placeholder="Message" />
+        <Input name="message"  placeholder="Message" />
         <Button color="primary" type="submit">
           Send
         </Button>
@@ -96,47 +96,46 @@ const Chat = () => {
     setIsRead(true);
   };
 
-  if (width && width < 1024) {
-    return (
-      <>
-        <Button
-          className="fixed bottom-4 right-4 z-[5] size-12 min-w-12 overflow-visible rounded-full p-0"
-          variant="bordered"
-          onPress={() => handleOnOpen()}
-        >
-          <ChatIcon />
-          {!isRead && (
-            <i className="absolute -right-1 -top-1 z-10 size-4 rounded-full bg-danger-400" />
-          )}
-        </Button>
-        <Drawer
-          isOpen={isOpen}
-          placement="bottom"
-          size="xl"
-          onOpenChange={onOpenChange}
-        >
-          <DrawerContent className="h-full">
-            <DrawerBody className="h-full">
-              <ChatLayout
-                chat={chat}
-                className="!h-full"
-                handleMessageSend={handleMessageSend}
-                marker={marker}
-              />
-            </DrawerBody>
-          </DrawerContent>
-        </Drawer>
-      </>
-    );
-  }
-
   return (
-    <ChatLayout
-      chat={chat}
-      handleMessageSend={handleMessageSend}
-      marker={marker}
-    />
+    <>
+      <Button
+        className="fixed bottom-4 right-4 z-[5] size-12 min-w-12 overflow-visible rounded-full p-0"
+        variant="bordered"
+        onPress={() => handleOnOpen()}
+      >
+        <ChatIcon />
+        {!isRead && (
+          <i className="absolute -right-1 -top-1 z-10 size-4 rounded-full bg-danger-400" />
+        )}
+      </Button>
+      <Drawer
+        backdrop="transparent"
+        isOpen={isOpen}
+        placement="bottom"
+        size="xl"
+        onOpenChange={onOpenChange}
+      >
+        <DrawerContent className="left-1/2 h-full max-w-xl -translate-x-1/2">
+          <DrawerBody className="h-full">
+            <ChatLayout
+              chat={chat}
+              className="!h-full"
+              handleMessageSend={handleMessageSend}
+              marker={marker}
+            />
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+    </>
   );
+
+  // return (
+  //   <ChatLayout
+  //     chat={chat}
+  //     handleMessageSend={handleMessageSend}
+  //     marker={marker}
+  //   />
+  // );
 };
 
 export default Chat;

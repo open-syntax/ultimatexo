@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-sort-props */
 import * as React from "react";
 
 import { IconSvgProps } from "@/types";
@@ -283,5 +284,34 @@ export const Chat = ({ size = 24, ...props }: IconSvgProps) => (
         strokeWidth={2}
       />
     </g>
+  </svg>
+);
+
+export const X = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    width={size}
+    height={size}
+    stroke="currentColor"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    {...props}
+  >
+    <path d="M18 6 6 18M6 6l12 12" />
+  </svg>
+);
+
+export const O = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    fill="none"
+    strokeWidth={2}
+    {...props}
+  >
+    <circle cx={12} cy={12} r={8} stroke="currentColor"/>
   </svg>
 );

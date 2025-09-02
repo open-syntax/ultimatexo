@@ -169,7 +169,7 @@ function RoomPage() {
               rematchStatus={rematchStatus}
             />
           </div>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="">
             <Board board={board.boards} />
             <Chat />
           </div>

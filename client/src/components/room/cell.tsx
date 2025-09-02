@@ -2,6 +2,7 @@ import { cn } from "@heroui/theme";
 
 import { boardCell } from "@/types";
 import { GameStore, PlayerStore } from "@/store";
+import { O, X } from "../icons";
 
 interface CellProps {
   mark: boardCell;
@@ -28,38 +29,8 @@ function Cell({ mark, board, index }: CellProps) {
   };
 
   let defaultClasses =
-    "w-full h-full flex items-center justify-center border-default-400 text-3xl";
-  let borderClasses = "";
+    "w-full h-full flex items-center justify-center border-default-400 rounded-lg text-3xl bg-background";
   let uxClasses = "";
-
-  switch (index) {
-    case 0:
-      borderClasses = "border-r-2 border-b-2";
-      break;
-    case 1:
-      borderClasses = "border-b-2";
-      break;
-    case 2:
-      borderClasses = "border-l-2 border-b-2";
-      break;
-    case 3:
-      borderClasses = "border-r-2";
-      break;
-    case 4:
-      borderClasses = "";
-      break;
-    case 5:
-      borderClasses = "border-l-2";
-      break;
-    case 6:
-      borderClasses = "border-r-2 border-t-2";
-      break;
-    case 7:
-      borderClasses = "border-t-2";
-      break;
-    case 8:
-      borderClasses = "border-l-2 border-t-2";
-  }
 
   if (
     mark === ("X" as unknown as boardCell) ||
@@ -70,9 +41,7 @@ function Cell({ mark, board, index }: CellProps) {
 
   if (isAvailable) {
     // uxClasses = "cursor-pointer outline outline-2 outline-primary rounded-sm";
-    uxClasses =
-      "cursor-pointer bg-primary/20 outline outline-1 outline-primary rounded-sm";
-    defaultClasses = defaultClasses + " cursor-pointer p-1.5";
+    uxClasses = "cursor-pointer rounded-sm";
   }
 
   if (
@@ -80,8 +49,9 @@ function Cell({ mark, board, index }: CellProps) {
     move.lastMove[0] === board &&
     move.lastMove[1] === index
   ) {
-    if (mark === "X" as unknown as boardCell) {
-      defaultClasses = defaultClasses + " *:before:bg-warning-400 *:after:bg-warning-400";
+    if (mark === ("X" as unknown as boardCell)) {
+      defaultClasses =
+        defaultClasses + " *:before:bg-warning-400 *:after:bg-warning-400";
     } else {
       defaultClasses = defaultClasses + " *:before:border-warning-400";
     }
@@ -89,17 +59,19 @@ function Cell({ mark, board, index }: CellProps) {
 
   return (
     <button
-      className={cn(
-        defaultClasses,
-        borderClasses,
-        "relative animate-appearance-in",
-      )}
+      className={cn(defaultClasses, "relative animate-appearance-in")}
       onClick={() => handleClick()}
     >
       {mark ? (
         <div
-          className={`relative aspect-square h-full animate-appearance-in before:absolute before:left-1/2 before:top-1/2 before:translate-x-[-50%] before:translate-y-[-50%] after:absolute after:left-1/2 after:top-1/2 after:translate-x-[-50%] after:translate-y-[-50%] after:bg-default-800 ${mark === ("X" as unknown as boardCell) ? "before:block before:h-2 before:w-[calc(100%-4px)] before:rotate-45 before:bg-default-800 after:block after:h-2 after:w-[calc(100%-4px)] after:-rotate-45" : "before:block before:h-[calc(100%-8px)] before:w-[calc(100%-8px)] before:rounded-full before:border-8 before:border-default-800"}`}
-        />
+          className={`flex h-full w-full items-center justify-center rounded-xl text-8xl font-bold text-primary ${mark === ("X" as unknown as boardCell) ? "text-primary" : "text-primary-600"}`}
+        >
+          {mark === ("X" as unknown as boardCell) ? (
+            <X className="scale-[1.5]" strokeWidth={3} />
+          ) : (
+            <O className="scale-[1.5]" strokeWidth={3} />
+          )}
+        </div>
       ) : (
         // eslint-disable-next-line react/self-closing-comp
         <div className={cn(uxClasses, "h-full w-full")}></div>
