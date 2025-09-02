@@ -63,8 +63,6 @@ const Chat = () => {
   } = PlayerStore();
   const { chat, sendMessage } = RoomStore();
 
-  const { width } = useWindowSize();
-
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [isRead, setIsRead] = useState<boolean>(true);
 

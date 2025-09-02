@@ -5,7 +5,7 @@ import { button as buttonStyles } from "@heroui/theme";
 import { useNavigate } from "react-router-dom";
 
 import { Controller, Group } from "@/components/icons";
-import { subtitle, title } from "@/components/primitives";
+import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 
 export default function IndexPage() {
@@ -22,7 +22,7 @@ export default function IndexPage() {
 
   return (
     <DefaultLayout>
-      <section className="flex flex-col items-center justify-center h-full gap-8 py-8 md:py-10">
+      <section className="flex h-full flex-col items-center justify-center gap-8 py-8 md:py-10">
         <div className="inline-block max-w-lg justify-center text-center">
           <span className={title({ color: "yellow" })}>Ulitamte&nbsp;</span>
           <span className={title()}>Tic Tac Toe</span>
@@ -59,7 +59,11 @@ export default function IndexPage() {
               Join
             </Button>
           </form>
-        </div>{" "}
+        </div>
+
+        <Link href="/instructions">
+          <span>Don&apos;t know how to play?</span>
+        </Link>
       </section>
     </DefaultLayout>
   );

@@ -12,6 +12,10 @@ export const siteConfig = {
       label: "Rooms",
       href: "/rooms",
     },
+    {
+      label: "Instructions",
+      href: "/instructions",
+    },
   ],
   navMenuItems: [
     {
@@ -21,6 +25,10 @@ export const siteConfig = {
     {
       label: "Rooms",
       href: "/rooms",
+    },
+    {
+      label: "Instructions",
+      href: "/instructions",
     },
   ],
   links: {

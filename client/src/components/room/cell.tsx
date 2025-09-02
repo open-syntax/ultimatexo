@@ -1,8 +1,9 @@
 import { cn } from "@heroui/theme";
 
+import { O, X } from "../icons";
+
 import { boardCell } from "@/types";
 import { GameStore, PlayerStore } from "@/store";
-import { O, X } from "../icons";
 
 interface CellProps {
   mark: boardCell;
