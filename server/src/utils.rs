@@ -1,11 +1,10 @@
-use minimax::Game;
+use crate::{
+    error::AppError,
+    handlers::ConnectionContext,
+    models::{Action, ClientMessage, Room, RoomType, ServerMessage, Status},
+};
+use std::{borrow::Cow, sync::Arc};
 use tokio::time::Instant;
-
-use crate::error::AppError;
-use crate::handlers::ConnectionContext;
-use crate::models::{Action, ClientMessage, Room, ServerMessage, Status};
-use std::borrow::Cow;
-use std::sync::Arc;
 
 pub struct MessageHandler;
 
@@ -83,14 +82,10 @@ impl MessageHandler {
                     e
                 )));
             }
-
-            if let Some(bot_level) = room.info.bot_level.clone() {
-                if let Err(e) = game.generate_ai_move(bot_level).await {
-                    return Err(AppError::internal_error(format!(
-                        "Failed to generate AI move: {}",
-                        e
-                    )));
-                }
+            if room.info.room_type == RoomType::BotRoom
+                && game.apply_ai_move(!current_player_marker).await.is_none()
+            {
+                return Err(AppError::internal_error("Failed to make game move"));
             }
         }
 
@@ -109,36 +104,48 @@ impl MessageHandler {
 
         let mut game = room.game.lock().await;
 
-        match action {
-            Action::Accept => {
-                if !game.has_pending_rematch() {
-                    return Err(AppError::game_still_ongoing());
+        match room.info.room_type {
+            RoomType::Standard => match action {
+                Action::Accept => {
+                    if !game.has_pending_rematch() {
+                        return Err(AppError::game_still_ongoing());
+                    }
+
+                    if game.is_pending_rematch_from(player_id) {
+                        return Err(AppError::not_allowed());
+                    }
+
+                    game.rematch_game(None);
+                    game.clear_rematch_request();
                 }
 
-                if game.is_pending_rematch_from(player_id) {
-                    return Err(AppError::not_allowed());
+                Action::Request => {
+                    if game.get_board_status().eq(&Status::InProgress) {
+                        return Err(AppError::game_still_ongoing());
+                    }
+                    game.request_rematch(player_id.clone());
                 }
 
-                game.rematch_game();
-                game.clear_rematch_request();
+                Action::Decline => {
+                    if !game.has_pending_rematch() {
+                        return Err(AppError::game_still_ongoing());
+                    }
+
+                    if game.is_pending_rematch_from(player_id) {
+                        return Err(AppError::not_allowed());
+                    }
+                    game.clear_rematch_request();
+                }
+            },
+            RoomType::LocalRoom => {
+                if let Action::Request = action {
+                    game.rematch_game(None);
+                }
             }
-
-            Action::Request => {
-                if game.get_board_status().eq(&Status::InProgress) {
-                    return Err(AppError::game_still_ongoing());
-                }
-                game.request_rematch(player_id.clone());
-            }
-
-            Action::Decline => {
-                if !game.has_pending_rematch() {
-                    return Err(AppError::game_still_ongoing());
-                }
-
-                if game.is_pending_rematch_from(&player_id) {
-                    return Err(AppError::not_allowed());
-                }
-                game.clear_rematch_request();
+            RoomType::BotRoom => {
+                let difficulty = game.state.difficulty;
+                game.rematch_game(Some(difficulty));
+                game.apply_ai_move(!marker).await;
             }
         }
 
@@ -159,6 +166,9 @@ impl MessageHandler {
         ctx: &ConnectionContext,
         action: Action,
     ) -> Result<(), AppError> {
+        if room.info.room_type == RoomType::Standard {
+            return Ok(());
+        }
         let player_id = &ctx.player_id;
         let marker = room.get_player(player_id).await?.info.marker;
 
@@ -170,7 +180,7 @@ impl MessageHandler {
                     return Err(AppError::game_still_ongoing());
                 }
 
-                if game.is_pending_draw_from(&player_id) {
+                if game.is_pending_draw_from(player_id) {
                     return Err(AppError::not_allowed());
                 }
 
@@ -191,7 +201,7 @@ impl MessageHandler {
                     return Err(AppError::game_still_ongoing());
                 }
 
-                if game.is_pending_draw_from(&player_id) {
+                if game.is_pending_draw_from(player_id) {
                     return Err(AppError::not_player_turn());
                 }
                 game.clear_draw_request();
@@ -199,7 +209,7 @@ impl MessageHandler {
         }
 
         room.tx
-            .send(ServerMessage::GameRestart {
+            .send(ServerMessage::DrawRequest {
                 action,
                 player: marker,
             })

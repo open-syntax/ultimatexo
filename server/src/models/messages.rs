@@ -1,10 +1,8 @@
+use super::{Board, PlayerInfo};
+use crate::{error::AppError, models::Marker};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string;
-
-use crate::{error::AppError, models::Marker};
-
-use super::{Board, Player, PlayerInfo};
 
 #[derive(Deserialize, Clone, Debug)]
 pub enum ClientMessage {
@@ -26,7 +24,8 @@ pub enum Action {
 #[derive(Debug, Deserialize)]
 pub struct WebSocketQuery {
     pub password: Option<String>,
-    pub player_id: Option<String>,
+    #[serde(default)]
+    pub is_reconnecting: bool,
 }
 
 #[derive(Deserialize)]
@@ -49,7 +48,6 @@ pub enum ServerMessage {
     },
     PlayerUpdate {
         action: PlayerAction,
-        player: Player,
     },
     GameRestart {
         action: Action,
@@ -72,8 +70,8 @@ impl ServerMessage {
 
 #[derive(Serialize, Clone, Debug)]
 pub enum PlayerAction {
-    PlayerJoined,
-    PlayerLeft,
-    PlayerDisconnected,
-    PlayerReconnected,
+    Joined,
+    Left,
+    Disconnected,
+    Reconnected,
 }

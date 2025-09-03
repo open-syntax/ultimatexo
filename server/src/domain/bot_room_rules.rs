@@ -1,6 +1,8 @@
-use crate::domain::RoomRules;
-use crate::error::AppError;
-use crate::models::{Marker, Player, RoomInfo, Status};
+use crate::{
+    domain::RoomRules,
+    error::AppError,
+    models::{Marker, RoomInfo, Status},
+};
 
 #[derive(Default)]
 pub struct BotRoomRules;
@@ -37,18 +39,14 @@ impl RoomRules for BotRoomRules {
     }
 
     fn get_disconnect_game_state(&self) -> Status {
-        Status::Draw
+        Status::Paused
     }
 
-    fn get_timeout_game_state(&self, _leaving_player_marker: Marker) -> Status {
-        Status::Won(Marker::O)
+    fn get_timeout_game_state(&self, leaving_player_marker: Marker) -> Status {
+        Status::Won(leaving_player_marker)
     }
 
     fn get_cleanup_timeout(&self) -> std::time::Duration {
         std::time::Duration::from_secs(30)
-    }
-
-    fn can_reconnect(&self, _room_info: &RoomInfo, _player: &Player) -> bool {
-        false
     }
 }

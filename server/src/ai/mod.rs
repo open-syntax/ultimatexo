@@ -1,2 +1,3 @@
-pub mod evaluation;
-pub mod minimax;
+mod minimax;
+
+pub use minimax::{MinimaxAI, Move};

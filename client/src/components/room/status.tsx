@@ -14,21 +14,25 @@ const GameStatus = ({ boardStatus, rematchStatus }: props) => {
 
   if (rematchStatus === RestartActions.Requested)
     return (
-      <div className="flex animate-appearance-in gap-2">
-        <Button
-          color="primary"
-          onPress={() => rematch(RestartActions.Accepted)}
-        >
-          Accept
-        </Button>
-        <Button
-          color="default"
-          onPress={() => rematch(RestartActions.Declined)}
-        >
-          Decline
-        </Button>
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-center">Opponent Requested Rematch</p>
+        <div className="flex animate-appearance-in gap-2">
+          <Button
+            color="primary"
+            onPress={() => rematch(RestartActions.Accepted)}
+          >
+            Accept
+          </Button>
+          <Button
+            color="default"
+            onPress={() => rematch(RestartActions.Declined)}
+          >
+            Decline
+          </Button>
+        </div>
       </div>
     );
+    else if (rematchStatus === RestartActions.Sent) return <div>Waiting for Opponent...</div>
 
   switch (boardStatus) {
     case BoardStatus.Paused:

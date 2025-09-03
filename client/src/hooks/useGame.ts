@@ -124,7 +124,9 @@ const useGame = () => {
           break;
 
         case "GameRestart":
-          setRematchStatus(e.data.action);
+          if ([RestartActions.Accepted, RestartActions.Declined].includes(e.data.action) && e.data.player === player.info.marker)
+            setRematchStatus(RestartActions.Sent);
+          else setRematchStatus(e.data.action);
           break;
 
         case "TextMessage":
