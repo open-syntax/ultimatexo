@@ -5,6 +5,8 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
+    net::IpAddr,
+    str::FromStr,
     sync::{
         Arc,
         atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -88,7 +90,7 @@ impl Room {
     }
 
     pub async fn add_bot(&self, marker: Marker) -> Result<(), AppError> {
-        let player = Player::new_bot(marker);
+        let player = Player::new(IpAddr::from_str("0.0.0.0").unwrap(), marker);
         self.game.lock().await.push_player(player.info.clone());
         self.players.lock().await.push(player);
         Ok(())
@@ -98,7 +100,7 @@ impl Room {
         self.player_counter.load(Ordering::SeqCst)
     }
 
-    pub async fn add_player(&self) -> Result<String, AppError> {
+    pub async fn add_player(&self, player_ip: IpAddr) -> Result<String, AppError> {
         use rand::Rng;
 
         if self.is_closed() {
@@ -115,8 +117,8 @@ impl Room {
             !self.players.lock().await[0].info.marker
         };
 
-        let player_id = Uuid::new_v4().to_string();
-        let player = Player::new(player_id.clone(), marker);
+        let player = Player::new(player_ip, marker);
+        let player_id = player.id.clone();
         self.player_counter.fetch_add(1, Ordering::SeqCst);
         self.game.lock().await.push_player(player.info.clone());
         self.players.lock().await.push(player);
@@ -124,6 +126,20 @@ impl Room {
             self.add_bot(!marker).await?;
         }
         Ok(player_id)
+    }
+
+    pub async fn get_player_by_ip(&self, player_ip: &IpAddr) -> Result<Player, AppError> {
+        if self.is_closed() {
+            return Err(AppError::room_closed());
+        }
+
+        self.players
+            .lock()
+            .await
+            .iter()
+            .find(|p| p.ip == *player_ip)
+            .cloned()
+            .ok_or(AppError::player_not_found())
     }
 
     pub async fn get_player(&self, player_id: &String) -> Result<Player, AppError> {
@@ -135,7 +151,7 @@ impl Room {
             .lock()
             .await
             .iter()
-            .find(|p| p.id.as_ref() == Some(player_id))
+            .find(|p| p.id == *player_id)
             .cloned()
             .ok_or(AppError::player_not_found())
     }
@@ -150,10 +166,7 @@ impl Room {
         }
 
         let mut players = self.players.lock().await;
-        players
-            .iter_mut()
-            .find(|p| p.id.as_ref() == Some(player_id))
-            .map(f)
+        players.iter_mut().find(|p| p.id == *player_id).map(f)
     }
 
     pub async fn get_other_player(&self, current_player_id: &String) -> Result<Player, AppError> {
@@ -165,7 +178,7 @@ impl Room {
             .lock()
             .await
             .iter()
-            .find(|p| p.id.as_ref() != Some(current_player_id))
+            .find(|p| p.id != *current_player_id)
             .cloned()
             .ok_or(AppError::player_not_found())
     }
@@ -182,7 +195,7 @@ impl Room {
         let mut players = self.players.lock().await;
         players
             .iter_mut()
-            .find(|p| p.id.as_ref() != Some(current_player_id))
+            .find(|p| p.id != *current_player_id)
             .map(f)
     }
 

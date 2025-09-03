@@ -24,7 +24,8 @@ pub enum Action {
 #[derive(Debug, Deserialize)]
 pub struct WebSocketQuery {
     pub password: Option<String>,
-    pub player_id: Option<String>,
+    #[serde(default)]
+    pub is_reconnecting: bool,
 }
 
 #[derive(Deserialize)]

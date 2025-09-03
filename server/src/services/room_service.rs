@@ -1,5 +1,8 @@
 use dashmap::DashMap;
-use std::sync::{Arc, atomic::Ordering};
+use std::{
+    net::IpAddr,
+    sync::{Arc, atomic::Ordering},
+};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
@@ -7,7 +10,7 @@ use tracing::{debug, info, warn};
 use crate::{
     domain::RoomRules,
     error::AppError,
-    models::{PlayerAction, Room, RoomInfo, RoomType, ServerMessage},
+    models::{PlayerAction, Room, RoomInfo, RoomType, ServerMessage, WebSocketQuery},
     services::CleanupService,
 };
 
@@ -41,19 +44,19 @@ impl RoomService {
     pub async fn join_room(
         &self,
         room_id: &str,
-        password: Option<String>,
-        player_id: Option<String>,
+        payload: WebSocketQuery,
+        player_ip: IpAddr,
     ) -> Result<(Arc<Room>, String), AppError> {
         let room = self.get_room(room_id)?;
         let current_count = room.get_player_count();
 
         self.rules
-            .can_join_room(&room.info, current_count, password)?;
+            .can_join_room(&room.info, current_count, payload.password)?;
 
-        if let Some(existing_id) = player_id {
-            self.handle_reconnection(room, &existing_id).await
+        if payload.is_reconnecting {
+            self.handle_reconnection(room, player_ip).await
         } else {
-            self.handle_new_connection(room).await
+            self.handle_new_connection(room, player_ip).await
         }
     }
 
@@ -196,14 +199,14 @@ impl RoomService {
     async fn handle_reconnection(
         &self,
         room: Arc<Room>,
-        player_id: &String,
+        player_ip: IpAddr,
     ) -> Result<(Arc<Room>, String), AppError> {
-        if room.get_player(player_id).await.is_ok() {
+        if let Ok(player) = room.get_player_by_ip(&player_ip).await {
             if let Some(token) = room.deletion_token.lock().await.take() {
                 token.cancel();
             }
-            tracing::info!("Player {} reconnected to room {}", player_id, room.info.id);
-            Ok((room, player_id.to_string()))
+            tracing::info!("Player {} reconnected to room {}", player.id, room.info.id);
+            Ok((room, player.id.to_string()))
         } else {
             Err(AppError::player_not_found())
         }
@@ -212,13 +215,14 @@ impl RoomService {
     async fn handle_new_connection(
         &self,
         room: Arc<Room>,
+        player_ip: IpAddr,
     ) -> Result<(Arc<Room>, String), AppError> {
         let current_count = room.get_player_count();
         if current_count >= 2 {
             return Err(AppError::room_full());
         }
 
-        let new_player_id = room.add_player().await?;
+        let new_player_id = room.add_player(player_ip).await?;
         tracing::info!("Player {} joined room {}", new_player_id, room.info.id);
         Ok((room, new_player_id))
     }
