@@ -157,7 +157,7 @@ const RoomForm = () => {
                   </RadioGroup>
                 </>
               )}
-              <div className="mx-auto mt-auto flex gap-2">
+              <div className="mt-auto flex w-full gap-2 *:w-full">
                 <Link
                   className={button({ color: "default" })}
                   color="primary"

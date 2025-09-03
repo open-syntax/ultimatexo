@@ -163,17 +163,13 @@ function RoomPage() {
           <p className="w-full text-center font-semibold">
             You are player: {player.info.marker}
           </p>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Board board={board.boards} />
-            <Chat />
-          </div>
           <div className="flex flex-col items-center gap-2">
             <GameStatus
               boardStatus={board.status}
               rematchStatus={rematchStatus}
             />
           </div>
-          <div className="">
+          <div>
             <Board board={board.boards} />
             <Chat />
           </div>
