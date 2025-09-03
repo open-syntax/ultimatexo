@@ -8,7 +8,6 @@ import { Chat as ChatIcon } from "../icons";
 
 import { Message } from "@/types/messages";
 import { marker } from "@/types/player";
-import useWindowSize from "@/hooks/useWindowSize";
 import { PlayerStore, RoomStore } from "@/store";
 
 interface props {

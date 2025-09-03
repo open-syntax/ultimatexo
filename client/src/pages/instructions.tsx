@@ -1,9 +1,8 @@
 import { Card, CardBody, CardHeader } from "@heroui/card";
-
-import DefaultLayout from "@/layouts/default";
-
 import { Link } from "@heroui/link";
 import { button as buttonStyles } from "@heroui/theme";
+
+import DefaultLayout from "@/layouts/default";
 
 function Instructions() {
   return (
@@ -97,7 +96,7 @@ function Instructions() {
         </div>
       </div>
       <Link
-        className={`mt-8 !rounded-md self-center ${buttonStyles({ color: "primary" })}`}
+        className={`mt-8 self-center !rounded-md ${buttonStyles({ color: "primary" })}`}
         href="/create"
       >
         Ready to play?
