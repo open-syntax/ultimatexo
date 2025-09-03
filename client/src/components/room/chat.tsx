@@ -46,7 +46,7 @@ const ChatLayout = ({ className, chat, marker, handleMessageSend }: props) => {
         className="flex h-fit w-full gap-2"
         onSubmit={(e) => handleMessageSend(e)}
       >
-        <Input name="message"  placeholder="Message" />
+        <Input name="message" placeholder="Message" />
         <Button color="primary" type="submit">
           Send
         </Button>
@@ -98,10 +98,11 @@ const Chat = () => {
     <>
       <Button
         className="fixed bottom-4 right-4 z-[5] size-12 min-w-12 overflow-visible rounded-full p-0"
-        variant="bordered"
+        color="primary"
+        variant="solid"
         onPress={() => handleOnOpen()}
       >
-        <ChatIcon />
+        <ChatIcon className="fill-background stroke-background" />
         {!isRead && (
           <i className="absolute -right-1 -top-1 z-10 size-4 rounded-full bg-danger-400" />
         )}

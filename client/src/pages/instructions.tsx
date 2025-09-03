@@ -97,7 +97,7 @@ function Instructions() {
         </div>
       </div>
       <Link
-        className={`mt-8 self-center ${buttonStyles({ color: "primary" })}`}
+        className={`mt-8 !rounded-md self-center ${buttonStyles({ color: "primary" })}`}
         href="/create"
       >
         Ready to play?
