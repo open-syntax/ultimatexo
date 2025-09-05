@@ -22,7 +22,6 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default)]
@@ -46,17 +45,12 @@ pub enum BotLevel {
     Advanced,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq, Default)]
 pub enum RoomType {
+    #[default]
     Standard,
     BotRoom,
     LocalRoom,
-}
-
-impl Default for RoomType {
-    fn default() -> Self {
-        Self::Standard
-    }
 }
 
 #[derive(Debug)]

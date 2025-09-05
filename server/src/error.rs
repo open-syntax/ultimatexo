@@ -84,6 +84,9 @@ pub enum ValidationError {
         field: String,
         expected_format: String,
     },
+
+    #[error("Missing field: {field}")]
+    MissingField { field: String },
 }
 
 #[derive(Error, Debug, Clone, Serialize)]
@@ -146,6 +149,24 @@ impl AppError {
 
     pub fn too_long_text_message(max: usize) -> Self {
         AppError::SanitizeError(SanitizeError::TooLong { max })
+    }
+
+    pub fn missing_bot_level() -> Self {
+        AppError::Validation(ValidationError::MissingField {
+            field: "bot_level".to_string(),
+        })
+    }
+    pub fn invalid_bot_level() -> Self {
+        AppError::Validation(ValidationError::InvalidFormat {
+            field: "bot_level".to_string(),
+            expected_format: "Beginner, Intermediate or Advanced".to_string(),
+        })
+    }
+    pub fn local_room_cannot_be_public() -> Self {
+        AppError::Validation(ValidationError::InvalidFormat {
+            field: "is_public".to_string(),
+            expected_format: "false".to_string(),
+        })
     }
 
     pub fn internal_error(message: impl Into<String>) -> Self {

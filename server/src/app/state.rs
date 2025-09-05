@@ -37,6 +37,13 @@ impl AppState {
     }
 
     pub async fn create_room(&self, room_info: RoomInfo) -> Result<String, AppError> {
+        if room_info.room_type == RoomType::BotRoom && room_info.bot_level.is_none() {
+            return Err(AppError::missing_bot_level());
+        } else if room_info.room_type != RoomType::BotRoom && room_info.bot_level.is_some() {
+            return Err(AppError::invalid_bot_level());
+        } else if room_info.room_type == RoomType::LocalRoom && room_info.is_public {
+            return Err(AppError::local_room_cannot_be_public());
+        }
         let room_type = room_info.room_type.clone();
         let service = self
             .room_services

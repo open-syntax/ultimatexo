@@ -49,4 +49,8 @@ impl RoomRules for BotRoomRules {
     fn get_cleanup_timeout(&self) -> std::time::Duration {
         std::time::Duration::from_secs(30)
     }
+
+    fn get_max_players(&self) -> usize {
+        1
+    }
 }

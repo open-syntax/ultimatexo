@@ -32,7 +32,6 @@ impl RoomService {
         room_info.id = room_id.clone();
 
         let (tx, rx) = mpsc::channel(32);
-        room_info.room_type = RoomType::BotRoom;
         let room = Arc::new(Room::new(room_info, tx));
 
         Room::spawn_message_broadcaster(room.clone(), rx);
@@ -52,7 +51,6 @@ impl RoomService {
 
         self.rules
             .can_join_room(&room.info, current_count, payload.password)?;
-
         if payload.is_reconnecting {
             self.handle_reconnection(room, player_ip).await
         } else {
@@ -218,7 +216,7 @@ impl RoomService {
         player_ip: IpAddr,
     ) -> Result<(Arc<Room>, String), AppError> {
         let current_count = room.get_player_count();
-        if current_count >= 2 {
+        if current_count >= self.rules.get_max_players() {
             return Err(AppError::room_full());
         }
 

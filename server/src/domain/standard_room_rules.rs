@@ -49,4 +49,8 @@ impl RoomRules for StandardRoomRules {
     fn get_cleanup_timeout(&self) -> std::time::Duration {
         std::time::Duration::from_secs(10)
     }
+
+    fn get_max_players(&self) -> usize {
+        2
+    }
 }

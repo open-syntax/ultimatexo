@@ -70,7 +70,8 @@ impl MessageHandler {
             game.get_current_player().marker
         };
 
-        if player.info.marker != current_player_marker {
+        if player.info.marker != current_player_marker && room.info.room_type != RoomType::LocalRoom
+        {
             return Err(AppError::not_player_turn());
         }
 

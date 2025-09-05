@@ -81,17 +81,22 @@ async fn handle_socket(
 
     handle_game_start(room.clone()).await;
 
-    let heartbeat_task = spawn_heartbeat_task(connection_ctx.clone());
     let send_task = spawn_send_task(sender, player_rx, connection_ctx.clone());
     let receive_task = spawn_receive_task(receiver, room.clone(), connection_ctx.clone());
 
+    #[cfg(not(debug_assertions))]
+    let heartbeat_task = spawn_heartbeat_task(connection_ctx.clone());
+
+    #[cfg(not(debug_assertions))]
     match try_join!(heartbeat_task, send_task, receive_task) {
-        Ok(_) => {
-            info!("All tasks completed successfully");
-        }
-        Err(e) => {
-            error!("One or more tasks failed: {}", e);
-        }
+        Ok(_) => info!("All tasks completed successfully"),
+        Err(e) => error!("One or more tasks failed: {}", e),
+    }
+
+    #[cfg(debug_assertions)]
+    match try_join!(send_task, receive_task) {
+        Ok(_) => info!("All tasks completed successfully"),
+        Err(e) => error!("One or more tasks failed: {}", e),
     }
 
     if let Err(e) = room_service

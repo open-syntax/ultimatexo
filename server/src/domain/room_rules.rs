@@ -23,4 +23,6 @@ pub trait RoomRules: Send + Sync {
     fn get_timeout_game_state(&self, leaving_player_marker: Marker) -> Status;
 
     fn get_cleanup_timeout(&self) -> std::time::Duration;
+
+    fn get_max_players(&self) -> usize;
 }
