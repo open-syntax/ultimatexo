@@ -10,7 +10,7 @@ use tracing::{debug, info, warn};
 use crate::{
     domain::RoomRules,
     error::AppError,
-    models::{PlayerAction, Room, RoomInfo, RoomType, ServerMessage, WebSocketQuery},
+    models::{PlayerAction, Room, RoomInfo, ServerMessage, WebSocketQuery},
     services::CleanupService,
 };
 
@@ -112,6 +112,12 @@ impl RoomService {
 
         let disconnect_msg = ServerMessage::PlayerUpdate {
             action: PlayerAction::Disconnected,
+            player: room
+                .get_player(&leaving_player_id.to_string())
+                .await
+                .unwrap()
+                .info
+                .marker,
         };
 
         if let Ok(other_player) = room.get_other_player(&leaving_player_id.to_string()).await
@@ -215,11 +221,6 @@ impl RoomService {
         room: Arc<Room>,
         player_ip: IpAddr,
     ) -> Result<(Arc<Room>, String), AppError> {
-        let current_count = room.get_player_count();
-        if current_count >= self.rules.get_max_players() {
-            return Err(AppError::room_full());
-        }
-
         let new_player_id = room.add_player(player_ip).await?;
         tracing::info!("Player {} joined room {}", new_player_id, room.info.id);
         Ok((room, new_player_id))

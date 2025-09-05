@@ -79,6 +79,7 @@ impl CleanupService {
 
             let timeout_msg = ServerMessage::PlayerUpdate {
                 action: PlayerAction::Left,
+                player: timed_out_player.info.marker,
             };
 
             room.send_board().await;

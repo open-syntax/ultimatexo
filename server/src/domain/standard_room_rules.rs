@@ -14,18 +14,14 @@ impl RoomRules for StandardRoomRules {
         current_player_count: usize,
         provided_password: Option<String>,
     ) -> Result<(), AppError> {
-        if current_player_count >= 2 {
+        if current_player_count >= self.get_max_players() {
             return Err(AppError::room_full());
         }
-
-        if room_info.is_protected {
-            match (&room_info.password, &provided_password) {
-                (Some(expected), Some(provided)) if expected == provided => Ok(()),
-                (Some(_), _) => Err(AppError::invalid_password()),
-                (None, _) => Ok(()),
-            }
-        } else {
-            Ok(())
+        match (&room_info.password, &provided_password) {
+            (Some(expected), Some(provided)) if expected == provided => Ok(()),
+            (Some(_), Some(_)) => Err(AppError::invalid_password()),
+            (Some(_), None) => Err(AppError::invalid_password()),
+            (None, _) => Ok(()),
         }
     }
 

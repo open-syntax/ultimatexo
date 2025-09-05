@@ -10,23 +10,14 @@ pub struct BotRoomRules;
 impl RoomRules for BotRoomRules {
     fn can_join_room(
         &self,
-        room_info: &RoomInfo,
+        _room_info: &RoomInfo,
         current_player_count: usize,
-        provided_password: Option<String>,
+        _provided_password: Option<String>,
     ) -> Result<(), AppError> {
-        if current_player_count >= 1 {
+        if current_player_count >= self.get_max_players() {
             return Err(AppError::room_full());
         }
-
-        if room_info.is_protected {
-            match (&room_info.password, &provided_password) {
-                (Some(expected), Some(provided)) if expected == provided => Ok(()),
-                (Some(_), _) => Err(AppError::invalid_password()),
-                (None, _) => Ok(()),
-            }
-        } else {
-            Ok(())
-        }
+        Ok(())
     }
 
     fn should_delete_room_immediately(

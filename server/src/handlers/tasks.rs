@@ -44,7 +44,7 @@ impl ConnectionContext {
 
 pub fn spawn_heartbeat_task(ctx: Arc<ConnectionContext>) -> JoinHandle<()> {
     tokio::spawn(async move {
-        let mut interval = interval(Duration::from_secs(300));
+        let mut interval = interval(Duration::from_millis(300));
 
         loop {
             interval.tick().await;

@@ -48,6 +48,7 @@ pub enum ServerMessage {
     },
     PlayerUpdate {
         action: PlayerAction,
+        player: Marker,
     },
     GameRestart {
         action: Action,

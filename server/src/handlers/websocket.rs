@@ -151,7 +151,10 @@ async fn handle_player_connection(
         PlayerAction::Joined
     };
 
-    let player_update = ServerMessage::PlayerUpdate { action };
+    let player_update = ServerMessage::PlayerUpdate {
+        action,
+        player: room.get_player(&ctx.player_id).await.unwrap().info.marker,
+    };
 
     room.tx
         .send(player_update)
