@@ -55,11 +55,7 @@ const ChatLayout = ({ className, chat, marker, handleMessageSend }: props) => {
 };
 
 const Chat = () => {
-  const {
-    player: {
-      info: { marker },
-    },
-  } = PlayerStore();
+  const { player } = PlayerStore();
   const { chat, sendMessage } = RoomStore();
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -119,7 +115,7 @@ const Chat = () => {
               chat={chat}
               className="!h-full"
               handleMessageSend={handleMessageSend}
-              marker={marker}
+              marker={player}
             />
           </DrawerBody>
         </DrawerContent>

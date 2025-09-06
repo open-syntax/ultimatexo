@@ -1,19 +1,15 @@
 import { create } from "zustand";
 
-import { Player } from "@/types/player";
+import { PlayerInfo } from "@/types/player";
 
 type Store = {
-  player: Player;
+  player: PlayerInfo["marker"];
 
-  setPlayer: (player: Player) => void;
+  setPlayer: (player: PlayerInfo["marker"]) => void;
 };
 
 const PlayerStore = create<Store>()((set) => ({
-  player: {
-    info: {
-      marker: "X",
-    },
-  },
+  player: null,
 
   setPlayer: (player) => set({ player: player }),
 }));

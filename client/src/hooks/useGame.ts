@@ -3,14 +3,7 @@ import { useEffect, useState } from "react";
 import { Board, BoardStatus, socketEvent } from "@/types";
 import { playerActions, RestartActions } from "@/types/actions";
 import { GameStore, PlayerStore, RoomStore } from "@/store";
-
-// interface roomResponse {
-//   id: string;
-//   name: string;
-//   bot_level: null | "Beginner" | "Intermediate" | "Advanced";
-//   is_public: boolean;
-//   is_protected: boolean;
-// }
+import { PlayerInfo } from "@/types/player";
 
 enum RoomStatus {
   loading = "loading",
@@ -53,7 +46,7 @@ const useGame = () => {
     // eslint-disable-next-line no-console
     console.info("Connected");
 
-    let playerId: string | null = null;
+    let playerMarker: PlayerInfo["marker"] = null;
 
     // handle on connection established
     ws.onopen = () => {
@@ -84,18 +77,16 @@ const useGame = () => {
           switch (e.data.action) {
             case playerActions.PlayerJoined:
               status = RoomStatus.connected;
-              if (playerId && !e.data.player.id) {
+              if (playerMarker) {
                 message = "PlayerJoined";
                 break;
               } else {
-                playerId = e.data.player.id as string;
+                playerMarker = e.data.player;
 
                 sessionStorage.setItem(
                   "roomId",
                   window.location.pathname.split("/")[2],
                 );
-                sessionStorage.setItem("playerId", playerId);
-
                 setPlayer(e.data.player);
                 message = "Connected";
                 break;
@@ -124,7 +115,12 @@ const useGame = () => {
           break;
 
         case "GameRestart":
-          if ([RestartActions.Accepted, RestartActions.Declined].includes(e.data.action) && e.data.player === player.info.marker)
+          if (
+            [RestartActions.Accepted, RestartActions.Declined].includes(
+              e.data.action,
+            ) &&
+            e.data.player === player
+          )
             setRematchStatus(RestartActions.Sent);
           else setRematchStatus(e.data.action);
           break;

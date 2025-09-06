@@ -13,16 +13,14 @@ interface CellProps {
 
 function Cell({ mark, board, index }: CellProps) {
   const {
-    player: {
-      info: { marker },
-    },
+    player
   } = PlayerStore();
   const { playMove, move, nextPlayer } = GameStore();
 
   const isAvailable =
     [board, null].includes(move.nextMove) &&
     mark === null &&
-    nextPlayer === marker;
+    nextPlayer === player;
 
   const handleClick = () => {
     if (!isAvailable) return;

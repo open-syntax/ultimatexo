@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { FormEvent, useEffect, useState } from "react";
 import { Spinner } from "@heroui/spinner";
 import { button as buttonStyles } from "@heroui/theme";
@@ -37,20 +37,27 @@ enum RoomStatus {
 
 function RoomPage() {
   let { roomId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { player, board, status, rematchStatus, setStatus } = useGame();
   const { setWs } = RoomStore();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  useEffect(() => {
+    if (searchParams.get("password")) {
+      setSearchParams({});
+      handleWebSocket(searchParams.get("password") || "");
+    }
+  }, [searchParams]);
+
   const handleWebSocket = (password: string) => {
-    // get playerId from localStorage if exists
-    const player_id = sessionStorage.getItem("playerId") || null;
+    // if the room id is the same as the one in the session storage, we can reuse the websocket
     const room_id = sessionStorage.getItem("roomId") || null;
 
     if (room_id && room_id === roomId) {
       setWs(
         new WebSocket(
-          `/api/ws/${roomId}${password ? `:${password}?player_id=${player_id}` : `?player_id=${player_id}`}`,
+          `/api/ws/${roomId}${password ? `:${password}?is_reconnecting=true` : `?is_reconnecting=true`}`,
         ),
       );
 
@@ -60,10 +67,17 @@ function RoomPage() {
     setWs(new WebSocket(`/api/ws/${roomId}${password ? `:${password}` : ""}`));
   };
 
-  const handlePassword = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const password = formData.get("password") as string;
+  const handlePassword = (e?: FormEvent<HTMLFormElement>, pass?: string) => {
+    e?.preventDefault();
+    let password: string;
+
+    if (!pass) {
+      const formData = new FormData(e?.currentTarget);
+
+      password = formData.get("password") as string;
+    } else {
+      password = pass;
+    }
 
     fetch(`/api/room/${roomId}`, {
       method: "POST",
@@ -161,7 +175,7 @@ function RoomPage() {
       ) : board ? (
         <div className="container mx-auto my-auto flex h-[calc(100svh-64px-48px-64px)] max-w-7xl flex-grow flex-col justify-center gap-4 px-6">
           <p className="w-full text-center font-semibold">
-            You are player: {player.info.marker}
+            You are player: {player}
           </p>
           <div className="flex flex-col items-center gap-2">
             <GameStatus

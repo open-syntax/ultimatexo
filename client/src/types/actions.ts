@@ -1,7 +1,7 @@
 export enum playerActions {
-  PlayerJoined = "PlayerJoined",
-  PlayerLeft = "PlayerLeft",
-  PlayerDisconnected = "PlayerDisconnected",
+  PlayerJoined = "Joined",
+  PlayerLeft = "Left",
+  PlayerDisconnected = "Disconnected",
 }
 
 export enum RestartActions {

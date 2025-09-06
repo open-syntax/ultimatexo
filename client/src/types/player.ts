@@ -5,6 +5,5 @@ export type PlayerInfo = {
 };
 
 export type Player = {
-  id?: string;
   info: PlayerInfo;
 };
