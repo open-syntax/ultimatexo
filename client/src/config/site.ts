@@ -1,7 +1,7 @@
 export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
-  name: "Ultimate TTT",
+  name: "Ultimate XO",
   description: "Ultimate Tic Tac Toe Game.",
   navItems: [
     {

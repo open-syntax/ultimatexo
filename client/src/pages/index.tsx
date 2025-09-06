@@ -24,8 +24,8 @@ export default function IndexPage() {
     <DefaultLayout>
       <section className="flex h-full flex-col items-center justify-center gap-8 py-8 md:py-10">
         <div className="inline-block max-w-lg justify-center text-center">
-          <span className={title({ color: "yellow" })}>Ulitamte&nbsp;</span>
-          <span className={title()}>Tic Tac Toe</span>
+          <span className={title({ color: "yellow" })}>Ultimate&nbsp;</span>
+          <span className={title()}>XO</span>
         </div>
         <div className="flex flex-col items-center gap-3">
           <div className="flex gap-3">
