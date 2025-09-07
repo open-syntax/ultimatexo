@@ -51,20 +51,6 @@ Ultimate Tic-Tac-Toe is a strategic variant of the classic game that adds layers
    cd ultimatexo
    ```
 
-2. **Install frontend dependencies**
-
-   ```bash
-   cd client
-   pnpm install
-   ```
-
-3. **Build the Rust backend**
-
-   ```bash
-   cd ../server
-   cargo build --release
-   ```
-
 4. **Start the development server**
 
    ```bash
