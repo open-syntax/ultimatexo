@@ -105,48 +105,50 @@ impl MessageHandler {
 
         let mut game = room.game.lock().await;
 
-        match room.info.room_type {
-            RoomType::Standard => match action {
-                Action::Accept => {
-                    if !game.has_pending_rematch() {
-                        return Err(AppError::game_still_ongoing());
-                    }
-
-                    if game.is_pending_rematch_from(player_id) {
-                        return Err(AppError::not_allowed());
-                    }
-
-                    game.rematch_game(None);
-                    game.clear_rematch_request();
+        match action {
+            Action::Accept => {
+                if !game.has_pending_rematch() {
+                    return Err(AppError::game_still_ongoing());
                 }
 
-                Action::Request => {
+                if game.is_pending_rematch_from(player_id) {
+                    return Err(AppError::not_allowed());
+                }
+
+                game.rematch_game(None);
+                game.clear_rematch_request();
+                room.send_board().await;
+            }
+
+            Action::Request => match room.info.room_type {
+                RoomType::Standard => {
                     if game.get_board_status().eq(&Status::InProgress) {
                         return Err(AppError::game_still_ongoing());
                     }
                     game.request_rematch(player_id.clone());
                 }
-
-                Action::Decline => {
-                    if !game.has_pending_rematch() {
-                        return Err(AppError::game_still_ongoing());
-                    }
-
-                    if game.is_pending_rematch_from(player_id) {
-                        return Err(AppError::not_allowed());
-                    }
-                    game.clear_rematch_request();
-                }
-            },
-            RoomType::LocalRoom => {
-                if let Action::Request = action {
+                RoomType::LocalRoom => {
                     game.rematch_game(None);
+                    room.send_board().await;
                 }
-            }
-            RoomType::BotRoom => {
-                let difficulty = game.state.difficulty;
-                game.rematch_game(Some(difficulty));
-                game.apply_ai_move(!marker).await;
+                RoomType::BotRoom => {
+                    let difficulty = game.state.difficulty;
+                    game.rematch_game(Some(difficulty));
+                    game.apply_ai_move(!marker).await;
+                    room.send_board().await;
+                }
+                _ => {}
+            },
+
+            Action::Decline => {
+                if !game.has_pending_rematch() {
+                    return Err(AppError::game_still_ongoing());
+                }
+
+                if game.is_pending_rematch_from(player_id) {
+                    return Err(AppError::not_allowed());
+                }
+                game.clear_rematch_request();
             }
         }
 

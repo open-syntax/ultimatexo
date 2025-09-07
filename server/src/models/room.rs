@@ -1,7 +1,7 @@
 use crate::{
     domain::GameEngine,
     error::AppError,
-    models::{Marker, Player, ServerMessage},
+    models::{Marker, Player, PlayerInfo, ServerMessage},
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -116,9 +116,18 @@ impl Room {
         self.player_counter.fetch_add(1, Ordering::SeqCst);
         self.game.lock().await.push_player(player.info.clone());
         self.players.lock().await.push(player);
-        if self.info.room_type != RoomType::Standard {
-            self.add_bot(!marker).await?;
-        }
+        match self.info.room_type {
+            RoomType::Standard => {}
+            RoomType::BotRoom => {
+                self.add_bot(!marker).await?;
+                if marker == Marker::X {
+                    self.game.lock().await.apply_ai_move(!marker).await;
+                }
+            }
+            RoomType::LocalRoom => {
+                self.game.lock().await.push_player(PlayerInfo::new(!marker));
+            }
+        };
         Ok(player_id)
     }
 

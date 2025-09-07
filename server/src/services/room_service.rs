@@ -217,6 +217,7 @@ impl RoomService {
                 token.cancel();
             }
             tracing::info!("Player {} reconnected to room {}", player.id, room.info.id);
+            room.player_counter.fetch_add(1, Ordering::SeqCst);
             Ok((room, player.id.to_string()))
         } else {
             Err(AppError::player_not_found())
