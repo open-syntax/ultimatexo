@@ -9,6 +9,13 @@ pub trait RoomRules: Send + Sync {
         room_info: &RoomInfo,
         current_player_count: usize,
         provided_password: Option<String>,
+        pending_shutdown: bool,
+    ) -> Result<(), AppError>;
+
+    fn can_reconnect_room(
+        &self,
+        current_player_count: usize,
+        pending_shutdown: bool,
     ) -> Result<(), AppError>;
 
     fn should_delete_room_immediately(

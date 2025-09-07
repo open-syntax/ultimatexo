@@ -13,11 +13,20 @@ impl RoomRules for LocalRoomRules {
         _room_info: &RoomInfo,
         current_player_count: usize,
         _provided_password: Option<String>,
+        _pending_shutdown: bool,
     ) -> Result<(), AppError> {
         if current_player_count >= self.get_max_players() {
             return Err(AppError::room_full());
         }
         Ok(())
+    }
+
+    fn can_reconnect_room(
+        &self,
+        _current_player_count: usize,
+        _pending_shutdown: bool,
+    ) -> Result<(), AppError> {
+        Err(AppError::not_allowed())
     }
 
     fn should_delete_room_immediately(

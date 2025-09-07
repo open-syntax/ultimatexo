@@ -30,6 +30,7 @@ impl RoomService {
     pub async fn create_room(&self, mut room_info: RoomInfo) -> Result<String, AppError> {
         let room_id = self.generate_room_id();
         room_info.id = room_id.clone();
+        room_info.is_protected = room_info.password.is_some();
 
         let (tx, rx) = mpsc::channel(32);
         let room = Arc::new(Room::new(room_info, tx));
@@ -49,11 +50,17 @@ impl RoomService {
         let room = self.get_room(room_id)?;
         let current_count = room.get_player_count();
 
-        self.rules
-            .can_join_room(&room.info, current_count, payload.password)?;
         if payload.is_reconnecting {
+            self.rules
+                .can_reconnect_room(current_count, room.is_pending_cleanup().await)?;
             self.handle_reconnection(room, player_ip).await
         } else {
+            self.rules.can_join_room(
+                &room.info,
+                current_count,
+                payload.password,
+                room.is_pending_cleanup().await,
+            )?;
             self.handle_new_connection(room, player_ip).await
         }
     }

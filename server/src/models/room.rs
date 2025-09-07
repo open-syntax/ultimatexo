@@ -193,6 +193,11 @@ impl Room {
             .map(f)
     }
 
+    pub async fn is_pending_cleanup(&self) -> bool {
+        let guard = self.deletion_token.lock().await;
+        guard.is_some()
+    }
+
     pub async fn shutdown(&self) {
         if self.is_shutdown.swap(true, Ordering::Relaxed) {
             debug!("Room {} already shutting down", self.room_id());

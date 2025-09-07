@@ -1,3 +1,5 @@
+use anyhow::Result;
+
 use crate::{
     domain::{BotRoomRules, LocalRoomRules, StandardRoomRules},
     error::AppError,
@@ -60,9 +62,18 @@ impl AppState {
         Ok(room_id)
     }
 
-    pub async fn get_room_service(&self, room_id: &str) -> Option<Arc<RoomService>> {
-        let room_type = self.room_metadata.read().await.get(room_id)?.clone();
-        self.room_services.get(&room_type).cloned()
+    pub async fn get_room_service(&self, room_id: &str) -> Result<Arc<RoomService>, AppError> {
+        let room_type = self
+            .room_metadata
+            .read()
+            .await
+            .get(room_id)
+            .ok_or(AppError::room_not_found())?
+            .clone();
+        self.room_services
+            .get(&room_type)
+            .cloned()
+            .ok_or(AppError::unsupported_room_type())
     }
 
     pub async fn get_public_rooms(&self, name_filter: Option<&str>) -> Vec<RoomInfo> {

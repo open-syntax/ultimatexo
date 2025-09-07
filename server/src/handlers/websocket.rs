@@ -70,7 +70,7 @@ async fn handle_socket(
     payload: WebSocketQuery,
     player_ip: IpAddr,
 ) -> Result<(), AppError> {
-    let room_service = state.get_room_service(&room_id).await.unwrap();
+    let room_service = state.get_room_service(&room_id).await?;
     let is_reconnecting = payload.is_reconnecting;
     let (room, player_id) = room_service.join_room(&room_id, payload, player_ip).await?;
 
