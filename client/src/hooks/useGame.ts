@@ -11,6 +11,7 @@ enum RoomStatus {
   disconnected = "disconnected",
   opponentLeft = "opponent left",
   connecting = "connecting",
+  internal = "internal",
   error = "error",
   auth = "auth required",
   authFailed = "auth failed",
@@ -49,9 +50,9 @@ const useGame = () => {
     let playerMarker: PlayerInfo["marker"] = null;
 
     // handle on connection established
-    ws.onopen = () => {
-      setStatus({ status: RoomStatus.connected, message: "" });
-    };
+    // ws.onopen = () => {
+    //   setStatus({ status: RoomStatus.connected, message: "" });
+    // };
 
     // handle on message arrival
     ws.onmessage = (event) => {
@@ -93,13 +94,20 @@ const useGame = () => {
               }
 
             case playerActions.PlayerLeft:
-              status = RoomStatus.connected;
-              message = "Player is Connected";
+              status = RoomStatus.opponentLeft;
+              message = "Opponent left";
               break;
 
             case playerActions.PlayerDisconnected:
-              status = RoomStatus.disconnected;
-              message = "Disconnected";
+              if (e.data.player !== playerMarker) {
+                status = RoomStatus.disconnected;
+                message =
+                  "Opponent disconnected \n Waiting for opponent to reconnect...";
+              } else {
+                status = RoomStatus.disconnected;
+                message = "You disconnected \n reconnecting...";
+              }
+
               break;
 
             default:
@@ -115,14 +123,21 @@ const useGame = () => {
           break;
 
         case "GameRestart":
-          if (
-            [RestartActions.Accepted, RestartActions.Declined].includes(
-              e.data.action,
-            ) &&
-            e.data.player === player
-          )
-            setRematchStatus(RestartActions.Sent);
-          else setRematchStatus(e.data.action);
+          switch (e.data.action) {
+            case RestartActions.Requested:
+              if (e.data.player === playerMarker) {
+                setRematchStatus(RestartActions.Sent);
+              } else {
+                setRematchStatus(RestartActions.Requested);
+              }
+              break;
+            case RestartActions.Accepted:
+              setRematchStatus(RestartActions.Accepted);
+              break;
+            case RestartActions.Declined:
+              setRematchStatus(RestartActions.Declined);
+              break;
+          }
           break;
 
         case "TextMessage":
@@ -137,8 +152,16 @@ const useGame = () => {
           break;
 
         case "Error":
+          if (e.data.error === "InvalidPassword") {
+            setStatus({
+              status: RoomStatus.authFailed,
+              message: "Invalid password",
+            });
+
+            break;
+          }
           setStatus({
-            status: RoomStatus.error,
+            status: RoomStatus.internal,
             message: e.data.error,
           });
           break;

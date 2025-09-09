@@ -1,8 +1,7 @@
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
-import { Link } from "@heroui/link";
 import { button as buttonStyles } from "@heroui/theme";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 import { Controller, Group } from "@/components/icons";
 import { title } from "@/components/primitives";
@@ -35,14 +34,14 @@ export default function IndexPage() {
                 radius: "full",
                 variant: "shadow",
               })}
-              href="/create"
+              to="/create"
             >
               <Controller />
               Host
             </Link>
             <Link
               className={buttonStyles({ variant: "bordered", radius: "full" })}
-              href="/rooms"
+              to="/rooms"
             >
               <Group />
               Rooms
@@ -61,7 +60,7 @@ export default function IndexPage() {
           </form>
         </div>
 
-        <Link href="/instructions">
+        <Link className="text-primary" to="/instructions">
           <span>Don&apos;t know how to play?</span>
         </Link>
       </section>

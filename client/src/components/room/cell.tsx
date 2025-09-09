@@ -12,9 +12,7 @@ interface CellProps {
 }
 
 function Cell({ mark, board, index }: CellProps) {
-  const {
-    player
-  } = PlayerStore();
+  const { player } = PlayerStore();
   const { playMove, move, nextPlayer } = GameStore();
 
   const isAvailable =
@@ -66,9 +64,9 @@ function Cell({ mark, board, index }: CellProps) {
           className={`flex h-full w-full items-center justify-center rounded-xl text-8xl font-bold text-primary ${mark === ("X" as unknown as boardCell) ? "text-primary" : "text-primary-600"}`}
         >
           {mark === ("X" as unknown as boardCell) ? (
-            <X className="scale-[1.5]" strokeWidth={3} />
+            <X className="scale-[1.5] max-sm:scale-110" strokeWidth={3} />
           ) : (
-            <O className="scale-[1.5]" strokeWidth={3} />
+            <O className="scale-[1.5] max-sm:scale-110" strokeWidth={3} />
           )}
         </div>
       ) : (

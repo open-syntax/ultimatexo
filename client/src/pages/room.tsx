@@ -1,8 +1,7 @@
-import { useParams, useSearchParams } from "react-router-dom";
-import { FormEvent, useEffect, useState } from "react";
+import { useLocation, useParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Spinner } from "@heroui/spinner";
 import { button as buttonStyles } from "@heroui/theme";
-import { Link } from "@heroui/link";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 
@@ -29,6 +28,7 @@ enum RoomStatus {
   disconnected = "disconnected",
   opponentLeft = "opponent left",
   connecting = "connecting",
+  internal = "internal",
   error = "error",
   auth = "auth required",
   authFailed = "auth failed",
@@ -37,67 +37,38 @@ enum RoomStatus {
 
 function RoomPage() {
   let { roomId } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { player, board, status, rematchStatus, setStatus } = useGame();
   const { setWs } = RoomStore();
+  let { state } = useLocation();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    if (searchParams.get("password")) {
-      setSearchParams({});
-      handleWebSocket(searchParams.get("password") || "");
+    if (state?.password && roomId === state?.roomId) {
+      setIsLoading(false);
+      handleWebSocket(state.password);
     }
-  }, [searchParams]);
+  }, [state]);
 
   const handleWebSocket = (password: string) => {
     // if the room id is the same as the one in the session storage, we can reuse the websocket
-    const room_id = sessionStorage.getItem("roomId") || null;
+    const room_id = sessionStorage.getItem("room_id");
 
     if (room_id && room_id === roomId) {
       setWs(
         new WebSocket(
-          `/api/ws/${roomId}${password ? `:${password}?is_reconnecting=true` : `?is_reconnecting=true`}`,
+          `/api/ws/${roomId}${password ? `?password=${password}&is_reconnecting=true` : `?is_reconnecting=true`}`,
         ),
       );
 
       return;
     }
 
-    setWs(new WebSocket(`/api/ws/${roomId}${password ? `:${password}` : ""}`));
-  };
-
-  const handlePassword = (e?: FormEvent<HTMLFormElement>, pass?: string) => {
-    e?.preventDefault();
-    let password: string;
-
-    if (!pass) {
-      const formData = new FormData(e?.currentTarget);
-
-      password = formData.get("password") as string;
-    } else {
-      password = pass;
-    }
-
-    fetch(`/api/room/${roomId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ password: password }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.valid) {
-          handleWebSocket(password);
-        } else {
-          setStatus({
-            status: RoomStatus.authFailed,
-            message: "Wrong password",
-          });
-        }
-        // console.log(data);
-      });
+    setWs(
+      new WebSocket(
+        `/api/ws/${roomId}${password ? `?password=${password}` : ""}`,
+      ),
+    );
   };
 
   useEffect(() => {
@@ -132,7 +103,7 @@ function RoomPage() {
   if (status.status === RoomStatus.connecting || isLoading) {
     return (
       <DefaultLayout>
-        <div className="container mx-auto flex h-full max-w-7xl flex-grow flex-col items-center justify-center gap-2 px-6">
+        <div className="difficultyflex-grow container mx-auto flex h-full max-w-7xl flex-col items-center justify-center gap-2 px-6">
           <Spinner />
           <p>Connecting...</p>
         </div>
@@ -142,30 +113,43 @@ function RoomPage() {
 
   return (
     <DefaultLayout>
-      {status.status === RoomStatus.disconnected ? (
+      {[
+        RoomStatus.disconnected,
+        RoomStatus.opponentLeft,
+        RoomStatus.error,
+      ].includes(status.status) ? (
         <RoomLayout>
           {status.message}
           <div className="flex gap-3">
-            <Link className={buttonStyles({ variant: "bordered" })} href="/">
+            <Link className={buttonStyles({ variant: "bordered" })} to="/">
               Home
             </Link>
-            <Link className={buttonStyles({ color: "primary" })} href="/rooms">
+            <Link className={buttonStyles({ color: "primary" })} to="/rooms">
               Rooms
             </Link>
           </div>
         </RoomLayout>
-      ) : status.status === RoomStatus.auth ? (
+      ) : status.status === RoomStatus.auth ||
+        status.status === RoomStatus.authFailed ? (
         <RoomLayout>
           <form
             className="flex w-full max-w-80 flex-col gap-4"
-            onSubmit={(e) => handlePassword(e)}
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleWebSocket(e.currentTarget.password.value);
+            }}
           >
             Room is protected
             <Input
               isRequired
+              errorMessage={status.message}
+              isInvalid={status.status === RoomStatus.authFailed}
               name="password"
               placeholder="password"
               type="password"
+              onChange={() =>
+                setStatus({ status: RoomStatus.auth, message: "" })
+              }
             />
             <Button className="w-full" color="primary" type="submit">
               Verify

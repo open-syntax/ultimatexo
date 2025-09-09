@@ -1,4 +1,4 @@
-import { Link } from "@heroui/link";
+import { Link } from "react-router-dom";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
@@ -28,19 +28,17 @@ export default function DefaultLayout({
         <span className="text-default-600">
           Made by{" "}
           <Link
-            isExternal
             className="text-primary"
-            href="https://github.com/OmarIsADev"
             title="Omar's Github"
+            to="https://github.com/OmarIsADev"
           >
             Omar
           </Link>{" "}
           &{" "}
           <Link
-            isExternal
             className="text-primary"
-            href="https://github.com/ahmed-mekky"
             title="Mekky's Github"
+            to="https://github.com/ahmed-mekky"
           >
             Mekky
           </Link>
