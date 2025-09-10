@@ -84,7 +84,7 @@ impl MessageHandler {
                 )));
             }
             if room.info.room_type == RoomType::BotRoom
-                && game.apply_ai_move(!current_player_marker).await.is_none()
+                && game.apply_ai_move(!current_player_marker).await.is_err()
             {
                 return Err(AppError::internal_error("Failed to make game move"));
             }
@@ -134,10 +134,9 @@ impl MessageHandler {
                 RoomType::BotRoom => {
                     let difficulty = game.state.difficulty;
                     game.rematch_game(Some(difficulty));
-                    game.apply_ai_move(!marker).await;
+                    game.apply_ai_move(!marker).await?;
                     room.send_board().await;
                 }
-                _ => {}
             },
 
             Action::Decline => {

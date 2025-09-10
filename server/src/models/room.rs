@@ -120,9 +120,6 @@ impl Room {
             RoomType::Standard => {}
             RoomType::BotRoom => {
                 self.add_bot(!marker).await?;
-                if marker == Marker::X {
-                    self.game.lock().await.apply_ai_move(!marker).await;
-                }
             }
             RoomType::LocalRoom => {
                 self.game.lock().await.push_player(PlayerInfo::new(!marker));

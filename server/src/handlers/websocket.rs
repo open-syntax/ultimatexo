@@ -122,10 +122,10 @@ async fn handle_game_start(room: Arc<Room>) {
             }
         }
         RoomType::BotRoom => {
-            let current_player = room.game.lock().await.get_current_player().marker;
+            let current_player = room.players.lock().await[0].info.marker;
             room.game.lock().await.set_board_status(Status::InProgress);
             if current_player == Marker::O {
-                room.game.lock().await.apply_ai_move(!current_player).await;
+                room.game.lock().await.play_random_move();
             }
             room.send_board().await;
         }
