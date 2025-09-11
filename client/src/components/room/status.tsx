@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Button } from "@heroui/button";
+import { Modal, ModalBody, ModalContent } from "@heroui/modal";
 
 import { BoardStatus } from "@/types";
 import { RestartActions } from "@/types/actions";
@@ -10,29 +12,49 @@ interface props {
 }
 
 const GameStatus = ({ boardStatus, rematchStatus }: props) => {
-  const { nextPlayer, rematch, resign } = GameStore();
+  const { nextPlayer } = GameStore();
 
-  if (rematchStatus === RestartActions.Requested)
-    return (
-      <div className="flex flex-col items-center gap-2">
-        <p className="text-center">Opponent Requested Rematch</p>
-        <div className="flex animate-appearance-in gap-2">
-          <Button
-            color="primary"
-            onPress={() => rematch(RestartActions.Accepted)}
-          >
-            Accept
-          </Button>
-          <Button
-            color="default"
-            onPress={() => rematch(RestartActions.Declined)}
-          >
-            Decline
-          </Button>
-        </div>
-      </div>
-    );
-    else if (rematchStatus === RestartActions.Sent) return <div>Waiting for Opponent...</div>
+  return (
+    <>
+      <p>{nextPlayer}&apos;s Turn.</p>
+      <Status boardStatus={boardStatus} rematchStatus={rematchStatus} />
+
+      <Modal
+        isOpen={rematchStatus === RestartActions.Requested}
+        placement="center"
+      >
+        <ModalContent className="w-fit">
+          <ModalBody className="w-fit">
+            <div className="flex flex-col items-center gap-4 px-8 py-4">
+              <p>Opponent wants to rematch.</p>
+              <div className="flex gap-2">
+                <Button
+                  color="primary"
+                  onPress={() => GameStore().rematch(RestartActions.Accepted)}
+                >
+                  Accept
+                </Button>
+                <Button
+                  onPress={() => GameStore().rematch(RestartActions.Declined)}
+                >
+                  Decline
+                </Button>
+              </div>
+            </div>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    </>
+  );
+};
+
+const Status = ({ rematchStatus, boardStatus }: props) => {
+  const { rematch, resign } = GameStore();
+
+  const [resignConfirm, setResignConfirm] = useState(false);
+
+  if (rematchStatus === RestartActions.Sent)
+    return <div>Waiting for Opponent...</div>;
 
   switch (boardStatus) {
     case BoardStatus.Paused:
@@ -47,14 +69,27 @@ const GameStatus = ({ boardStatus, rematchStatus }: props) => {
       );
     case BoardStatus.Draw:
       return <p>Draw.</p>;
+    default:
+      return resignConfirm ? (
+        <div className="flex flex-col items-center gap-2">
+          <p>Are you sure you want to resign?</p>
+          <div className="flex gap-2">
+            <Button
+              color="primary"
+              onPress={() => {
+                resign();
+                setResignConfirm(false);
+              }}
+            >
+              Yes
+            </Button>
+            <Button onPress={() => setResignConfirm(false)}>No</Button>
+          </div>
+        </div>
+      ) : (
+        <Button onPress={() => setResignConfirm(true)}>Resign</Button>
+      );
   }
-
-  return (
-    <>
-      <p>{nextPlayer}&apos;s Turn.</p>
-      <Button onPress={() => resign()}>Resign</Button>
-    </>
-  );
 };
 
 const Rematch = ({

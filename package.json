@@ -1,0 +1,5 @@
+{
+	"dependencies": {
+		"@heroui/modal": "^2.2.23"
+	}
+}
