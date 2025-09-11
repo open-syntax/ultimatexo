@@ -54,6 +54,9 @@ pub enum GameError {
 
     #[error("Game has Ended")]
     Ended,
+
+    #[error("AI move failed")]
+    AIMoveFailed,
 }
 
 #[derive(Error, Debug, Clone, Serialize)]
@@ -100,6 +103,10 @@ pub enum SanitizeError {
 impl AppError {
     pub fn room_not_found() -> Self {
         AppError::Room(RoomError::NotFound)
+    }
+
+    pub fn ai_move_failed() -> Self {
+        AppError::Game(GameError::AIMoveFailed)
     }
 
     pub fn room_full() -> Self {

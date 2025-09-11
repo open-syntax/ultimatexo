@@ -4,6 +4,7 @@ use crate::{
     models::{Board, GameState, Marker, PlayerInfo, Status},
 };
 use anyhow::Result;
+use rand::Rng;
 
 #[derive(Debug)]
 pub struct GameEngine {
@@ -220,21 +221,26 @@ impl GameEngine {
         self.state.pending_draw = None;
     }
 
-    pub async fn get_ai_move(&self, ai_player: Marker) -> Option<Move> {
+    async fn get_ai_move(&self, ai_player: Marker) -> Option<Move> {
         let ai = MinimaxAI::new(self.state.difficulty.min(5) as usize);
         ai.find_best_move_parallel(&self.state, ai_player).await
     }
 
-    pub async fn apply_ai_move(&mut self, ai_player: Marker) -> Option<Move> {
-        if let Some(ai_move) = self.get_ai_move(ai_player).await {
-            let ai = MinimaxAI::new(1);
-            let mut temp_state = self.state.clone();
-            ai.apply_move(&mut temp_state, ai_move, ai_player);
-            self.state = temp_state;
-            Some(ai_move)
-        } else {
-            None
+    pub async fn apply_ai_move(&mut self, ai_player: Marker) -> Result<(), AppError> {
+        if let Some(ai_move) = self.get_ai_move(ai_player).await
+            && self
+                .make_move([ai_move.board_index, ai_move.cell_index])
+                .is_ok()
+        {
+            return Ok(());
         }
+        Err(AppError::ai_move_failed())
+    }
+
+    pub fn play_random_move(&mut self) {
+        let mut rng = rand::rng();
+        let mv: [usize; 2] = [rng.random_range(0..9), rng.random_range(0..9)];
+        self.make_move(mv).unwrap();
     }
 
     pub fn rematch_game(&mut self, difficulty: Option<u8>) {
