@@ -5,21 +5,23 @@ import { O, X } from "../icons";
 import Cell from "./cell";
 
 import { GameStore, PlayerStore } from "@/store";
-import { boardCell, miniBoard } from "@/types/index";
+import { boardCell, BoardStatus, miniBoard } from "@/types/index";
 
 interface MiniBoardProps {
   board: miniBoard;
   index: number;
+  status: BoardStatus;
 }
 
-function MiniBoard({ board, index }: MiniBoardProps) {
+function MiniBoard({ board, status, index }: MiniBoardProps) {
   const {
     move: { nextMove },
     nextPlayer,
   } = GameStore();
   const { player } = PlayerStore();
 
-  const isAvailable = [index, null].includes(nextMove);
+  const isAvailable =
+    status === null && [index, null].includes(nextMove);
 
   if (board.status === "O" || board.status === "X") {
     return (
@@ -47,7 +49,13 @@ function MiniBoard({ board, index }: MiniBoardProps) {
       )}
     >
       {board.cells.map((cell: boardCell, i) => (
-        <Cell key={i} board={index} index={i} mark={cell} />
+        <Cell
+          key={i}
+          board={index}
+          boardStatus={status}
+          index={i}
+          mark={cell}
+        />
       ))}
     </div>
   );

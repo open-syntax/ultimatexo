@@ -168,7 +168,7 @@ function RoomPage() {
             />
           </div>
           <div>
-            <Board board={board.boards} />
+            <Board board={board} />
             <Chat />
           </div>
         </div>

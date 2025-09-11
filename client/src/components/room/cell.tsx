@@ -2,20 +2,22 @@ import { cn } from "@heroui/theme";
 
 import { O, X } from "../icons";
 
-import { boardCell } from "@/types";
+import { boardCell, BoardStatus } from "@/types";
 import { GameStore, PlayerStore } from "@/store";
 
 interface CellProps {
   mark: boardCell;
   board: number;
   index: number;
+  boardStatus: BoardStatus;
 }
 
-function Cell({ mark, board, index }: CellProps) {
+function Cell({ boardStatus, mark, board, index }: CellProps) {
   const { player } = PlayerStore();
   const { playMove, move, nextPlayer } = GameStore();
 
   const isAvailable =
+    boardStatus === null &&
     [board, null].includes(move.nextMove) &&
     mark === null &&
     nextPlayer === player;
