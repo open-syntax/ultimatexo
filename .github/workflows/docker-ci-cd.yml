@@ -1,70 +1,373 @@
-name: TicTacToe Docker CI/CD
+name: UltimateXO Docker CI/CD
 
 on:
+  release:
+    types: [published]
   push:
     branches: [main]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BASE: ghcr.io/ultimatexo/ultimatexo
+
 jobs:
-  build-and-deploy:
+  test:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (for Vite+React client)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('client/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Setup Rust (for server)
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('server/Cargo.lock') }}
+
+      - name: Install client dependencies
+        run: |
+          cd client
+          pnpm install --frozen-lockfile
+
+      - name: Run client tests
+        run: |
+          cd client
+          if pnpm run test --dry-run 2>/dev/null; then
+            pnpm run test
+          else
+            echo "No tests found for client, skipping..."
+          fi
+
+      - name: Run server tests
+        run: |
+          cd server
+          cargo test
+
+      - name: Notify Discord - Tests Complete
+        uses: sarisia/actions-status-discord@v1
+        if: always()
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ job.status }}
+          title: "🧪 Tests Complete"
+          description: "Tests finished for UltimateXO release ${{ github.ref_name }}"
+          color: ${{ job.status == 'success' && 0x28a745 || 0xdc3545 }}
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
     permissions:
       contents: read
       packages: write
-
+    outputs:
+      client-image: ${{ steps.meta-client.outputs.tags }}
+      server-image: ${{ steps.meta-server.outputs.tags }}
+      client-digest: ${{ steps.build-client.outputs.digest }}
+      server-digest: ${{ steps.build-server.outputs.digest }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract client metadata
+        id: meta-client
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_BASE }}-client
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Extract server metadata
+        id: meta-server
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_BASE }}-server
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
       - name: Build and push client Docker image
-        uses: docker/build-push-action@v4
+        id: build-client
+        uses: docker/build-push-action@v5
         with:
           context: ./client
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/tic-tac-toe-client:latest
-            ghcr.io/${{ github.repository_owner }}/tic-tac-toe-client:${{ github.sha }}
+          tags: ${{ steps.meta-client.outputs.tags }}
+          labels: ${{ steps.meta-client.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build and push server Docker image
-        uses: docker/build-push-action@v4
+        id: build-server
+        uses: docker/build-push-action@v5
         with:
           context: ./server
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/tic-tac-toe-server:latest
-            ghcr.io/${{ github.repository_owner }}/tic-tac-toe-server:${{ github.sha }}
+          tags: ${{ steps.meta-server.outputs.tags }}
+          labels: ${{ steps.meta-server.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Notify Discord - Build Complete
+        uses: sarisia/actions-status-discord@v1
+        if: always()
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ job.status }}
+          title: "🔨 Build Complete"
+          description: "Docker images built for UltimateXO ${{ github.ref_name }}"
+          color: ${{ job.status == 'success' && 0x28a745 || 0xdc3545 }}
+
+  security-scan:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Run Trivy vulnerability scanner on client
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_BASE }}-client@${{ needs.build.outputs.client-digest }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Trivy vulnerability scanner on server
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_BASE }}-server@${{ needs.build.outputs.server-digest }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Trivy vulnerability scanner on caddy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/slothcroissant/caddy-cloudflaredns:latest
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Notify Discord - Security Scan Complete
+        uses: sarisia/actions-status-discord@v1
+        if: always()
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ job.status }}
+          title: "🔒 Security Scan Complete"
+          description: "Vulnerability scan finished for UltimateXO ${{ github.ref_name }}"
+          color: ${{ job.status == 'success' && 0x28a745 || 0xdc3545 }}
+
+  deploy:
+    needs: [build, security-scan]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Notify Discord - Deployment Started
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "🚀 Deployment Started"
+          description: "Starting deployment of UltimateXO ${{ github.ref_name }} to production"
+          color: 0xffc107
 
       - name: Create deployment directory on production server
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
           script: |
-            mkdir -p ~/tic-tac-toe
+            mkdir -p ~/ultimatexo
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Copy docker-compose and Caddyfile to production server
+      - name: Copy deployment files to production server
         uses: appleboy/scp-action@v0.1.3
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
           source: "docker-compose.yml,Caddyfile"
-          target: ~/tic-tac-toe/
+          target: ~/ultimatexo/
 
-      - name: Deploy to production server
+      - name: Deploy to production server with rollback capability
+        id: deployment
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
           script: |
-            cd ~/tic-tac-toe/
-            docker compose pull && docker compose down && docker compose up -d || echo "Deployment failed"
+            cd ~/ultimatexo/
+
+            export RELEASE_VERSION=${{ github.ref_name }}
+
+            echo "Creating backup..."
+            docker compose ps > backup-$(date +%Y%m%d_%H%M%S).txt
+
+            export CURRENT_VERSION="latest"
+            if [ -f .env ] && grep -q "RELEASE_VERSION" .env; then
+              CURRENT_VERSION=$(grep "RELEASE_VERSION" .env | cut -d '=' -f2 | tr -d '"' | tr -d "'")
+            fi
+            echo "Current version: $CURRENT_VERSION"
+            echo "New version: $RELEASE_VERSION"
+
+            cat > .env << EOF
+            CLOUDFLARE_EMAIL=${{ secrets.CLOUDFLARE_EMAIL }}
+            CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}
+            RELEASE_VERSION=$RELEASE_VERSION
+            IMAGE_BASE=${{ env.IMAGE_BASE }}
+            EOF
+
+            echo "Pulling new images..."
+            if ! docker compose pull; then
+              echo "Failed to pull images for release $RELEASE_VERSION"
+              exit 1
+            fi
+
+            echo "Starting deployment..."
+            docker compose up -d
+
+            sleep 30
+            echo "Container status:"
+            docker compose ps
+
+            if [ "$(docker compose ps --filter 'status=running' -q | wc -l)" -eq 3 ]; then
+                echo "All containers started successfully!"
+                echo "Health checks will continue in background via Docker Compose"
+            else
+                echo "Some containers failed to start, rolling back..."
+                docker compose logs --tail=50
+
+                echo "Rolling back to version: $CURRENT_VERSION"
+                docker compose down
+                sed -i "s/RELEASE_VERSION=$RELEASE_VERSION/RELEASE_VERSION=$CURRENT_VERSION/g" .env
+                docker compose up -d
+                exit 1
+            fi
+
+            echo "Cleaning up old images..."
+            docker image prune -f
+
+            echo "Deployment of UltimateXO $RELEASE_VERSION completed successfully!"
+
+      - name: Notify Discord - Deployment Success
+        uses: sarisia/actions-status-discord@v1
+        if: success()
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "✅ Deployment Successful!"
+          description: |
+            🎉 **UltimateXO ${{ github.ref_name }}** has been successfully deployed to production!
+
+            **Changes:** [View Release](${{ github.event.release.html_url }})
+            **Deployed by:** ${{ github.actor }}
+            **Time:** ${{ github.event.release.published_at }}
+          color: 0x28a745
+          username: "UltimateXO Deploy Bot"
+
+      - name: Notify Discord - Deployment Failed
+        uses: sarisia/actions-status-discord@v1
+        if: failure()
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "❌ Deployment Failed"
+          description: |
+            🚨 **Deployment of UltimateXO ${{ github.ref_name }} failed!**
+
+            **Release:** [View Details](${{ github.event.release.html_url }})
+            **Logs:** [View Workflow](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            **Failed by:** ${{ github.actor }}
+
+            Please check the logs and fix the issues.
+          color: 0xdc3545
+          username: "UltimateXO Deploy Bot"
+
+  notify-completion:
+    needs: [test, build, security-scan, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Notify Discord - Pipeline Complete
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "📋 Pipeline Complete"
+          description: |
+            **UltimateXO ${{ github.ref_name }}** pipeline finished
+
+            **Results:**
+            • Tests: ${{ needs.test.result == 'success' && '✅' || '❌' }}
+            • Build: ${{ needs.build.result == 'success' && '✅' || '❌' }}
+            • Security: ${{ needs.security-scan.result == 'success' && '✅' || '❌' }}
+            • Deploy: ${{ needs.deploy.result == 'success' && '✅' || needs.deploy.result == 'skipped' && '⏭️' || '❌' }}
+
+            **Workflow:** [View Details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          color: ${{ contains(needs.*.result, 'failure') && 0xdc3545 || 0x28a745 }}
+          username: "UltimateXO CI/CD Bot"
