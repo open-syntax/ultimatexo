@@ -13,7 +13,7 @@ import clsx from "clsx";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
-import { GithubIcon } from "@/components/icons";
+import { DiscordIcon, GithubIcon } from "@/components/icons";
 
 export const Navbar = () => {
   return (
@@ -46,11 +46,18 @@ export const Navbar = () => {
         justify="end"
       >
         <NavbarItem className="hidden gap-2 sm:flex">
-          {/* <Link to={siteConfig.links.discord} title="Discord">
+          <Link title="Discord" to={siteConfig.links.discord}>
             <DiscordIcon className="text-default-500" />
-          </Link> */}
+          </Link>
           <Link title="GitHub" to={siteConfig.links.github}>
             <GithubIcon className="text-default-500" />
+          </Link>
+          <Link title="Ko-Fi" to={siteConfig.links.sponsor}>
+            <img
+              alt="Ko-Fi"
+              className="h-6 grayscale hover:grayscale-0 transition"
+              src="https://storage.ko-fi.com/cdn/brandasset/v2/kofi_symbol.png?_gl=1*ysruwk*_gcl_au*MTc1OTkyNjA1MC4xNzU3MjkxNTM0*_ga*OTIwMzY1Mzk4LjE3NTcyOTE1Mzc.*_ga_M13FZ7VQ2C*czE3NTc2MzU2NzAkbzMkZzEkdDE3NTc2MzU5MTckajYwJGwwJGgw"
+            />
           </Link>
           <ThemeSwitch />
         </NavbarItem>

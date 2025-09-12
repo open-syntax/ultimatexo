@@ -32,8 +32,8 @@ export const siteConfig = {
     },
   ],
   links: {
-    github: "https://github.com/project-chatty/tic-tac-toe/",
-    // discord: "https://discord.gg/",
-    // sponsor: "https://patreon.com/",
+    github: "https://github.com/UltimateXO/ultimatexo",
+    discord: "https://discord.gg/qvcc5Z2Ksu",
+    sponsor: "https://ko-fi.com/Q5Q81KWW0O",
   },
 };

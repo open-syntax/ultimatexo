@@ -16,7 +16,7 @@ function Board({ board }: params) {
       id="board"
     >
       {board.boards.map((miniBoard, i) => (
-        <MiniBoard status={board.status} key={i} board={miniBoard} index={i} />
+        <MiniBoard key={i} board={miniBoard} index={i} status={board.status} />
       ))}
     </div>
   );
