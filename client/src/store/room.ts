@@ -12,6 +12,7 @@ type Store = {
   setPassword: (password: string) => void;
   setWs: (ws: WebSocket | undefined) => void;
 
+  clearChat: () => void;
   pushMessage: (message: Message) => void;
   sendMessage: (message: string) => void;
 };
@@ -25,6 +26,8 @@ const RoomStore = create<Store>()((set) => ({
   setRoomId: (roomId) => set({ roomId }),
   setPassword: (password) => set({ password }),
   setWs: (ws) => set({ ws }),
+
+  clearChat: () => set({ chat: [] }),
 
   pushMessage: (message) =>
     set((state) => ({

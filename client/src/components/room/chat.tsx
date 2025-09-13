@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/no-autofocus */
 import { Button } from "@heroui/button";
 import { Drawer, DrawerBody, DrawerContent } from "@heroui/drawer";
 import { useDisclosure } from "@heroui/use-disclosure";
@@ -15,9 +16,19 @@ interface props {
   marker: marker;
   className?: string;
   handleMessageSend: (e: React.FormEvent<HTMLFormElement>) => void;
+
+  input: string;
+  setInput: React.Dispatch<React.SetStateAction<string>>;
 }
 
-const ChatLayout = ({ className, chat, marker, handleMessageSend }: props) => {
+const ChatLayout = ({
+  className,
+  chat,
+  marker,
+  handleMessageSend,
+  input,
+  setInput,
+}: props) => {
   return (
     <div
       className={
@@ -26,7 +37,7 @@ const ChatLayout = ({ className, chat, marker, handleMessageSend }: props) => {
       style={{ height: document.getElementById("board")?.offsetHeight }}
     >
       <h1 className="text-center text-2xl font-bold">Chat</h1>
-      <div className="flex h-full w-full flex-col gap-2 overflow-y-auto pr-2">
+      <div className="flex h-full w-full scroll-m-2 flex-col gap-2 overflow-y-auto pr-2">
         {chat.map((message, i) => (
           <div
             key={i}
@@ -42,10 +53,18 @@ const ChatLayout = ({ className, chat, marker, handleMessageSend }: props) => {
         ))}
       </div>
       <form
+        autoComplete="off"
         className="flex h-fit w-full gap-2"
         onSubmit={(e) => handleMessageSend(e)}
       >
-        <Input name="message" placeholder="Message" />
+        <Input
+          autoFocus
+          id="input"
+          name="message"
+          placeholder="Message"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+        />
         <Button color="primary" type="submit">
           Send
         </Button>
@@ -58,6 +77,7 @@ const Chat = () => {
   const { player } = PlayerStore();
   const { chat, sendMessage } = RoomStore();
 
+  const [input, setInput] = useState<string>("");
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [isRead, setIsRead] = useState<boolean>(true);
 
@@ -72,6 +92,14 @@ const Chat = () => {
     }
   }, [chat]);
 
+  useEffect(() => {
+    if (isOpen && chat.length) {
+      const element = document.getElementById(`message-${chat.length - 1}`);
+
+      element?.scrollIntoView({ behavior: "instant" });
+    }
+  }, [isOpen]);
+
   const handleMessageSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -81,7 +109,7 @@ const Chat = () => {
 
     sendMessage(message);
 
-    e.currentTarget.reset();
+    setInput(""); // for some reason form reset doesn't work on the input :/
   };
 
   const handleOnOpen = () => {
@@ -115,21 +143,15 @@ const Chat = () => {
               chat={chat}
               className="!h-full"
               handleMessageSend={handleMessageSend}
+              input={input}
               marker={player}
+              setInput={setInput}
             />
           </DrawerBody>
         </DrawerContent>
       </Drawer>
     </>
   );
-
-  // return (
-  //   <ChatLayout
-  //     chat={chat}
-  //     handleMessageSend={handleMessageSend}
-  //     marker={marker}
-  //   />
-  // );
 };
 
 export default Chat;

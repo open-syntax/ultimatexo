@@ -26,7 +26,7 @@ interface room {
 const useGame = () => {
   const { player, setPlayer } = PlayerStore();
   const { setMove, setNextPlayer } = GameStore();
-  const { pushMessage, ws } = RoomStore();
+  const { pushMessage, clearChat, ws } = RoomStore();
 
   const [rematchStatus, setRematchStatus] = useState<RestartActions | null>(
     null,
@@ -50,9 +50,9 @@ const useGame = () => {
     let playerMarker: PlayerInfo["marker"] = null;
 
     // handle on connection established
-    // ws.onopen = () => {
-    //   setStatus({ status: RoomStatus.connected, message: "" });
-    // };
+    ws.onopen = () => {
+      clearChat();
+    };
 
     // handle on message arrival
     ws.onmessage = (event) => {
