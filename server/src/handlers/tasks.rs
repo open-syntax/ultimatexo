@@ -186,16 +186,9 @@ async fn handle_incoming_message(
 ) -> Result<(), AppError> {
     let client_message = parse_websocket_message(message)?;
 
-    if let Err(e) = message_handler
+    message_handler
         .handle_client_message(client_message, room.clone(), ctx)
-        .await
-    {
-        error!("Failed to handle client message: {}", e);
-        return Err(AppError::internal_error(
-            "Failed to handle client message".to_string(),
-        ));
-    }
-
+        .await?;
     Ok(())
 }
 

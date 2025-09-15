@@ -77,13 +77,9 @@ impl MessageHandler {
 
         {
             let mut game = room.game.lock().await;
-            if let Err(e) = game.make_move(mv) {
-                return Err(AppError::internal_error(format!(
-                    "Failed to make game move: {}",
-                    e
-                )));
-            }
+            game.make_move(mv)?;
             if room.info.room_type == RoomType::BotRoom
+                && game.get_board_status().eq(&Status::InProgress)
                 && game.apply_ai_move(!current_player_marker).await.is_err()
             {
                 return Err(AppError::internal_error("Failed to make game move"));
@@ -104,46 +100,43 @@ impl MessageHandler {
         let marker = room.get_player(player_id).await?.info.marker;
 
         let mut game = room.game.lock().await;
+        if game.get_board_status().eq(&Status::InProgress) {
+            return Err(AppError::game_still_ongoing());
+        }
 
         match action {
             Action::Accept => {
-                if !game.has_pending_rematch() {
-                    return Err(AppError::game_still_ongoing());
-                }
-
-                if game.is_pending_rematch_from(player_id) {
+                if !game.has_pending_rematch() || game.is_pending_rematch_from(player_id) {
                     return Err(AppError::not_allowed());
                 }
-
                 game.rematch_game(None);
                 game.clear_rematch_request();
+                drop(game);
                 room.send_board().await;
+                return Ok(());
             }
 
             Action::Request => match room.info.room_type {
                 RoomType::Standard => {
-                    if game.get_board_status().eq(&Status::InProgress) {
-                        return Err(AppError::game_still_ongoing());
-                    }
                     game.request_rematch(player_id.clone());
                 }
                 RoomType::LocalRoom => {
+                    self.handle_resign_request(room.clone(), ctx).await?;
                     game.rematch_game(None);
                     room.send_board().await;
                 }
                 RoomType::BotRoom => {
+                    self.handle_resign_request(room.clone(), ctx).await?;
                     let difficulty = game.state.difficulty;
                     game.rematch_game(Some(difficulty));
-                    game.apply_ai_move(!marker).await?;
                     room.send_board().await;
                 }
             },
 
             Action::Decline => {
                 if !game.has_pending_rematch() {
-                    return Err(AppError::game_still_ongoing());
+                    return Err(AppError::not_allowed());
                 }
-
                 if game.is_pending_rematch_from(player_id) {
                     return Err(AppError::not_allowed());
                 }
