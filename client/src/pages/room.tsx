@@ -38,7 +38,7 @@ enum RoomStatus {
 function RoomPage() {
   let { roomId } = useParams();
   const { player, board, status, rematchStatus, setStatus } = useGame();
-  const { setWs } = RoomStore();
+  const { setWs, setMode } = RoomStore();
   let { state } = useLocation();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -47,6 +47,10 @@ function RoomPage() {
     if (state?.password && roomId === state?.roomId) {
       setIsLoading(false);
       handleWebSocket(state.password);
+    }
+
+    if (state?.mode) {
+      setMode(state.mode);
     }
   }, [state]);
 

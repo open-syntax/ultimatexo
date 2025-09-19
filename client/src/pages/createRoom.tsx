@@ -78,11 +78,13 @@ const RoomForm = () => {
       .then((response) => response.json())
       .then((data: { room_id: number }) => {
         navgiate(`/room/${data.room_id}`, {
-          state: { roomId: data.room_id, password, isReconnecting: false },
+          state: {
+            roomId: data.room_id,
+            password,
+            isReconnecting: false,
+            mode,
+          },
         });
-      })
-      .catch((error) => {
-        console.log(error);
       })
       .finally(() => {
         setIsLoading(false);
@@ -128,6 +130,7 @@ const RoomForm = () => {
             </RadioGroup>
             <div className="h-px w-full overflow-y-auto bg-foreground-400 sm:h-full sm:w-px" />
             <Form
+              autoComplete="off"
               className="flexc-col flex h-full w-full"
               onSubmit={(e) => handleCreate(e)}
             >

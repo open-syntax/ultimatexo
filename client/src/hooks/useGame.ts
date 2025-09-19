@@ -26,7 +26,7 @@ interface room {
 const useGame = () => {
   const { player, setPlayer } = PlayerStore();
   const { setMove, setNextPlayer } = GameStore();
-  const { pushMessage, clearChat, ws } = RoomStore();
+  const { pushMessage, clearChat, ws, mode } = RoomStore();
 
   const [rematchStatus, setRematchStatus] = useState<RestartActions | null>(
     null,
@@ -64,6 +64,11 @@ const useGame = () => {
 
       switch (eventName) {
         case "GameUpdate":
+          if (mode === "Local") {
+            setPlayer(e.data.next_player.marker);
+            playerMarker = e.data.next_player.marker;
+          }
+
           setBoard(e.data.board);
           setMove({
             nextMove: e.data.next_board,

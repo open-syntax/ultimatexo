@@ -28,19 +28,11 @@ export default function DefaultLayout({
         <span className="text-default-600">
           Made by{" "}
           <Link
-            className="text-primary"
-            title="Omar's Github"
-            to="https://github.com/OmarIsADev"
+            className="text-danger"
+            title="Out Of Syntax Team."
+            to="https://github.com/OutOfSyntax"
           >
-            Omar
-          </Link>{" "}
-          &{" "}
-          <Link
-            className="text-primary"
-            title="Mekky's Github"
-            to="https://github.com/ahmed-mekky"
-          >
-            Mekky
+            Out Of Syntax Team.
           </Link>
         </span>
       </footer>

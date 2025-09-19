@@ -7,10 +7,12 @@ type Store = {
   password: string | null;
   chat: Message[];
   ws?: WebSocket;
+  mode: "Local" | "Online" | "Bot";
 
   setRoomId: (roomId: number) => void;
   setPassword: (password: string) => void;
   setWs: (ws: WebSocket | undefined) => void;
+  setMode: (mode: "Local" | "Online" | "Bot") => void;
 
   clearChat: () => void;
   pushMessage: (message: Message) => void;
@@ -22,10 +24,12 @@ const RoomStore = create<Store>()((set) => ({
   password: null,
   chat: [],
   ws: undefined,
+  mode: "Online",
 
   setRoomId: (roomId) => set({ roomId }),
   setPassword: (password) => set({ password }),
   setWs: (ws) => set({ ws }),
+  setMode: (mode) => set({ mode }),
 
   clearChat: () => set({ chat: [] }),
 
