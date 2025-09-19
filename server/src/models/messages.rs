@@ -26,6 +26,7 @@ pub struct WebSocketQuery {
     pub password: Option<String>,
     #[serde(default)]
     pub is_reconnecting: bool,
+    pub player_id: Option<String>,
 }
 
 #[derive(Deserialize)]

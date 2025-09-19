@@ -20,17 +20,14 @@ pub struct Player {
     #[serde(skip_serializing)]
     pub id: String,
     #[serde(skip_serializing)]
-    pub ip: IpAddr,
-    #[serde(skip_serializing)]
     pub tx: Option<UnboundedSender<ServerMessage>>,
     pub info: PlayerInfo,
 }
 
 impl Player {
-    pub fn new(ip: IpAddr, marker: Marker) -> Self {
+    pub fn new(id: Option<String>, marker: Marker) -> Self {
         Self {
-            id: Uuid::new_v4().to_string(),
-            ip,
+            id: id.unwrap_or_else(|| Uuid::new_v4().to_string()),
             tx: None,
             info: PlayerInfo::new(marker),
         }

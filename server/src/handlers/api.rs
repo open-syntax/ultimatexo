@@ -39,6 +39,13 @@ pub async fn create_room(
     }
 }
 
+pub async fn check_server_memory(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<Value>, StatusCode> {
+    let mem = state.check_server_memory().await;
+    Ok(Json(json!({ "mem": mem })))
+}
+
 pub async fn health_check() -> Result<Json<Value>, StatusCode> {
     Ok(Json(json!({
         "status": "healthy",

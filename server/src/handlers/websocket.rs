@@ -32,7 +32,6 @@ pub async fn websocket_handler(
     Path(room_id): Path<String>,
     State(state): State<Arc<AppState>>,
     Query(payload): Query<WebSocketQuery>,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
 ) -> Response {
     ws.on_upgrade(move |socket| {
@@ -41,7 +40,6 @@ pub async fn websocket_handler(
             state,
             room_id,
             payload,
-            get_real_ip(&headers, addr.ip()),
         )
     })
 }
@@ -51,13 +49,12 @@ async fn handle_socket_upgrade(
     state: Arc<AppState>,
     room_id: String,
     payload: WebSocketQuery,
-    player_ip: IpAddr,
 ) {
     let (sender, receiver) = socket.split();
     let sender = Arc::new(Mutex::new(sender));
 
     if let Err(error) =
-        handle_socket(sender.clone(), receiver, state, room_id, payload, player_ip).await
+        handle_socket(sender.clone(), receiver, state, room_id, payload).await
     {
         let _ = send_error_and_close(sender, error).await;
     }
@@ -68,11 +65,10 @@ async fn handle_socket(
     state: Arc<AppState>,
     room_id: String,
     payload: WebSocketQuery,
-    player_ip: IpAddr,
 ) -> Result<(), AppError> {
     let room_service = state.get_room_service(&room_id).await?;
     let is_reconnecting = payload.is_reconnecting;
-    let (room, player_id) = room_service.join_room(&room_id, payload, player_ip).await?;
+    let (room, player_id) = room_service.join_room(&room_id, payload).await?;
 
     let (player_tx, player_rx) = tokio::sync::mpsc::unbounded_channel();
 

@@ -5,7 +5,7 @@ use tokio::signal;
 
 use crate::{
     app::state::AppState,
-    handlers::{create_room, get_room, get_rooms, health_check, websocket_handler},
+    handlers::{create_room, get_room, get_rooms, health_check, websocket_handler, check_server_memory},
 };
 
 pub async fn start_server() -> Result<()> {
@@ -15,6 +15,7 @@ pub async fn start_server() -> Result<()> {
         .route("/ws/{room_id}", get(websocket_handler))
         .route("/rooms", get(get_rooms).post(create_room))
         .route("/health", get(health_check))
+        .route("/mem", get(check_server_memory))
         .route("/room/{room_id}", get(get_room))
         .with_state(state);
 

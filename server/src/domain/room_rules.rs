@@ -16,6 +16,7 @@ pub trait RoomRules: Send + Sync {
         &self,
         current_player_count: usize,
         pending_shutdown: bool,
+        player_id: &Option<String>,
     ) -> Result<(), AppError>;
 
     fn should_delete_room_immediately(

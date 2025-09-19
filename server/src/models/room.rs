@@ -84,7 +84,7 @@ impl Room {
     }
 
     pub async fn add_bot(&self, marker: Marker) -> Result<(), AppError> {
-        let player = Player::new(IpAddr::from_str("0.0.0.0").unwrap(), marker);
+        let player = Player::new(None, marker);
         self.game.lock().await.push_player(player.info.clone());
         self.players.lock().await.push(player);
         Ok(())
@@ -94,7 +94,7 @@ impl Room {
         self.player_counter.load(Ordering::SeqCst)
     }
 
-    pub async fn add_player(&self, player_ip: IpAddr) -> Result<String, AppError> {
+    pub async fn add_player(&self, player_id: Option<String>) -> Result<String, AppError> {
         use rand::Rng;
 
         if self.is_closed() {
@@ -111,7 +111,7 @@ impl Room {
             !self.players.lock().await[0].info.marker
         };
 
-        let player = Player::new(player_ip, marker);
+        let player = Player::new(player_id, marker);
         let player_id = player.id.clone();
         self.player_counter.fetch_add(1, Ordering::SeqCst);
         self.game.lock().await.push_player(player.info.clone());
@@ -126,20 +126,6 @@ impl Room {
             }
         };
         Ok(player_id)
-    }
-
-    pub async fn get_player_by_ip(&self, player_ip: &IpAddr) -> Result<Player, AppError> {
-        if self.is_closed() {
-            return Err(AppError::room_closed());
-        }
-
-        self.players
-            .lock()
-            .await
-            .iter()
-            .find(|p| p.ip == *player_ip)
-            .cloned()
-            .ok_or(AppError::player_not_found())
     }
 
     pub async fn get_player(&self, player_id: &String) -> Result<Player, AppError> {

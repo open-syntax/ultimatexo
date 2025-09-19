@@ -34,26 +34,28 @@ impl RoomService {
 
         let (tx, rx) = mpsc::channel(32);
         let room = Arc::new(Room::new(room_info, tx));
-
         Room::spawn_message_broadcaster(room.clone(), rx);
 
         self.rooms.insert(room_id.clone(), room);
         Ok(room_id)
     }
 
+    pub fn check_memory(&self) -> usize {
+        self.rooms.len()
+    }
+
     pub async fn join_room(
         &self,
         room_id: &str,
         payload: WebSocketQuery,
-        player_ip: IpAddr,
     ) -> Result<(Arc<Room>, String), AppError> {
         let room = self.get_room(room_id)?;
         let current_count = room.get_player_count();
 
         if payload.is_reconnecting {
             self.rules
-                .can_reconnect_room(current_count, room.is_pending_cleanup().await)?;
-            self.handle_reconnection(room, player_ip).await
+                .can_reconnect_room(current_count, room.is_pending_cleanup().await, &payload.player_id)?;
+            self.handle_reconnection(room, payload.player_id.unwrap()).await
         } else {
             self.rules.can_join_room(
                 &room.info,
@@ -61,7 +63,7 @@ impl RoomService {
                 payload.password,
                 room.is_pending_cleanup().await,
             )?;
-            self.handle_new_connection(room, player_ip).await
+            self.handle_new_connection(room, payload.player_id).await
         }
     }
 
@@ -210,15 +212,15 @@ impl RoomService {
     async fn handle_reconnection(
         &self,
         room: Arc<Room>,
-        player_ip: IpAddr,
+        player_id: String,
     ) -> Result<(Arc<Room>, String), AppError> {
-        if let Ok(player) = room.get_player_by_ip(&player_ip).await {
+        if let Ok(_) = room.get_player(&player_id).await {
             if let Some(token) = room.deletion_token.lock().await.take() {
                 token.cancel();
             }
-            tracing::info!("Player {} reconnected to room {}", player.id, room.info.id);
+            tracing::info!("Player {} reconnected to room {}", player_id, room.info.id);
             room.player_counter.fetch_add(1, Ordering::SeqCst);
-            Ok((room, player.id.to_string()))
+            Ok((room, player_id))
         } else {
             Err(AppError::player_not_found())
         }
@@ -227,9 +229,9 @@ impl RoomService {
     async fn handle_new_connection(
         &self,
         room: Arc<Room>,
-        player_ip: IpAddr,
+        player_id: Option<String>,
     ) -> Result<(Arc<Room>, String), AppError> {
-        let new_player_id = room.add_player(player_ip).await?;
+        let new_player_id = room.add_player(player_id).await?;
         tracing::info!("Player {} joined room {}", new_player_id, room.info.id);
         Ok((room, new_player_id))
     }

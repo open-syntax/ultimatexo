@@ -25,6 +25,7 @@ impl RoomRules for LocalRoomRules {
         &self,
         _current_player_count: usize,
         _pending_shutdown: bool,
+        _player_id: &Option<String>,
     ) -> Result<(), AppError> {
         Err(AppError::not_allowed())
     }
