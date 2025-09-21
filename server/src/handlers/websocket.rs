@@ -2,11 +2,14 @@ use crate::{
     app::AppState,
     error::AppError,
     handlers::{ConnectionContext, spawn_heartbeat_task, spawn_receive_task, spawn_send_task},
-    models::{Marker, PlayerAction, Room, RoomType, ServerMessage, Status, WebSocketQuery},
+    models::{
+        Marker, PlayerAction, Room, RoomType, SerizlizedPlayer, ServerMessage, Status,
+        WebSocketQuery,
+    },
 };
 use axum::{
     extract::{
-        ConnectInfo, Path, Query, State, WebSocketUpgrade,
+        Path, Query, State, WebSocketUpgrade,
         ws::{Message, WebSocket},
     },
     http::HeaderMap,
@@ -18,7 +21,6 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
 };
 use std::{
-    net::{IpAddr, SocketAddr},
     sync::Arc,
 };
 use tokio::{sync::Mutex, try_join};
@@ -32,16 +34,8 @@ pub async fn websocket_handler(
     Path(room_id): Path<String>,
     State(state): State<Arc<AppState>>,
     Query(payload): Query<WebSocketQuery>,
-    headers: HeaderMap,
 ) -> Response {
-    ws.on_upgrade(move |socket| {
-        handle_socket_upgrade(
-            socket,
-            state,
-            room_id,
-            payload,
-        )
-    })
+    ws.on_upgrade(move |socket| handle_socket_upgrade(socket, state, room_id, payload))
 }
 
 async fn handle_socket_upgrade(
@@ -53,9 +47,7 @@ async fn handle_socket_upgrade(
     let (sender, receiver) = socket.split();
     let sender = Arc::new(Mutex::new(sender));
 
-    if let Err(error) =
-        handle_socket(sender.clone(), receiver, state, room_id, payload).await
-    {
+    if let Err(error) = handle_socket(sender.clone(), receiver, state, room_id, payload).await {
         let _ = send_error_and_close(sender, error).await;
     }
 }
@@ -147,16 +139,26 @@ async fn handle_player_connection(
         PlayerAction::Joined
     };
 
-    let player_update = ServerMessage::PlayerUpdate {
-        action,
-        player: room.get_player(&ctx.player_id).await.unwrap().info.marker,
-    };
-
-    room.tx
-        .send(player_update)
-        .await
-        .map_err(|e| AppError::internal_error(format!("Failed to send player update: {}", e)))?;
-
+    let player = room.get_player(&ctx.player_id).await.unwrap();
+    player
+        .tx
+        .unwrap()
+        .send(ServerMessage::PlayerUpdate {
+            action: action.clone(),
+            player: SerizlizedPlayer::new(player.info.marker, Some(player.id)),
+        })
+        .unwrap();
+    let other_player = room.get_other_player(&ctx.player_id).await;
+    if let Ok(player) = other_player && room.info.room_type == RoomType::Standard {
+        player
+            .tx
+            .unwrap()
+            .send(ServerMessage::PlayerUpdate {
+                action,
+                player: SerizlizedPlayer::new(player.info.marker, None),
+            })
+            .unwrap();
+    }
     Ok(())
 }
 
@@ -175,21 +177,3 @@ async fn send_error_and_close(
     Ok(())
 }
 
-fn get_real_ip(headers: &HeaderMap, fallback_ip: IpAddr) -> IpAddr {
-    if let Some(real_ip) = headers.get("x-real-ip")
-        && let Ok(ip_str) = real_ip.to_str()
-        && let Ok(ip) = ip_str.parse::<IpAddr>()
-    {
-        return ip;
-    }
-
-    if let Some(forwarded_for) = headers.get("x-forwarded-for")
-        && let Ok(forwarded_str) = forwarded_for.to_str()
-        && let Some(first_ip) = forwarded_str.split(',').next()
-        && let Ok(ip) = first_ip.trim().parse::<IpAddr>()
-    {
-        return ip;
-    }
-
-    fallback_ip
-}

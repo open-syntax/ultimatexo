@@ -5,8 +5,6 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    net::IpAddr,
-    str::FromStr,
     sync::{
         Arc,
         atomic::{AtomicBool, AtomicUsize, Ordering},

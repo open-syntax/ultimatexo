@@ -35,6 +35,18 @@ pub struct RoomNameQuery {
 }
 
 #[derive(Serialize, Debug, Clone)]
+pub struct SerizlizedPlayer {
+    pub marker: Marker,
+    pub id: Option<String>,
+}
+
+impl SerizlizedPlayer {
+    pub fn new(marker: Marker, id: Option<String>) -> Self {
+        Self { marker, id }
+    }
+}
+
+#[derive(Serialize, Debug, Clone)]
 #[serde(tag = "event", content = "data")]
 pub enum ServerMessage {
     TextMessage {
@@ -46,10 +58,10 @@ pub enum ServerMessage {
         next_player: PlayerInfo,
         next_board: Option<usize>,
         last_move: Option<[usize; 2]>,
-    },
+    }, 
     PlayerUpdate {
         action: PlayerAction,
-        player: Marker,
+        player: SerizlizedPlayer,
     },
     GameRestart {
         action: Action,

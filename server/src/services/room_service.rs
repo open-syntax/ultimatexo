@@ -10,7 +10,7 @@ use tracing::{debug, info, warn};
 use crate::{
     domain::RoomRules,
     error::AppError,
-    models::{PlayerAction, Room, RoomInfo, ServerMessage, WebSocketQuery},
+    models::{PlayerAction, Room, RoomInfo, SerizlizedPlayer, ServerMessage, WebSocketQuery},
     services::CleanupService,
 };
 
@@ -121,12 +121,12 @@ impl RoomService {
 
         let disconnect_msg = ServerMessage::PlayerUpdate {
             action: PlayerAction::Disconnected,
-            player: room
+            player: SerizlizedPlayer::new(room
                 .get_player(&leaving_player_id.to_string())
                 .await
                 .unwrap()
                 .info
-                .marker,
+                .marker, None),
         };
 
         if let Ok(other_player) = room.get_other_player(&leaving_player_id.to_string()).await

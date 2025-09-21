@@ -1,6 +1,6 @@
 use crate::{
     domain::RoomRules,
-    models::{PlayerAction, Room, ServerMessage, Status},
+    models::{PlayerAction, Room, SerizlizedPlayer, ServerMessage, Status},
 };
 use dashmap::DashMap;
 use std::sync::Arc;
@@ -79,7 +79,7 @@ impl CleanupService {
 
             let timeout_msg = ServerMessage::PlayerUpdate {
                 action: PlayerAction::Left,
-                player: timed_out_player.info.marker,
+                player: SerizlizedPlayer::new(timed_out_player.info.marker, None),
             };
 
             room.send_board().await;
