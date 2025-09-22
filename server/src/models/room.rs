@@ -277,7 +277,9 @@ impl Room {
             next_player: game.get_next_player(),
             next_board: game.get_next_board(),
             last_move: game.get_last_move(),
+            score: game.get_score(),
         };
         let _ = self.tx.send(msg).await;
     }
+
 }

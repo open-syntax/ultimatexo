@@ -12,7 +12,6 @@ use axum::{
         Path, Query, State, WebSocketUpgrade,
         ws::{Message, WebSocket},
     },
-    http::HeaderMap,
     response::Response,
 };
 

@@ -1,7 +1,7 @@
 use crate::{
     error::AppError,
     handlers::ConnectionContext,
-    models::{Action, ClientMessage, Room, RoomType, ServerMessage, Status},
+    models::{Action, ClientMessage, Marker, Room, RoomType, ServerMessage, Status},
 };
 use std::{borrow::Cow, sync::Arc};
 use tokio::time::Instant;
@@ -220,10 +220,19 @@ impl MessageHandler {
         ctx: &ConnectionContext,
     ) -> Result<(), AppError> {
         let marker = room.get_player(&ctx.player_id).await?.info.marker;
-        room.game
-            .lock()
-            .await
-            .set_board_status(Status::Won(!marker));
+        if marker == Marker::X {
+            room.game
+                .lock()
+                .await
+                .set_board_status(Status::Won(Marker::O));
+            room.game.lock().await.increase_score(1);
+        } else {
+            room.game
+                .lock()
+                .await
+                .set_board_status(Status::Won(Marker::X));
+            room.game.lock().await.increase_score(0);
+        }
         room.send_board().await;
         Ok(())
     }

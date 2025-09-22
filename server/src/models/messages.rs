@@ -58,6 +58,7 @@ pub enum ServerMessage {
         next_player: PlayerInfo,
         next_board: Option<usize>,
         last_move: Option<[usize; 2]>,
+        score: [usize; 2],
     }, 
     PlayerUpdate {
         action: PlayerAction,

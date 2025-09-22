@@ -1,6 +1,5 @@
 use dashmap::DashMap;
 use std::{
-    net::IpAddr,
     sync::{Arc, atomic::Ordering},
 };
 use tokio::sync::mpsc;

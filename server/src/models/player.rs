@@ -1,5 +1,3 @@
-use std::net::IpAddr;
-
 use super::{Marker, ServerMessage};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::UnboundedSender;

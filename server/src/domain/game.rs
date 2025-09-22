@@ -123,7 +123,13 @@ impl GameEngine {
                 && self.state.board.boards[condition[2]].status
                     == Status::Won(current_player_marker)
             {
-                self.state.board.status = Status::Won(current_player_marker);
+                if current_player_marker == Marker::X {
+                    self.state.board.status = Status::Won(Marker::X);
+                    self.state.score[0] += 1;
+                } else {
+                    self.state.board.status = Status::Won(Marker::O);
+                    self.state.score[1] += 1;
+                }
                 return Ok(());
             }
         }
@@ -187,6 +193,14 @@ impl GameEngine {
 
     pub fn get_last_move(&self) -> Option<[usize; 2]> {
         self.state.last_move
+    }
+
+    pub fn get_score(&self) -> [usize; 2] {
+        self.state.score
+    }
+
+    pub fn increase_score(&mut self, index: usize) {
+        self.state.score[index] += 1;
     }
 
     pub fn has_pending_rematch(&self) -> bool {
