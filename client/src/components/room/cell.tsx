@@ -20,7 +20,7 @@ function Cell({ boardStatus, mark, board, index }: CellProps) {
     boardStatus === null &&
     [board, null].includes(move.nextMove) &&
     mark === null &&
-    nextPlayer === player;
+    nextPlayer === player?.marker;
 
   const handleClick = () => {
     if (!isAvailable) return;

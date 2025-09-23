@@ -58,19 +58,23 @@ function RoomPage() {
     // if the room id is the same as the one in the session storage, we can reuse the websocket
     const room_id = sessionStorage.getItem("room_id");
 
-    if (room_id && room_id === roomId) {
-      setWs(
-        new WebSocket(
-          `/api/ws/${roomId}${password ? `?password=${password}&is_reconnecting=true` : `?is_reconnecting=true`}`,
-        ),
-      );
+    const params = [];
 
-      return;
+    if (room_id && room_id === roomId) {
+      params.push(`room_id=${room_id}`);
+    }
+
+    if (password) {
+      params.push(`password=${password}`);
+    }
+
+    if (player?.id) {
+      params.push(`player_id=${player.id}`);
     }
 
     setWs(
       new WebSocket(
-        `/api/ws/${roomId}${password ? `?password=${password}` : ""}`,
+        `/api/ws/${roomId}${params.length >= 1 ? `?${params.join("&")}` : ""}`,
       ),
     );
   };
@@ -160,14 +164,12 @@ function RoomPage() {
             </Button>
           </form>
         </RoomLayout>
-      ) : board ? (
+      ) : board && player ? (
         <div className="container mx-auto my-auto flex h-[calc(100svh-64px-48px-64px)] max-w-7xl flex-grow flex-col justify-center gap-4 px-6">
-          <p className="w-full text-center font-semibold">
-            You are player: {player}
-          </p>
           <div className="flex flex-col items-center gap-2">
             <GameStatus
               boardStatus={board.status}
+              player={player}
               rematchStatus={rematchStatus}
             />
           </div>

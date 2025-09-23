@@ -20,8 +20,7 @@ function MiniBoard({ board, status, index }: MiniBoardProps) {
   } = GameStore();
   const { player } = PlayerStore();
 
-  const isAvailable =
-    status === null && [index, null].includes(nextMove);
+  const isAvailable = status === null && [index, null].includes(nextMove);
 
   if (board.status === "O" || board.status === "X") {
     return (
@@ -43,7 +42,7 @@ function MiniBoard({ board, status, index }: MiniBoardProps) {
     <div
       className={cn(
         `grid aspect-square h-full w-full grid-cols-3 grid-rows-3 place-items-center gap-2 rounded-xl bg-primary p-2 transition-shadow duration-500 max-sm:gap-1 max-sm:p-1`,
-        isAvailable && player === nextPlayer
+        isAvailable && player?.marker === nextPlayer
           ? "bg-primary shadow-[0_0_8px_1px] shadow-primary"
           : "bg-primary-100",
       )}

@@ -1,6 +1,6 @@
 import { SVGProps } from "react";
 
-import { marker, PlayerInfo } from "./player";
+import { marker, Player } from "./player";
 import { playerActions, RestartActions } from "./actions";
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
@@ -45,7 +45,7 @@ export type socketEvent =
       event: "GameUpdate";
       data: {
         board: { boards: Board; status: BoardStatus };
-        next_player: PlayerInfo;
+        next_player: { marker: marker };
         next_board: number | null;
         last_move: [number, number] | null;
       };
@@ -54,7 +54,7 @@ export type socketEvent =
       event: "PlayerUpdate";
       data: {
         action: playerActions;
-        player: PlayerInfo["marker"];
+        player: Player;
       };
     }
   | {
@@ -68,7 +68,7 @@ export type socketEvent =
       event: "TextMessage";
       data: {
         content: string;
-        player: PlayerInfo;
+        player: marker;
       };
     }
   | {

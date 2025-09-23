@@ -5,18 +5,38 @@ import { Modal, ModalBody, ModalContent } from "@heroui/modal";
 import { BoardStatus } from "@/types";
 import { RestartActions } from "@/types/actions";
 import { GameStore } from "@/store";
+import { Player } from "@/types/player";
 
 interface props {
   boardStatus: BoardStatus;
   rematchStatus: RestartActions | null;
+  player: Player;
 }
 
-const GameStatus = ({ boardStatus, rematchStatus }: props) => {
+const GameStatus = ({ boardStatus, rematchStatus, player }: props) => {
   const { nextPlayer } = GameStore();
 
   return (
     <>
-      <p>{nextPlayer}&apos;s Turn.</p>
+      <div className="flex w-full justify-center gap-5 text-2xl font-semibold">
+        <div className="w-full text-end">
+          {player.marker === "X" ? "You" : "Opp"}
+          <span
+            className={player.marker === "X" ? "ml-2 text-primary" : "ml-2"}
+          >
+            X
+          </span>
+        </div>
+        <div>:</div>
+        <div className="w-full text-start">
+          <span
+            className={player.marker === "O" ? "mr-2 text-primary" : "mr-2"}
+          >
+            O
+          </span>
+          {player.marker === "O" ? "You" : "Opp"}
+        </div>
+      </div>
       <Status boardStatus={boardStatus} rematchStatus={rematchStatus} />
 
       <Modal
@@ -48,7 +68,7 @@ const GameStatus = ({ boardStatus, rematchStatus }: props) => {
   );
 };
 
-const Status = ({ rematchStatus, boardStatus }: props) => {
+const Status = ({ rematchStatus, boardStatus }: Omit<props, "player">) => {
   const { rematch, resign } = GameStore();
 
   const [resignConfirm, setResignConfirm] = useState(false);

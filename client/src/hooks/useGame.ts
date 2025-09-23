@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Board, BoardStatus, socketEvent } from "@/types";
 import { playerActions, RestartActions } from "@/types/actions";
 import { GameStore, PlayerStore, RoomStore } from "@/store";
-import { PlayerInfo } from "@/types/player";
+import { marker } from "@/types/player";
 
 enum RoomStatus {
   loading = "loading",
@@ -47,7 +47,7 @@ const useGame = () => {
     // eslint-disable-next-line no-console
     console.info("Connected");
 
-    let playerMarker: PlayerInfo["marker"] = null;
+    let playerMarker: marker = null;
 
     // handle on connection established
     ws.onopen = () => {
@@ -59,13 +59,15 @@ const useGame = () => {
       const e: socketEvent = JSON.parse(event.data);
       const eventName = e.event;
 
-      // eslint-disable-next-line no-console
-      console.log(e);
+      if (e.event !== "Ping") {
+        // eslint-disable-next-line no-console
+        console.log(e);
+      }
 
       switch (eventName) {
         case "GameUpdate":
           if (mode === "Local") {
-            setPlayer(e.data.next_player.marker);
+            setPlayer({ marker: e.data.next_player.marker, id: "" });
             playerMarker = e.data.next_player.marker;
           }
 
@@ -87,7 +89,7 @@ const useGame = () => {
                 message = "PlayerJoined";
                 break;
               } else {
-                playerMarker = e.data.player;
+                playerMarker = e.data.player.marker;
 
                 sessionStorage.setItem(
                   "roomId",
@@ -104,7 +106,7 @@ const useGame = () => {
               break;
 
             case playerActions.PlayerDisconnected:
-              if (e.data.player !== playerMarker) {
+              if (e.data.player.marker !== playerMarker) {
                 status = RoomStatus.disconnected;
                 message =
                   "Opponent disconnected \n Waiting for opponent to reconnect...";
