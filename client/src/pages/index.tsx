@@ -3,7 +3,7 @@ import { Input } from "@heroui/input";
 import { button as buttonStyles } from "@heroui/theme";
 import { useNavigate, Link } from "react-router-dom";
 
-import { Controller, Group } from "@/components/icons";
+import { Controller, Dice, Group } from "@/components/icons";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 
@@ -37,7 +37,7 @@ export default function IndexPage() {
               to="/create"
             >
               <Controller />
-              Host
+              Play
             </Link>
             <Link
               className={buttonStyles({ variant: "bordered", radius: "full" })}
@@ -45,6 +45,13 @@ export default function IndexPage() {
             >
               <Group />
               Rooms
+            </Link>
+            <Link
+              className={`aspect-square !min-w-8 !p-1 ${buttonStyles({ variant: "bordered", radius: "full" })}`}
+              title="Random room"
+              to="/quick"
+            >
+              <Dice size={20} />
             </Link>
           </div>
 
