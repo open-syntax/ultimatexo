@@ -14,7 +14,7 @@ pub struct GameEngine {
 impl GameEngine {
     pub fn new(difficulty: Option<u8>) -> Self {
         Self {
-            state: GameState::new(difficulty, None),
+            state: GameState::new(difficulty, None, None),
         }
     }
     pub fn make_move(&mut self, mv: [usize; 2]) -> Result<(), AppError> {
@@ -258,7 +258,11 @@ impl GameEngine {
     }
 
     pub fn rematch_game(&mut self, difficulty: Option<u8>) {
-        let players = self.state.players.clone();
-        self.state = GameState::new(difficulty, Some(players));
+        self.state = GameState::new(difficulty, Some(self.state.players.clone()), Some(self.state.score));
+        self.set_board_status(Status::InProgress);
+    }
+
+    pub fn draw_game(&mut self) {
+        self.set_board_status(Status::Draw);
     }
 }

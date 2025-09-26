@@ -19,6 +19,7 @@ impl MessageHandler {
         room: Arc<Room>,
         ctx: &ConnectionContext,
     ) -> Result<(), AppError> {
+        dbg!(&message);
         match message {
             ClientMessage::TextMessage { content } => {
                 self.handle_text_message(room, content, ctx).await
@@ -121,15 +122,17 @@ impl MessageHandler {
                     game.request_rematch(player_id.clone());
                 }
                 RoomType::LocalRoom => {
-                    self.handle_resign_request(room.clone(), ctx).await?;
                     game.rematch_game(None);
+                    drop(game);
                     room.send_board().await;
+                    return Ok(());
                 }
                 RoomType::BotRoom => {
-                    self.handle_resign_request(room.clone(), ctx).await?;
                     let difficulty = game.state.difficulty;
                     game.rematch_game(Some(difficulty));
+                    drop(game);
                     room.send_board().await;
+                    return Ok(());
                 }
             },
 
@@ -161,55 +164,52 @@ impl MessageHandler {
         ctx: &ConnectionContext,
         action: Action,
     ) -> Result<(), AppError> {
-        if room.info.room_type == RoomType::Standard {
-            return Ok(());
-        }
         let player_id = &ctx.player_id;
         let marker = room.get_player(player_id).await?.info.marker;
 
         let mut game = room.game.lock().await;
-
-        match action {
-            Action::Accept => {
-                if !game.has_pending_draw() {
-                    return Err(AppError::game_still_ongoing());
-                }
-
-                if game.is_pending_draw_from(player_id) {
-                    return Err(AppError::not_allowed());
-                }
-
-                game.set_board_status(Status::Draw);
-                room.send_board().await;
-                game.clear_draw_request();
-            }
-
-            Action::Request => {
-                if game.get_board_status().ne(&Status::InProgress) {
-                    return Err(AppError::game_has_ended());
-                }
-                game.request_draw(player_id.clone());
-            }
-
-            Action::Decline => {
-                if !game.has_pending_draw() {
-                    return Err(AppError::game_still_ongoing());
-                }
-
-                if game.is_pending_draw_from(player_id) {
-                    return Err(AppError::not_player_turn());
-                }
-                game.clear_draw_request();
-            }
+        if game.get_board_status().ne(&Status::InProgress) {
+            return Err(AppError::game_has_ended());
         }
 
+        match room.info.room_type {
+            RoomType::Standard => match action {
+                Action::Accept => {
+                    if !game.has_pending_draw() || game.is_pending_draw_from(player_id) {
+                        return Err(AppError::not_allowed());
+                    }
+                    game.draw_game();
+                    game.clear_draw_request();
+                    drop(game);
+                    room.send_board().await;
+                    return Ok(());
+                }
+                Action::Request => {
+                    game.request_draw(player_id.clone());
+                }
+
+                Action::Decline => {
+                    if !game.has_pending_draw() {
+                        return Err(AppError::not_allowed());
+                    }
+                    if game.is_pending_draw_from(player_id) {
+                        return Err(AppError::not_allowed());
+                    }
+                    game.clear_draw_request();
+                }
+            },
+            _ => {
+                return Err(AppError::not_allowed());
+            }
+        };
+
         room.tx
-            .send(ServerMessage::DrawRequest {
+            .send(ServerMessage::GameRestart {
                 action,
                 player: marker,
             })
             .await
-            .map_err(|e| AppError::internal_error(format!("Failed to broadcast draw: {}", e)))?;
+            .map_err(|e| AppError::internal_error(format!("Failed to broadcast rematch: {}", e)))?;
 
         Ok(())
     }

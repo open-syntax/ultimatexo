@@ -95,14 +95,14 @@ pub struct GameState {
     pub difficulty: u8,
 }
 impl GameState {
-    pub fn new(difficulty: Option<u8>, players: Option<Vec<PlayerInfo>>) -> Self {
+    pub fn new(difficulty: Option<u8>, players: Option<Vec<PlayerInfo>>, score: Option<[usize; 2]>) -> Self {
         Self {
             players: players.unwrap_or_default(),
             current_index: 0,
             board: Board::default(),
             next_board: None,
             last_move: None,
-            score: [0, 0],
+            score: score.unwrap_or([0, 0]),
             pending_rematch: None,
             pending_draw: None,
             difficulty: difficulty.unwrap_or_default(),
