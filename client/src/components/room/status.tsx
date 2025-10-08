@@ -1,20 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@heroui/button";
 import { Modal, ModalBody, ModalContent } from "@heroui/modal";
 
 import { BoardStatus } from "@/types";
-import { RestartActions } from "@/types/actions";
+import { GameAction } from "@/types/actions";
 import { GameStore } from "@/store";
 import { Player } from "@/types/player";
 
 interface props {
   boardStatus: BoardStatus;
-  rematchStatus: RestartActions | null;
+  rematchStatus: GameAction | null;
   player: Player;
+  drawStatus: GameAction | null;
 }
 
-const GameStatus = ({ boardStatus, rematchStatus, player }: props) => {
-  const { nextPlayer } = GameStore();
+const GameStatus = ({ rematchStatus, drawStatus, player }: props) => {
+  const { nextPlayer, rematch, draw } = GameStore();
+
+  const [isOpen, setIsOepn] = useState(false);
+
+  useEffect(() => {
+    if (
+      rematchStatus === GameAction.Requested ||
+      drawStatus === GameAction.Requested
+    ) {
+      setIsOepn(true);
+    }
+  }, [rematchStatus, drawStatus]);
 
   return (
     <>
@@ -37,25 +49,29 @@ const GameStatus = ({ boardStatus, rematchStatus, player }: props) => {
           {player.marker === "O" ? "You" : "Opp"}
         </div>
       </div>
-      <Status boardStatus={boardStatus} rematchStatus={rematchStatus} />
 
-      <Modal
-        isOpen={rematchStatus === RestartActions.Requested}
-        placement="center"
-      >
+      <Modal isOpen={isOpen} placement="center" onOpenChange={setIsOepn}>
         <ModalContent className="w-fit">
           <ModalBody className="w-fit">
             <div className="flex flex-col items-center gap-4 px-8 py-4">
-              <p>Opponent wants to rematch.</p>
+              <p>Opponent wants to {!!rematchStatus ? "rematch" : "draw"}.</p>
               <div className="flex gap-2">
                 <Button
                   color="primary"
-                  onPress={() => GameStore().rematch(RestartActions.Accepted)}
+                  onPress={() => {
+                    if (!!rematchStatus) rematch(GameAction.Accepted);
+                    else draw(GameAction.Accepted);
+
+                    console.log("pressed");
+                  }}
                 >
                   Accept
                 </Button>
                 <Button
-                  onPress={() => GameStore().rematch(RestartActions.Declined)}
+                  onPress={() => {
+                    if (!!rematchStatus) rematch(GameAction.Declined);
+                    else draw(GameAction.Declined);
+                  }}
                 >
                   Decline
                 </Button>
@@ -68,69 +84,25 @@ const GameStatus = ({ boardStatus, rematchStatus, player }: props) => {
   );
 };
 
-const Status = ({ rematchStatus, boardStatus }: Omit<props, "player">) => {
-  const { rematch, resign } = GameStore();
-
-  const [resignConfirm, setResignConfirm] = useState(false);
-
-  if (rematchStatus === RestartActions.Sent)
-    return <div>Waiting for Opponent...</div>;
-
-  switch (boardStatus) {
-    case BoardStatus.Paused:
-      return <p>Game Paused.</p>;
-    case BoardStatus.X:
-      return (
-        <Rematch player="X" onClick={() => rematch(RestartActions.Requested)} />
-      );
-    case BoardStatus.O:
-      return (
-        <Rematch player="O" onClick={() => rematch(RestartActions.Requested)} />
-      );
-    case BoardStatus.Draw:
-      return <p>Draw.</p>;
-    default:
-      return resignConfirm ? (
-        <div className="flex flex-col items-center gap-2">
-          <p>Are you sure you want to resign?</p>
-          <div className="flex gap-2">
-            <Button
-              color="primary"
-              onPress={() => {
-                resign();
-                setResignConfirm(false);
-              }}
-            >
-              Yes
-            </Button>
-            <Button onPress={() => setResignConfirm(false)}>No</Button>
-          </div>
-        </div>
-      ) : (
-        <Button onPress={() => setResignConfirm(true)}>Resign</Button>
-      );
-  }
-};
-
-const Rematch = ({
-  player,
-  onClick,
-}: {
-  player: "X" | "O" | "Draw";
-  onClick?: () => void;
-}) => {
-  return (
-    <>
-      <p>{player === "Draw" ? "Draw!" : `Player ${player} Won!`}</p>
-      <Button
-        className="w-fit animate-appearance-in"
-        color="primary"
-        onPress={onClick}
-      >
-        Rematch?
-      </Button>
-    </>
-  );
-};
+// const Rematch = ({
+//   player,
+//   onClick,
+// }: {
+//   player: "X" | "O" | "Draw";
+//   onClick?: () => void;
+// }) => {
+//   return (
+//     <>
+//       <p>{player === "Draw" ? "Draw!" : `Player ${player} Won!`}</p>
+//       <Button
+//         className="w-fit animate-appearance-in"
+//         color="primary"
+//         onPress={onClick}
+//       >
+//         Rematch?
+//       </Button>
+//     </>
+//   );
+// };
 
 export default GameStatus;

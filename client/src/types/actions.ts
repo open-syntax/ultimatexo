@@ -4,7 +4,7 @@ export enum playerActions {
   PlayerDisconnected = "Disconnected",
 }
 
-export enum RestartActions {
+export enum GameAction {
   Sent = "Sent",
   Requested = "Request",
   Accepted = "Accept",

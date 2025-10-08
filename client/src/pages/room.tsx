@@ -13,6 +13,7 @@ import Chat from "@/components/room/chat";
 import GameStatus from "@/components/room/status";
 import useGame from "@/hooks/useGame";
 import { RoomStore } from "@/store";
+import Actions from "@/components/room/actions";
 
 interface roomResponse {
   id: string;
@@ -37,7 +38,8 @@ enum RoomStatus {
 
 function RoomPage() {
   let { roomId } = useParams();
-  const { player, board, status, rematchStatus, setStatus } = useGame();
+  const { player, board, status, rematchStatus, drawStatus, setStatus } =
+    useGame();
   const { setWs, setMode } = RoomStore();
   let { state } = useLocation();
 
@@ -171,12 +173,14 @@ function RoomPage() {
               boardStatus={board.status}
               player={player}
               rematchStatus={rematchStatus}
+              drawStatus={drawStatus}
             />
           </div>
           <div>
             <Board board={board} />
             <Chat />
           </div>
+          <Actions drawStatus={drawStatus} />
         </div>
       ) : (
         <RoomLayout>

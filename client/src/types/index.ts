@@ -1,7 +1,7 @@
 import { SVGProps } from "react";
 
 import { marker, Player } from "./player";
-import { playerActions, RestartActions } from "./actions";
+import { playerActions, GameAction } from "./actions";
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
@@ -60,7 +60,14 @@ export type socketEvent =
   | {
       event: "GameRestart";
       data: {
-        action: RestartActions;
+        action: GameAction;
+        player: marker;
+      };
+    }
+  | {
+      event: "DrawRequest";
+      data: {
+        action: GameAction;
         player: marker;
       };
     }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Board, BoardStatus, socketEvent } from "@/types";
-import { playerActions, RestartActions } from "@/types/actions";
+import { playerActions, GameAction } from "@/types/actions";
 import { GameStore, PlayerStore, RoomStore } from "@/store";
 import { marker } from "@/types/player";
 
@@ -28,9 +28,8 @@ const useGame = () => {
   const { setMove, setNextPlayer } = GameStore();
   const { pushMessage, clearChat, ws, mode } = RoomStore();
 
-  const [rematchStatus, setRematchStatus] = useState<RestartActions | null>(
-    null,
-  );
+  const [rematchStatus, setRematchStatus] = useState<GameAction | null>(null);
+  const [drawStatus, setDrawStatus] = useState<GameAction | null>(null);
 
   const [board, setBoard] = useState<{
     boards: Board;
@@ -131,20 +130,35 @@ const useGame = () => {
 
         case "GameRestart":
           switch (e.data.action) {
-            case RestartActions.Requested:
+            case GameAction.Requested:
               if (e.data.player === playerMarker) {
-                setRematchStatus(RestartActions.Sent);
+                setRematchStatus(GameAction.Sent);
               } else {
-                setRematchStatus(RestartActions.Requested);
+                setRematchStatus(GameAction.Requested);
               }
               break;
-            case RestartActions.Accepted:
-              setRematchStatus(RestartActions.Accepted);
-              break;
-            case RestartActions.Declined:
-              setRematchStatus(RestartActions.Declined);
+            default:
+              setRematchStatus(e.data.action);
               break;
           }
+          break;
+
+        case "DrawRequest":
+          switch (e.data.action) {
+            case GameAction.Requested:
+              if (e.data.player === playerMarker) {
+                setDrawStatus(GameAction.Sent);
+              } else {
+                setDrawStatus(GameAction.Requested);
+              }
+              break;
+            default:
+              setDrawStatus(e.data.action);
+              break;
+          }
+          break;
+
+        default:
           break;
 
         case "TextMessage":
@@ -190,6 +204,7 @@ const useGame = () => {
     board,
     status,
     rematchStatus,
+    drawStatus,
     setStatus,
     player,
   };
