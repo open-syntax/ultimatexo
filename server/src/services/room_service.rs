@@ -1,7 +1,5 @@
 use dashmap::DashMap;
-use std::{
-    sync::{Arc, atomic::Ordering},
-};
+use std::sync::{Arc, atomic::Ordering};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
@@ -52,9 +50,13 @@ impl RoomService {
         let current_count = room.get_player_count();
 
         if payload.is_reconnecting {
-            self.rules
-                .can_reconnect_room(current_count, room.is_pending_cleanup().await, &payload.player_id)?;
-            self.handle_reconnection(room, payload.player_id.unwrap()).await
+            self.rules.can_reconnect_room(
+                current_count,
+                room.is_pending_cleanup().await,
+                &payload.player_id,
+            )?;
+            self.handle_reconnection(room, payload.player_id.unwrap())
+                .await
         } else {
             self.rules.can_join_room(
                 &room.info,
@@ -120,12 +122,14 @@ impl RoomService {
 
         let disconnect_msg = ServerMessage::PlayerUpdate {
             action: PlayerAction::Disconnected,
-            player: SerizlizedPlayer::new(room
-                .get_player(&leaving_player_id.to_string())
-                .await
-                .unwrap()
-                .info
-                .marker, None),
+            player: SerizlizedPlayer::new(
+                room.get_player(&leaving_player_id.to_string())
+                    .await
+                    .unwrap()
+                    .info
+                    .marker,
+                None,
+            ),
         };
 
         if let Ok(other_player) = room.get_other_player(&leaving_player_id.to_string()).await
@@ -213,7 +217,7 @@ impl RoomService {
         room: Arc<Room>,
         player_id: String,
     ) -> Result<(Arc<Room>, String), AppError> {
-        if let Ok(_) = room.get_player(&player_id).await {
+        if room.get_player(&player_id).await.is_ok() {
             if let Some(token) = room.deletion_token.lock().await.take() {
                 token.cancel();
             }

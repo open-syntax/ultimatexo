@@ -20,8 +20,9 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
+use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize, ToSchema)]
 #[serde(default)]
 pub struct RoomInfo {
     pub id: String,
@@ -43,7 +44,7 @@ pub enum BotLevel {
     Advanced,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq, Default, ToSchema)]
 pub enum RoomType {
     #[default]
     Standard,
@@ -281,5 +282,4 @@ impl Room {
         };
         let _ = self.tx.send(msg).await;
     }
-
 }

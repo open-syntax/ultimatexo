@@ -5,7 +5,8 @@ mod room;
 
 pub use game::{Board, GameState, MacroBoard, Marker, Status};
 pub use messages::{
-    Action, ClientMessage, PlayerAction, RoomNameQuery, ServerMessage, WebSocketQuery, SerizlizedPlayer
+    Action, ClientMessage, GetRoomQuery, PlayerAction, SerizlizedPlayer, ServerMessage,
+    WebSocketQuery,
 };
 pub use player::{Player, PlayerInfo};
 pub use room::{Room, RoomInfo, RoomType};

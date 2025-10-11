@@ -1,7 +1,7 @@
 use crate::{
     app::AppState,
     error::AppError,
-    handlers::{ConnectionContext, spawn_heartbeat_task, spawn_receive_task, spawn_send_task},
+    handlers::{ConnectionContext, spawn_receive_task, spawn_send_task},
     models::{
         Marker, PlayerAction, Room, RoomType, SerizlizedPlayer, ServerMessage, Status,
         WebSocketQuery,
@@ -15,19 +15,54 @@ use axum::{
     response::Response,
 };
 
+#[cfg(not(debug_assertions))]
+use crate::handlers::spawn_heartbeat_task;
 use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
 };
-use std::{
-    sync::Arc,
-};
+use std::sync::Arc;
 use tokio::{sync::Mutex, try_join};
 use tracing::{error, info, warn};
 
 pub type Sender = Arc<Mutex<SplitSink<WebSocket, Message>>>;
 type Receiver = SplitStream<WebSocket>;
 
+#[utoipa::path(
+    get,
+    path = "/ws/{room_id}",
+    params(
+        ("room_id" = String, Path, description = "The unique identifier of the room to join"),
+        WebSocketQuery
+    ),
+    responses(
+        (status = 101, description = "WebSocket connection established"),
+        (status = 400, description = "Invalid room or authentication failed"),
+        (status = 404, description = "Room not found")
+    ),
+    description = r#"
+### Message Format
+
+All messages are JSON-encoded with a type/event discriminator:
+
+**Client Messages:**
+```json
+{
+  "type": "TextMessage|GameUpdate|RematchRequest|DrawRequest|Resign|Pong|Close",
+  "data": { ... }
+}
+```
+
+**Server Messages:**
+```json
+{
+  "event": "TextMessage|GameUpdate|PlayerUpdate|RematchRequest|DrawRequest|Ping|Error",
+  "data": { ... }
+}
+```
+    "#,
+    tag = "websocket"
+)]
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
     Path(room_id): Path<String>,
@@ -148,7 +183,9 @@ async fn handle_player_connection(
         })
         .unwrap();
     let other_player = room.get_other_player(&ctx.player_id).await;
-    if let Ok(player) = other_player && room.info.room_type == RoomType::Standard {
+    if let Ok(player) = other_player
+        && room.info.room_type == RoomType::Standard
+    {
         player
             .tx
             .unwrap()
@@ -175,4 +212,3 @@ async fn send_error_and_close(
     sender.lock().await.close().await?;
     Ok(())
 }
-

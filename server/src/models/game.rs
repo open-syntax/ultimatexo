@@ -2,8 +2,9 @@ use super::PlayerInfo;
 use anyhow::Result;
 use serde::{Deserialize, Serialize, Serializer};
 use std::ops::Not;
+use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Copy, PartialEq, Deserialize, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize, Eq, ToSchema)]
 pub enum Marker {
     Empty,
     X,
@@ -39,13 +40,18 @@ impl Not for Marker {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, ToSchema)]
 pub enum Status {
+    #[schema(title = "WaitingForPlayers")]
     WaitingForPlayers,
+    #[schema(title = "InProgress")]
     #[default]
     InProgress,
+    #[schema(title = "Paused")]
     Paused,
+    #[schema(title = "Won")]
     Won(Marker),
+    #[schema(title = "Draw")]
     Draw,
 }
 
@@ -63,13 +69,13 @@ impl Serialize for Status {
         }
     }
 }
-#[derive(Debug, Default, Clone, Copy, Serialize)]
+#[derive(Debug, Default, Clone, Copy, Serialize, ToSchema)]
 pub struct MacroBoard {
     pub cells: [Marker; 9],
     pub status: Status,
 }
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Serialize, Debug, ToSchema)]
 pub struct Board {
     pub boards: [MacroBoard; 9],
     pub status: Status,
@@ -95,7 +101,11 @@ pub struct GameState {
     pub difficulty: u8,
 }
 impl GameState {
-    pub fn new(difficulty: Option<u8>, players: Option<Vec<PlayerInfo>>, score: Option<[usize; 2]>) -> Self {
+    pub fn new(
+        difficulty: Option<u8>,
+        players: Option<Vec<PlayerInfo>>,
+        score: Option<[usize; 2]>,
+    ) -> Self {
         Self {
             players: players.unwrap_or_default(),
             current_index: 0,

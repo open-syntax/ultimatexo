@@ -258,7 +258,11 @@ impl GameEngine {
     }
 
     pub fn rematch_game(&mut self, difficulty: Option<u8>) {
-        self.state = GameState::new(difficulty, Some(self.state.players.clone()), Some(self.state.score));
+        self.state = GameState::new(
+            difficulty,
+            Some(self.state.players.clone()),
+            Some(self.state.score),
+        );
         self.set_board_status(Status::InProgress);
     }
 

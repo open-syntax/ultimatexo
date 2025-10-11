@@ -32,7 +32,8 @@ impl RoomRules for StandardRoomRules {
         pending_shutdown: bool,
         player_id: &Option<String>,
     ) -> Result<(), AppError> {
-        if current_player_count < self.get_max_players() && pending_shutdown && player_id.is_some() {
+        if current_player_count < self.get_max_players() && pending_shutdown && player_id.is_some()
+        {
             return Ok(());
         }
         Err(AppError::not_allowed())

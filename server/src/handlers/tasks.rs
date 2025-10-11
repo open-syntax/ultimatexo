@@ -6,27 +6,29 @@ use crate::{
 use anyhow::Result;
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::{SinkExt, StreamExt, stream::SplitStream};
-use std::{
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-    },
-    time::Duration,
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
 };
 use tokio::{
-    sync::{
-        RwLock,
+    sync::
         mpsc::{UnboundedReceiver, UnboundedSender},
-    },
+
     task::JoinHandle,
-    time::{Instant, interval},
 };
-use tracing::{debug, error, warn};
+use tracing::{error, warn};
+
+#[cfg(not(debug_assertions))]
+use tokio::{
+    sync::RwLock,
+    time::Instant,
+};
 
 use super::Sender;
 pub struct ConnectionContext {
     pub player_id: String,
     pub player_tx: UnboundedSender<ServerMessage>,
+    #[cfg(not(debug_assertions))]
     pub last_pong: Arc<RwLock<Instant>>,
     pub is_closing: Arc<AtomicBool>,
 }
@@ -36,13 +38,18 @@ impl ConnectionContext {
         Self {
             player_id,
             player_tx,
+            #[cfg(not(debug_assertions))]
             last_pong: Arc::new(RwLock::new(Instant::now())),
             is_closing: Arc::new(AtomicBool::new(false)),
         }
     }
 }
 
+#[cfg(not(debug_assertions))]
 pub fn spawn_heartbeat_task(ctx: Arc<ConnectionContext>) -> JoinHandle<()> {
+    use std::time::Duration;
+    use tokio::time::interval;
+    use tracing::debug;
     tokio::spawn(async move {
         let mut interval = interval(Duration::from_millis(300));
 

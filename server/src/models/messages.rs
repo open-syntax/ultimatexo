@@ -3,25 +3,34 @@ use crate::{error::AppError, models::Marker};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string;
+use utoipa::{IntoParams, ToSchema};
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, ToSchema)]
 pub enum ClientMessage {
+    #[schema(title = "TextMessage")]
     TextMessage { content: String },
+    #[schema(title = "GameUpdate")]
     GameUpdate { mv: [usize; 2] },
-    GameRestart { action: Action },
+    #[schema(title = "RematchRequest")]
+    RematchRequest { action: Action },
+    #[schema(title = "DrawRequest")]
     DrawRequest { action: Action },
+    #[schema(title = "Resign")]
     Resign,
+    #[cfg(not(debug_assertions))]
+    #[schema(title = "Pong")]
     Pong,
+    #[serde(skip)]
     Close,
 }
-#[derive(Serialize, Debug, Deserialize, Clone)]
+#[derive(Serialize, Debug, Deserialize, Clone, ToSchema)]
 pub enum Action {
     Request,
     Accept,
     Decline,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema, IntoParams)]
 pub struct WebSocketQuery {
     pub password: Option<String>,
     #[serde(default)]
@@ -29,12 +38,12 @@ pub struct WebSocketQuery {
     pub player_id: Option<String>,
 }
 
-#[derive(Deserialize)]
-pub struct RoomNameQuery {
+#[derive(Deserialize, ToSchema)]
+pub struct GetRoomQuery {
     pub name: Option<String>,
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, ToSchema)]
 pub struct SerizlizedPlayer {
     pub marker: Marker,
     pub id: Option<String>,
@@ -46,35 +55,43 @@ impl SerizlizedPlayer {
     }
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, ToSchema)]
 #[serde(tag = "event", content = "data")]
 pub enum ServerMessage {
+    #[schema(title = "TextMessage")]
     TextMessage {
         content: String,
         player: PlayerInfo,
     },
+    #[schema(title = "GameUpdate")]
     GameUpdate {
         board: Board,
         next_player: PlayerInfo,
         next_board: Option<usize>,
         last_move: Option<[usize; 2]>,
         score: [usize; 2],
-    }, 
+    },
+    #[schema(title = "PlayerUpdate")]
     PlayerUpdate {
         action: PlayerAction,
         player: SerizlizedPlayer,
     },
-    GameRestart {
+    #[schema(title = "RematchRequest")]
+    RematchRequest {
         action: Action,
         player: Marker,
     },
+    #[schema(title = "DrawRequest")]
     DrawRequest {
         action: Action,
         player: Marker,
     },
     #[serde(skip_serializing)]
     Close,
+    #[cfg(not(debug_assertions))]
+    #[schema(title = "Ping")]
     Ping,
+    #[schema(title = "Error")]
     Error(AppError),
 }
 impl ServerMessage {
@@ -83,7 +100,7 @@ impl ServerMessage {
     }
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, ToSchema)]
 pub enum PlayerAction {
     Joined,
     Left,

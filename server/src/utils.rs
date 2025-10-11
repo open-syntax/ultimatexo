@@ -4,6 +4,7 @@ use crate::{
     models::{Action, ClientMessage, Marker, Room, RoomType, ServerMessage, Status},
 };
 use std::{borrow::Cow, sync::Arc};
+#[cfg(not(debug_assertions))]
 use tokio::time::Instant;
 
 pub struct MessageHandler;
@@ -25,7 +26,7 @@ impl MessageHandler {
                 self.handle_text_message(room, content, ctx).await
             }
             ClientMessage::GameUpdate { mv } => self.handle_game_update(room, mv, ctx).await,
-            ClientMessage::GameRestart { action } => {
+            ClientMessage::RematchRequest { action } => {
                 self.handle_game_rematch(room, ctx, action).await
             }
             ClientMessage::DrawRequest { action } => {
@@ -33,6 +34,7 @@ impl MessageHandler {
             }
             ClientMessage::Resign => self.handle_resign_request(room, ctx).await,
             ClientMessage::Close => self.handle_close_request(room, ctx).await,
+            #[cfg(not(debug_assertions))]
             ClientMessage::Pong => self.handle_pong_response(ctx).await,
         }
     }
@@ -148,7 +150,7 @@ impl MessageHandler {
         }
 
         room.tx
-            .send(ServerMessage::GameRestart {
+            .send(ServerMessage::RematchRequest {
                 action,
                 player: marker,
             })
@@ -204,7 +206,7 @@ impl MessageHandler {
         };
 
         room.tx
-            .send(ServerMessage::GameRestart {
+            .send(ServerMessage::DrawRequest {
                 action,
                 player: marker,
             })
@@ -252,7 +254,7 @@ impl MessageHandler {
 
         Ok(())
     }
-
+    #[cfg(not(debug_assertions))]
     async fn handle_pong_response(&self, ctx: &ConnectionContext) -> Result<(), AppError> {
         let mut last_pong = ctx.last_pong.write().await;
         *last_pong = Instant::now();

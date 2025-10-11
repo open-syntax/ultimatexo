@@ -2,8 +2,9 @@
 use axum::extract::rejection::{JsonRejection, PathRejection, QueryRejection};
 use serde::Serialize;
 use thiserror::Error;
+use utoipa::ToSchema;
 
-#[derive(Error, Debug, Serialize, Clone)]
+#[derive(Error, Debug, Serialize, Clone, ToSchema)]
 #[serde(tag = "type", content = "details")]
 pub enum AppError {
     #[error("Game error: {0}")]
@@ -38,7 +39,7 @@ pub enum AppError {
     NotFound { message: String },
 }
 
-#[derive(Error, Debug, Clone, Serialize)]
+#[derive(Error, Debug, Clone, Serialize, ToSchema)]
 pub enum GameError {
     #[error("Invalid move")]
     InvalidMove,
@@ -59,7 +60,7 @@ pub enum GameError {
     AIMoveFailed,
 }
 
-#[derive(Error, Debug, Clone, Serialize)]
+#[derive(Error, Debug, Clone, Serialize, ToSchema)]
 pub enum RoomError {
     #[error("Room not found")]
     NotFound,
@@ -74,13 +75,13 @@ pub enum RoomError {
     Closed,
 }
 
-#[derive(Error, Debug, Clone, Serialize)]
+#[derive(Error, Debug, Clone, Serialize, ToSchema)]
 pub enum PlayerError {
     #[error("Player not found")]
     NotFound,
 }
 
-#[derive(Error, Debug, Clone, Serialize)]
+#[derive(Error, Debug, Clone, Serialize, ToSchema)]
 pub enum ValidationError {
     #[error("Invalid format: {field} - {expected_format}")]
     InvalidFormat {
@@ -92,7 +93,7 @@ pub enum ValidationError {
     MissingField { field: String },
 }
 
-#[derive(Error, Debug, Clone, Serialize)]
+#[derive(Error, Debug, Clone, Serialize, ToSchema)]
 pub enum SanitizeError {
     #[error("Message exceeds maximum length of {max} characters")]
     TooLong { max: usize },
