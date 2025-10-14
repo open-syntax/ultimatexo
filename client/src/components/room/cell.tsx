@@ -9,7 +9,7 @@ interface CellProps {
   mark: boardCell;
   board: number;
   index: number;
-  boardStatus: BoardStatus;
+  boardStatus: BoardStatus | null;
 }
 
 function Cell({ boardStatus, mark, board, index }: CellProps) {

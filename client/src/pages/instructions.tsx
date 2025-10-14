@@ -16,9 +16,9 @@ function Instructions() {
           </CardHeader>
           <CardBody className="space-y-4">
             <p>
-              Ultimate XO is played on a 3x3 grid of smaller
-              Tic-Tac-Toe, The goal is to win 3 smaller boards in a row, column,
-              or diagonal to claim victory on the main grid.
+              UltimateXO is played on a 3x3 grid of smaller Tic-Tac-Toe, The
+              goal is to win 3 smaller boards in a row, column, or diagonal to
+              claim victory on the main grid.
             </p>
             <img
               alt="board"

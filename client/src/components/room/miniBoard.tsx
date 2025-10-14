@@ -10,7 +10,7 @@ import { boardCell, BoardStatus, miniBoard } from "@/types/index";
 interface MiniBoardProps {
   board: miniBoard;
   index: number;
-  status: BoardStatus;
+  status: BoardStatus | null;
 }
 
 function MiniBoard({ board, status, index }: MiniBoardProps) {

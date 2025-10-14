@@ -20,7 +20,7 @@ export const Navbar = () => {
     <HeroUINavbar maxWidth="xl" position="sticky">
       <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
         <NavbarBrand className="max-w-fit gap-3">
-          <p className="font-bold text-inherit">Ultimate XO</p>
+          <p className="font-bold text-inherit">UltimateXO</p>
         </NavbarBrand>
         <div className="ml-2 hidden justify-start gap-4 sm:flex">
           {siteConfig.navItems.map((item) => (
@@ -55,7 +55,7 @@ export const Navbar = () => {
           <Link title="Ko-Fi" to={siteConfig.links.sponsor}>
             <img
               alt="Ko-Fi"
-              className="h-6 grayscale hover:grayscale-0 transition"
+              className="h-6 grayscale transition hover:grayscale-0"
               src="https://storage.ko-fi.com/cdn/brandasset/v2/kofi_symbol.png?_gl=1*ysruwk*_gcl_au*MTc1OTkyNjA1MC4xNzU3MjkxNTM0*_ga*OTIwMzY1Mzk4LjE3NTcyOTE1Mzc.*_ga_M13FZ7VQ2C*czE3NTc2MzU2NzAkbzMkZzEkdDE3NTc2MzU5MTckajYwJGwwJGgw"
             />
           </Link>

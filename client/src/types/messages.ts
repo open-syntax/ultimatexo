@@ -1,5 +1,5 @@
-import { RestartActions } from "./actions";
-import { PlayerInfo } from "./player";
+import { GameAction } from "./actions";
+import { Player } from "./player";
 
 export type GameMove = {
   GameUpdate: {
@@ -15,11 +15,11 @@ export type TextMessage = {
 
 export type GameRestart = {
   GameRestart: {
-    action: RestartActions;
+    action: GameAction;
   };
 };
 
 export type Message = {
   content: string;
-  player: PlayerInfo;
+  player: { marker: Player["marker"] };
 };

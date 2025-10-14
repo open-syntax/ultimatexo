@@ -5,7 +5,7 @@ import { BoardStatus, Board as BoardType } from "@/types";
 interface params {
   board: {
     boards: BoardType;
-    status: BoardStatus;
+    status: BoardStatus | null;
   };
 }
 

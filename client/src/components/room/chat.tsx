@@ -13,7 +13,7 @@ import { PlayerStore, RoomStore } from "@/store";
 
 interface props {
   chat: Message[];
-  marker: marker;
+  marker?: marker;
   className?: string;
   handleMessageSend: (e: React.FormEvent<HTMLFormElement>) => void;
 
@@ -144,7 +144,7 @@ const Chat = () => {
               className="!h-full"
               handleMessageSend={handleMessageSend}
               input={input}
-              marker={player}
+              marker={player?.marker}
               setInput={setInput}
             />
           </DrawerBody>

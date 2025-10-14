@@ -30,10 +30,11 @@ const useGame = () => {
 
   const [rematchStatus, setRematchStatus] = useState<GameAction | null>(null);
   const [drawStatus, setDrawStatus] = useState<GameAction | null>(null);
+  const [score, setScore] = useState<[number, number]>([0, 0]);
 
   const [board, setBoard] = useState<{
     boards: Board;
-    status: BoardStatus;
+    status: BoardStatus | null;
   } | null>(null);
 
   const [status, setStatus] = useState<room>({
@@ -71,6 +72,8 @@ const useGame = () => {
           }
 
           setBoard(e.data.board);
+          setScore(e.data.score);
+
           setMove({
             nextMove: e.data.next_board,
             lastMove: e.data.last_move,
@@ -128,18 +131,12 @@ const useGame = () => {
           });
           break;
 
-        case "GameRestart":
-          switch (e.data.action) {
-            case GameAction.Requested:
-              if (e.data.player === playerMarker) {
-                setRematchStatus(GameAction.Sent);
-              } else {
-                setRematchStatus(GameAction.Requested);
-              }
-              break;
-            default:
-              setRematchStatus(e.data.action);
-              break;
+        case "RematchRequest":
+          if (e.data.player === playerMarker) {
+            if (e.data.action === GameAction.Requested)
+              setRematchStatus(GameAction.Sent);
+          } else {
+            setRematchStatus(e.data.action);
           }
           break;
 
@@ -202,6 +199,7 @@ const useGame = () => {
   return {
     ws,
     board,
+    score,
     status,
     rematchStatus,
     drawStatus,

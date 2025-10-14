@@ -1,7 +1,8 @@
 import { SVGProps } from "react";
 
-import { marker, Player } from "./player";
 import { playerActions, GameAction } from "./actions";
+
+import { marker, Player } from "@/types/player";
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
@@ -9,7 +10,6 @@ export type IconSvgProps = SVGProps<SVGSVGElement> & {
 
 export enum BoardStatus {
   WaitingForPlayers = "WaitingForPlayers",
-  InProgress = "InProgress",
   Paused = "Paused",
 
   // Won
@@ -44,10 +44,11 @@ export type socketEvent =
   | {
       event: "GameUpdate";
       data: {
-        board: { boards: Board; status: BoardStatus };
+        board: { boards: Board; status: BoardStatus | null };
         next_player: { marker: marker };
         next_board: number | null;
         last_move: [number, number] | null;
+        score: [number, number];
       };
     }
   | {
@@ -58,7 +59,7 @@ export type socketEvent =
       };
     }
   | {
-      event: "GameRestart";
+      event: "RematchRequest";
       data: {
         action: GameAction;
         player: marker;
@@ -75,7 +76,7 @@ export type socketEvent =
       event: "TextMessage";
       data: {
         content: string;
-        player: marker;
+        player: { marker: marker };
       };
     }
   | {

@@ -38,7 +38,7 @@ enum RoomStatus {
 
 function RoomPage() {
   let { roomId } = useParams();
-  const { player, board, status, rematchStatus, drawStatus, setStatus } =
+  const { player, board, status, score, rematchStatus, drawStatus, setStatus } =
     useGame();
   const { setWs, setMode } = RoomStore();
   let { state } = useLocation();
@@ -168,19 +168,22 @@ function RoomPage() {
         </RoomLayout>
       ) : board && player ? (
         <div className="container mx-auto my-auto flex h-[calc(100svh-64px-48px-64px)] max-w-7xl flex-grow flex-col justify-center gap-4 px-6">
-          <div className="flex flex-col items-center gap-2">
-            <GameStatus
-              boardStatus={board.status}
-              player={player}
-              rematchStatus={rematchStatus}
-              drawStatus={drawStatus}
-            />
-          </div>
+          <GameStatus
+            boardStatus={board.status}
+            drawStatus={drawStatus}
+            player={player}
+            rematchStatus={rematchStatus}
+            score={score}
+          />
           <div>
             <Board board={board} />
             <Chat />
           </div>
-          <Actions drawStatus={drawStatus} />
+          <Actions
+            boardStatus={board.status}
+            drawStatus={drawStatus}
+            rematchStatus={rematchStatus}
+          />
         </div>
       ) : (
         <RoomLayout>

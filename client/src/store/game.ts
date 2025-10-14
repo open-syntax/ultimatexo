@@ -44,7 +44,7 @@ const GameStore = create<store>((set) => ({
   rematch: (action) => {
     RoomStore.getState().ws?.send(
       JSON.stringify({
-        GameRestart: {
+        RematchRequest: {
           action,
         },
       }),
