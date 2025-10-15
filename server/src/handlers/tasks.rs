@@ -11,18 +11,13 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 use tokio::{
-    sync::
-        mpsc::{UnboundedReceiver, UnboundedSender},
-
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
     task::JoinHandle,
 };
 use tracing::{error, warn};
 
 #[cfg(not(debug_assertions))]
-use tokio::{
-    sync::RwLock,
-    time::Instant,
-};
+use tokio::{sync::RwLock, time::Instant};
 
 use super::Sender;
 pub struct ConnectionContext {

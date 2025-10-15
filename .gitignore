@@ -1,13 +1,48 @@
-.env
 
+
+node_modules/
+dist/
+build/
+coverage/
+*.log
+*.tmp
+*.temp
+*.cache
+.cache/
+.vite/
+vite.config.local.*
+*.local
+
+.env
+.env.*
+!.env.example
+
+.DS_Store
+Thumbs.db
 .idea/
 .vscode/
 *.swp
 *.swo
-logs
+
+target/
+
+*.rs.bk
 *.log
 
-node_modules/
+*.pid
+*.seed
+*.backup
+docker-compose.override.yml
+coverage/
+test-output/
+reports/
 
-# old client
-client(old)/
+tmp/
+temp/
+cache/
+*.bak
+*.orig
+*.rej
+
+
+.secrets.*

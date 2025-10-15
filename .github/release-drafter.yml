@@ -1,0 +1,188 @@
+# Release Drafter configuration
+# Automatically generates release notes from PR titles and labels
+
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+# Categories for organizing release notes
+categories:
+  - title: '🚀 Features'
+    labels:
+      - 'enhancement'
+      - 'feature'
+      - 'feat'
+  
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'bug'
+      - 'fix'
+      - 'bugfix'
+  
+  - title: '🔒 Security'
+    labels:
+      - 'security'
+  
+  - title: '⚡ Performance'
+    labels:
+      - 'performance'
+      - 'perf'
+  
+  - title: '📚 Documentation'
+    labels:
+      - 'documentation'
+      - 'docs'
+  
+  - title: '🏗️ Infrastructure'
+    labels:
+      - 'infrastructure'
+      - 'ci/cd'
+      - 'deployment'
+  
+  - title: '♻️ Refactoring'
+    labels:
+      - 'refactor'
+      - 'refactoring'
+  
+  - title: '🧪 Tests'
+    labels:
+      - 'tests'
+      - 'testing'
+  
+  - title: '📦 Dependencies'
+    labels:
+      - 'dependencies'
+      - 'deps'
+  
+  - title: '🔧 Maintenance'
+    labels:
+      - 'chore'
+      - 'maintenance'
+
+# Exclude certain labels from release notes
+exclude-labels:
+  - 'skip-changelog'
+  - 'duplicate'
+  - 'invalid'
+  - 'wontfix'
+  - 'question'
+
+# Version resolution strategy
+version-resolver:
+  major:
+    labels:
+      - 'breaking-change'
+      - 'major'
+  minor:
+    labels:
+      - 'enhancement'
+      - 'feature'
+      - 'feat'
+  patch:
+    labels:
+      - 'bug'
+      - 'fix'
+      - 'bugfix'
+      - 'security'
+      - 'documentation'
+      - 'dependencies'
+  default: patch
+
+# Change template for individual changes
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '\<*_&' # You can add # and @ to disable mentions
+
+# Template for the entire release body
+template: |
+  ## What's Changed
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
+
+  ## Installation
+
+  ### Docker
+
+  ```bash
+  docker pull ghcr.io/$OWNER/$REPOSITORY-client:v$RESOLVED_VERSION
+  docker pull ghcr.io/$OWNER/$REPOSITORY-server:v$RESOLVED_VERSION
+  ```
+
+  ### From Source
+
+  See the [installation guide](https://github.com/$OWNER/$REPOSITORY#installation) for detailed instructions.
+
+  ## Contributors
+
+  Thank you to all contributors who made this release possible! 🎉
+
+  $CONTRIBUTORS
+
+# Contributors template
+contributors-template: |
+  ## Thanks to our contributors! 🙏
+  
+  $CONTRIBUTORS
+
+# Autolabeler configuration
+autolabeler:
+  - label: 'documentation'
+    files:
+      - '*.md'
+      - 'docs/**/*'
+    branch:
+      - '/docs{0,1}\/.+/'
+  
+  - label: 'bug'
+    branch:
+      - '/fix\/.+/'
+      - '/hotfix\/.+/'
+    title:
+      - '/fix/i'
+  
+  - label: 'enhancement'
+    branch:
+      - '/feat(ure){0,1}\/.+/'
+    title:
+      - '/feat/i'
+  
+  - label: 'chore'
+    branch:
+      - '/chore\/.+/'
+    title:
+      - '/chore/i'
+  
+  - label: 'dependencies'
+    files:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  
+  - label: 'infrastructure'
+    files:
+      - '.github/workflows/**'
+      - 'docker-compose*.yml'
+      - '**/Dockerfile'
+      - 'Caddyfile'
+
+# Replacers for processing PR titles
+replacers:
+  - search: '/feat:/i'
+    replace: ''
+  - search: '/fix:/i'
+    replace: ''
+  - search: '/chore:/i'
+    replace: ''
+  - search: '/docs:/i'
+    replace: ''
+  - search: '/refactor:/i'
+    replace: ''
+  - search: '/perf:/i'
+    replace: ''
+  - search: '/test:/i'
+    replace: ''
+  - search: '/ci:/i'
+    replace: ''
+  - search: '/build:/i'
+    replace: ''

@@ -59,10 +59,7 @@ impl SerizlizedPlayer {
 #[serde(tag = "event", content = "data")]
 pub enum ServerMessage {
     #[schema(title = "TextMessage")]
-    TextMessage {
-        content: String,
-        player: PlayerInfo,
-    },
+    TextMessage { content: String, player: PlayerInfo },
     #[schema(title = "GameUpdate")]
     GameUpdate {
         board: Board,
@@ -77,15 +74,9 @@ pub enum ServerMessage {
         player: SerizlizedPlayer,
     },
     #[schema(title = "RematchRequest")]
-    RematchRequest {
-        action: Action,
-        player: Marker,
-    },
+    RematchRequest { action: Action, player: Marker },
     #[schema(title = "DrawRequest")]
-    DrawRequest {
-        action: Action,
-        player: Marker,
-    },
+    DrawRequest { action: Action, player: Marker },
     #[serde(skip_serializing)]
     Close,
     #[cfg(not(debug_assertions))]

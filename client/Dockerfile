@@ -1,16 +1,19 @@
+
+# hadolint ignore=DL3016,DL3059
 FROM node:24-alpine AS builder
 WORKDIR /app
-COPY package*.json ./
-COPY pnpm-lock.yaml ./
-RUN npm install -g pnpm
 
-RUN pnpm install
+# Pin pnpm version for reproducibility
+RUN npm install -g pnpm@10.18.2
+
+COPY package*.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
 COPY . .
 RUN pnpm run build
 
-FROM nginx:alpine AS runner
+FROM nginx:1.27-alpine AS runner
 WORKDIR /usr/share/nginx/html
-
 RUN rm -rf ./*
 
 COPY --from=builder /app/dist .

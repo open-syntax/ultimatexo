@@ -7,7 +7,10 @@
     "dev": "vite --mode dev --host",
     "build": "tsc && vite build",
     "lint": "eslint -c .eslintrc.json ./src/**/**/*.{ts,tsx} --fix",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "format": "prettier --write 'src/**/*.{ts,tsx,css}'",
+    "format:check": "prettier --check 'src/**/*.{ts,tsx,css}'",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@heroui/button": "2.2.17",
