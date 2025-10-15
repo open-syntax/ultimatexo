@@ -72,7 +72,7 @@ jobs:
       url: https://ultimatexo.com
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup SSH
         run: |
@@ -220,7 +220,7 @@ jobs:
     if: github.event.inputs.skip_smoke_tests != 'true'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Run smoke tests
         run: |
