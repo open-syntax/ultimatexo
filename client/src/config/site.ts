@@ -1,8 +1,8 @@
 export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
-  name: "Ultimate TTT",
-  description: "Ultimate Tic Tac Toe Game.",
+  name: "UltimateXO",
+  description: "UltimateXO.",
   navItems: [
     {
       label: "Home",
@@ -11,6 +11,10 @@ export const siteConfig = {
     {
       label: "Rooms",
       href: "/rooms",
+    },
+    {
+      label: "Instructions",
+      href: "/instructions",
     },
   ],
   navMenuItems: [
@@ -22,10 +26,14 @@ export const siteConfig = {
       label: "Rooms",
       href: "/rooms",
     },
+    {
+      label: "Instructions",
+      href: "/instructions",
+    },
   ],
   links: {
-    github: "https://github.com/project-chatty/tic-tac-toe/",
-    // discord: "https://discord.gg/",
-    // sponsor: "https://patreon.com/",
+    github: "https://github.com/OutOfSyntax/UltimateXO",
+    discord: "https://discord.gg/qvcc5Z2Ksu",
+    sponsor: "https://ko-fi.com/Q5Q81KWW0O",
   },
 };

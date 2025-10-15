@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-sort-props */
 import * as React from "react";
 
 import { IconSvgProps } from "@/types";
@@ -207,6 +208,45 @@ export const Group = ({ size = 24, ...props }: IconSvgProps) => (
   </svg>
 );
 
+export const Network = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 32 32"
+    fill="none"
+    {...props}
+  >
+    <path
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M4 16h24m-12-5.333V16m-7.333 0v5.333M23.333 16v5.333m-9.866-10.666h5.066c.747 0 1.12 0 1.406-.146.25-.128.454-.332.582-.582.146-.286.146-.659.146-1.406v-2.4c0-.746 0-1.12-.146-1.405a1.333 1.333 0 0 0-.582-.583C19.654 4 19.28 4 18.533 4h-5.066c-.747 0-1.12 0-1.406.145-.25.128-.454.332-.582.583-.146.285-.146.659-.146 1.405v2.4c0 .747 0 1.12.146 1.406.128.25.332.454.582.582.286.146.659.146 1.406.146ZM20.8 28h5.067c.746 0 1.12 0 1.405-.145.25-.128.455-.332.583-.583.145-.285.145-.659.145-1.405v-2.4c0-.747 0-1.12-.145-1.406a1.333 1.333 0 0 0-.583-.582c-.285-.146-.659-.146-1.405-.146H20.8c-.747 0-1.12 0-1.405.146a1.333 1.333 0 0 0-.583.582c-.145.285-.145.659-.145 1.406v2.4c0 .746 0 1.12.145 1.405.128.25.332.455.583.583.285.145.658.145 1.405.145ZM6.133 28H11.2c.747 0 1.12 0 1.405-.145.251-.128.455-.332.583-.583.145-.285.145-.659.145-1.405v-2.4c0-.747 0-1.12-.145-1.406a1.333 1.333 0 0 0-.583-.582c-.285-.146-.658-.146-1.405-.146H6.133c-.746 0-1.12 0-1.405.146-.25.128-.455.331-.583.582C4 22.346 4 22.72 4 23.467v2.4c0 .746 0 1.12.145 1.405.128.25.332.455.583.583.285.145.659.145 1.405.145Z"
+    />
+  </svg>
+);
+
+export const Bot = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    height={size}
+    viewBox="0 0 32 32"
+    width={size}
+    {...props}
+  >
+    <path
+      fill="currentColor"
+      d="M29.237 15.476c-.269-.65-.846-.807-1.237-.844v-3.965A2.67 2.67 0 0 0 25.333 8h-8V6.147a1.984 1.984 0 0 0 .081-2.895A2 2 0 0 0 14 4.667c0 .589.26 1.114.667 1.48V8h-8A2.67 2.67 0 0 0 4 10.667v3.996l-.11.008A1.333 1.333 0 0 0 2.654 16v2.667A1.333 1.333 0 0 0 3.987 20H4v6.667a2.67 2.67 0 0 0 2.667 2.666h18.666A2.67 2.67 0 0 0 28 26.667V20a1.334 1.334 0 0 0 1.333-1.333v-2.584a1.34 1.34 0 0 0-.096-.607Zm-22.57 11.19v-16h18.666l.002 5.329-.002.005v2.667l.002.006.001 7.994H6.666Z"
+    />
+    <path
+      fill="currentColor"
+      d="M11.333 18.667c1.105 0 2-1.194 2-2.667 0-1.473-.895-2.667-2-2.667-1.104 0-2 1.194-2 2.667 0 1.473.896 2.667 2 2.667ZM20.667 18.667c1.104 0 2-1.194 2-2.667 0-1.473-.896-2.667-2-2.667-1.105 0-2 1.194-2 2.667 0 1.473.895 2.667 2 2.667ZM10.667 21.333h10.666V24H10.667v-2.667Z"
+    />
+  </svg>
+);
+
 export const Controller = ({ size = 24, ...props }: IconSvgProps) => (
   <svg
     fill="none"
@@ -258,5 +298,75 @@ export const Lock = ({ size = 24, ...props }: IconSvgProps) => (
       strokeLinejoin="round"
       strokeWidth={1}
     />
+  </svg>
+);
+
+export const Chat = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    fill="none"
+    height={size}
+    viewBox="0 0 24 24"
+    width={size}
+    xmlns="http://www.w3.org/2000/svg"
+    stroke="currentColor"
+    {...props}
+  >
+    <g>
+      <path
+        d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12c0 1.6.376 3.112 1.043 4.453.178.356.237.763.134 1.148l-.595 2.226a1.3 1.3 0 0 0 1.591 1.591l2.226-.595a1.634 1.634 0 0 1 1.149.133A9.958 9.958 0 0 0 12 22Z"
+        strokeWidth={1.5}
+      />
+      <path
+        d="M8 12h.009m3.982 0H12m3.991 0H16"
+        opacity={1}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+      />
+    </g>
+  </svg>
+);
+
+export const X = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    width={size}
+    height={size}
+    stroke="currentColor"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    {...props}
+  >
+    <path d="M18 6 6 18M6 6l12 12" />
+  </svg>
+);
+
+export const O = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    fill="none"
+    strokeWidth={2}
+    {...props}
+  >
+    <circle cx={12} cy={12} r={8} stroke="currentColor" />
+  </svg>
+);
+
+export const Dice = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 32 32"
+    strokeWidth={2}
+    stroke="black"
+    fill="currentColor"
+    {...props}
+  >
+    <path d="M0 24q0 .832.576 1.44t1.44.576H4q2.048 0 3.904-.8t3.168-2.144 2.144-3.2.8-3.872q0-2.464 1.728-4.224T20 10.016h4V12q0 .672.384 1.152t.864.704 1.12.128 1.056-.544l4-4Q32.032 8.8 32 8t-.576-1.408l-4-4q-.48-.448-1.088-.544t-1.12.128-.864.704T24 4v2.016h-4q-2.016 0-3.872.8t-3.2 2.112-2.144 3.2T10.016 16q0 2.496-1.76 4.256T4 22.016H2.016q-.832 0-1.44.576T0 24zM0 8.032q0 .832.576 1.408t1.44.576H4q1.408 0 2.592.608t2.08 1.664q.672-2.048 1.984-3.68Q7.744 6.016 4 6.016H2.016q-.832 0-1.44.608T0 8.032zm13.376 15.424q2.848 2.56 6.624 2.56h4v2.016q0 .64.384 1.152t.864.704 1.12.096 1.056-.544l4-4q.608-.608.576-1.44t-.576-1.376l-4-4q-.48-.48-1.088-.576t-1.12.128-.864.736-.352 1.12v1.984h-4q-1.376 0-2.592-.576t-2.048-1.664q-.704 2.048-1.984 3.68z" />
   </svg>
 );

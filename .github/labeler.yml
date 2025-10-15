@@ -1,0 +1,113 @@
+# Labeler configuration for automatic PR labeling
+# https://github.com/actions/labeler
+
+# Client/Frontend changes
+'client':
+  - changed-files:
+    - any-glob-to-any-file: 'client/**/*'
+
+# Server/Backend changes
+'server':
+  - changed-files:
+    - any-glob-to-any-file: 'server/**/*'
+
+# Documentation changes
+'documentation':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**/*'
+
+# CI/CD changes
+'ci/cd':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+
+# Infrastructure/Docker changes
+'infrastructure':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/Dockerfile'
+      - 'docker-compose*.yml'
+      - 'Caddyfile'
+      - 'scripts/**'
+
+# Configuration changes
+'configuration':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.toml'
+      - '**/*.json'
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '.env.example'
+      - '**/*.config.*'
+
+# Dependencies
+'dependencies':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'client/package.json'
+      - 'client/pnpm-lock.yaml'
+      - 'server/Cargo.toml'
+      - 'server/Cargo.lock'
+
+# Tests
+'tests':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.test.*'
+      - '**/*.spec.*'
+      - '**/__tests__/**'
+      - 'server/tests/**'
+
+# TypeScript/JavaScript
+'typescript':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.ts'
+      - '**/*.tsx'
+
+# Rust
+'rust':
+  - changed-files:
+    - any-glob-to-any-file: '**/*.rs'
+
+# Security
+'security':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'SECURITY.md'
+      - '.github/dependabot.yml'
+
+# Breaking change (based on PR title)
+'breaking-change':
+  - head-branch: ['^breaking/', 'breaking']
+  - title: ['^(breaking|BREAKING)', '!:']
+
+# Bug fix
+'bug':
+  - head-branch: ['^fix/', '^hotfix/']
+  - title: ['^fix:', '^hotfix:']
+
+# Feature
+'enhancement':
+  - head-branch: ['^feature/', '^feat/']
+  - title: ['^feat:', '^feature:']
+
+# Chore
+'chore':
+  - head-branch: ['^chore/']
+  - title: ['^chore:']
+
+# Performance
+'performance':
+  - head-branch: ['^perf/']
+  - title: ['^perf:']
+
+# Refactoring
+'refactor':
+  - head-branch: ['^refactor/']
+  - title: ['^refactor:']

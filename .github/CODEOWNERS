@@ -1,0 +1,54 @@
+# Code Owners for UltimateXO
+# These owners will be automatically requested for review when someone opens a pull request.
+#
+# Each line is a file pattern followed by one or more owners.
+# Order is important; the last matching pattern takes precedence.
+#
+# Owners can be GitHub usernames, email addresses, or team names.
+
+# Default owners for everything in the repo
+* @open-syntax
+
+# Client (Frontend) specific files
+/client/ @open-syntax
+/client/src/**/*.tsx @open-syntax
+/client/src/**/*.ts @open-syntax
+
+# Server (Backend) specific files
+/server/ @open-syntax
+/server/src/**/*.rs @open-syntax
+
+# Infrastructure and deployment
+/.github/ @open-syntax
+/docker-compose.yml @open-syntax
+/Caddyfile @open-syntax
+/Dockerfile @open-syntax
+**/Dockerfile @open-syntax
+
+# CI/CD workflows
+/.github/workflows/ @open-syntax
+
+# Configuration files
+*.toml @open-syntax
+*.json @open-syntax
+*.yaml @open-syntax
+*.yml @open-syntax
+.env.example @open-syntax
+
+# Documentation
+/*.md @open-syntax
+/docs/ @open-syntax
+
+# Security-related files
+/SECURITY.md @open-syntax
+/.github/dependabot.yml @open-syntax
+
+# Scripts
+/scripts/ @open-syntax
+*.sh @open-syntax
+
+# Package management
+/client/package.json @open-syntax
+/client/pnpm-lock.yaml @open-syntax
+/server/Cargo.toml @open-syntax
+/server/Cargo.lock @open-syntax

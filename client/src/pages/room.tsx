@@ -1,18 +1,19 @@
-import { useParams } from "react-router-dom";
-import { FormEvent, useEffect, useState } from "react";
+import { useLocation, useParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Spinner } from "@heroui/spinner";
 import { button as buttonStyles } from "@heroui/theme";
-import { Link } from "@heroui/link";
 import { Button } from "@heroui/button";
-
-import { Link as LinkIcon } from "@/components/icons";
-import Board from "@/components/board";
-import DefaultLayout from "@/layouts/default";
-import { Board as BoardType, socketEvent } from "@/types";
-import RoomLayout from "@/layouts/room";
 import { Input } from "@heroui/input";
 
-let ws: WebSocket;
+import { Link as LinkIcon } from "@/components/icons";
+import Board from "@/components/room/board";
+import DefaultLayout from "@/layouts/default";
+import RoomLayout from "@/layouts/room";
+import Chat from "@/components/room/chat";
+import GameStatus from "@/components/room/status";
+import useGame from "@/hooks/useGame";
+import { RoomStore } from "@/store";
+import Actions from "@/components/room/actions";
 
 interface roomResponse {
   id: string;
@@ -22,100 +23,62 @@ interface roomResponse {
   is_protected: boolean;
 }
 
+enum RoomStatus {
+  loading = "loading",
+  connected = "connected",
+  disconnected = "disconnected",
+  opponentLeft = "opponent left",
+  connecting = "connecting",
+  internal = "internal",
+  error = "error",
+  auth = "auth required",
+  authFailed = "auth failed",
+  notFound = "room not found",
+}
+
 function RoomPage() {
   let { roomId } = useParams();
-  const [password, setPassword] = useState<string>("");
+  const { player, board, status, score, rematchStatus, drawStatus, setStatus } =
+    useGame();
+  const { setWs, setMode } = RoomStore();
+  let { state } = useLocation();
 
-  const [board, setBoard] = useState<{
-    boards: BoardType;
-    status: string;
-  } | null>(null);
-  const [availableBoards, setAvailableBoards] = useState<number | null>(null);
-  const [player, setPlayer] = useState<{ id: string; marker: "X" | "O" }>({
-    id: "",
-    marker: "X",
-  });
-  const [nextPlayer, setNextPlayer] = useState<{
-    id: string;
-    marker: "X" | "O";
-  } | null>(null);
-  const [move, setMove] = useState<string>("");
-
-  const [status, setStatus] = useState<{
-    status: "connected" | "disconnected" | "connecting" | "auth";
-    message: string;
-  }>({ status: "connecting", message: "" });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const handleWebSocket = () => {
-    ws = new WebSocket(`/api/ws/${roomId}${password ? `:${password}` : ""}`);
+  useEffect(() => {
+    if (state?.password && roomId === state?.roomId) {
+      setIsLoading(false);
+      handleWebSocket(state.password);
+    }
 
-    let playerId: string | null = null;
+    if (state?.mode) {
+      setMode(state.mode);
+    }
+  }, [state]);
 
-    // handle on connection established
-    ws.onopen = () => {
-      setStatus({ status: "connected", message: "" });
-    };
+  const handleWebSocket = (password: string) => {
+    // if the room id is the same as the one in the session storage, we can reuse the websocket
+    const room_id = sessionStorage.getItem("room_id");
 
-    // handle on message arrival
-    ws.onmessage = (event) => {
-      console.log(JSON.parse(event.data));
-      const e: socketEvent = JSON.parse(event.data);
-      const eventName = e.event;
+    const params = [];
 
-      switch (eventName) {
-        case "GameUpdate":
-          setBoard(e.data.board);
-          setAvailableBoards(e.data.next_board);
-          setNextPlayer(e.data.next_player);
-          break;
-        case "PlayerUpdate":
-          if (e.data.action === "PLAYER_JOINED" && !playerId) {
-            playerId = e.data.player.id;
+    if (room_id && room_id === roomId) {
+      params.push(`room_id=${room_id}`);
+    }
 
-            setPlayer({ ...e.data.player });
-          }
-          break;
+    if (password) {
+      params.push(`password=${password}`);
+    }
 
-        case "Error":
-          setStatus({
-            status: "disconnected",
-            message: e.data.error,
-          });
-          break;
-      }
-    };
+    if (player?.id) {
+      params.push(`player_id=${player.id}`);
+    }
 
-    // handle on disconnection
-    ws.onclose = () => {
-      setStatus((state) => ({
-        ...state,
-        status: "disconnected",
-        message: "Cannot connect",
-      }));
-    };
-  };
-
-  const handlePassword = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const password = formData.get("password") as string;
-
-    fetch(`/api/room/${roomId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ password }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.valid) {
-          setPassword(password);
-          handleWebSocket();
-        }
-        console.log(data);
-      });
+    setWs(
+      new WebSocket(
+        `/api/ws/${roomId}${params.length >= 1 ? `?${params.join("&")}` : ""}`,
+      ),
+    );
   };
 
   useEffect(() => {
@@ -129,43 +92,28 @@ function RoomPage() {
 
             res.then((data: roomResponse) => {
               if (!data.is_protected) {
-                handleWebSocket();
+                handleWebSocket("");
               } else {
-                setStatus({ status: "auth", message: "" });
+                setStatus({ status: RoomStatus.auth, message: "" });
               }
             });
           } else if (response.status === 404) {
             return setStatus({
-              status: "disconnected",
+              status: RoomStatus.notFound,
               message: "Room Not Found",
             });
           }
         })
-        .catch((err) => console.log(err))
         .finally(() => setIsLoading(false));
     };
 
     return checkRoom();
   }, [roomId]);
 
-  // handle move
-  useEffect(() => {
-    if (!move || !status === ("connected" as any)) return;
-    if (!availableBoards || availableBoards === parseInt(move.split(",")[0])) {
-      ws.send(
-        JSON.stringify({
-          event: "GameUpdate",
-          move,
-          player_id: player.id,
-        }),
-      );
-    }
-  }, [move]);
-
-  if (status.status === "connecting" || isLoading) {
+  if (status.status === RoomStatus.connecting || isLoading) {
     return (
       <DefaultLayout>
-        <div className="container mx-auto flex h-full max-w-7xl flex-grow flex-col items-center justify-center gap-2 px-6">
+        <div className="difficultyflex-grow container mx-auto flex h-full max-w-7xl flex-col items-center justify-center gap-2 px-6">
           <Spinner />
           <p>Connecting...</p>
         </div>
@@ -175,54 +123,66 @@ function RoomPage() {
 
   return (
     <DefaultLayout>
-      {status.status === "disconnected" ? (
+      {[
+        RoomStatus.disconnected,
+        RoomStatus.opponentLeft,
+        RoomStatus.error,
+      ].includes(status.status) ? (
         <RoomLayout>
           {status.message}
           <div className="flex gap-3">
-            <Link className={buttonStyles({ variant: "bordered" })} href="/">
+            <Link className={buttonStyles({ variant: "bordered" })} to="/">
               Home
             </Link>
-            <Link className={buttonStyles({ color: "primary" })} href="/rooms">
+            <Link className={buttonStyles({ color: "primary" })} to="/rooms">
               Rooms
             </Link>
           </div>
         </RoomLayout>
-      ) : status.status === "auth" ? (
+      ) : status.status === RoomStatus.auth ||
+        status.status === RoomStatus.authFailed ? (
         <RoomLayout>
           <form
             className="flex w-full max-w-80 flex-col gap-4"
-            onSubmit={(e) => handlePassword(e)}
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleWebSocket(e.currentTarget.password.value);
+            }}
           >
             Room is protected
             <Input
               isRequired
+              errorMessage={status.message}
+              isInvalid={status.status === RoomStatus.authFailed}
               name="password"
               placeholder="password"
               type="password"
+              onChange={() =>
+                setStatus({ status: RoomStatus.auth, message: "" })
+              }
             />
             <Button className="w-full" color="primary" type="submit">
               Verify
             </Button>
           </form>
         </RoomLayout>
-      ) : board ? (
+      ) : board && player ? (
         <div className="container mx-auto my-auto flex h-[calc(100svh-64px-48px-64px)] max-w-7xl flex-grow flex-col justify-center gap-4 px-6">
-          <p className="w-full text-center font-semibold">
-            You are player: {player.marker}
-          </p>
-          <p className="w-full text-center font-semibold">
-            {board.status
-              ? `Player ${board.status} Won!`
-              : `${nextPlayer?.marker}'s turn.`}
-          </p>
-          <Board
-            board={board.boards}
-            nextMove={
-              nextPlayer?.id === player.id && board.status === null
-                ? availableBoards
-                : false
-            }
-            setMove={setMove}
+          <GameStatus
+            boardStatus={board.status}
+            drawStatus={drawStatus}
+            player={player}
+            rematchStatus={rematchStatus}
+            score={score}
+          />
+          <div>
+            <Board board={board} />
+            <Chat />
+          </div>
+          <Actions
+            boardStatus={board.status}
+            drawStatus={drawStatus}
+            rematchStatus={rematchStatus}
           />
         </div>
       ) : (

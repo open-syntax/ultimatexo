@@ -1,8 +1,23 @@
 import { SVGProps } from "react";
 
+import { playerActions, GameAction } from "./actions";
+
+import { marker, Player } from "@/types/player";
+
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
 };
+
+export enum BoardStatus {
+  WaitingForPlayers = "WaitingForPlayers",
+  Paused = "Paused",
+
+  // Won
+  X = "X",
+  O = "O",
+
+  Draw = "Draw",
+}
 
 export type Board = [
   miniBoard,
@@ -17,35 +32,51 @@ export type Board = [
 ];
 
 export type miniBoard = {
-  cells: BoardCell[];
+  cells: boardCell[];
   status: "InProgress" | "Draw" | "X" | "O";
 };
 
-export type BoardCell = {
-  cells: "O" | "X" | null;
+export type boardCell = {
+  cells: marker;
 };
 
 export type socketEvent =
   | {
       event: "GameUpdate";
       data: {
-        board: { boards: Board; status: string };
-        status: string;
-        next_player: {
-          id: string;
-          marker: "X" | "O";
-        };
+        board: { boards: Board; status: BoardStatus | null };
+        next_player: { marker: marker };
         next_board: number | null;
+        last_move: [number, number] | null;
+        score: [number, number];
       };
     }
   | {
       event: "PlayerUpdate";
       data: {
-        action: "PLAYER_LEFT" | "PLAYER_JOINED";
-        player: {
-          id: string;
-          marker: "X" | "O";
-        };
+        action: playerActions;
+        player: Player;
+      };
+    }
+  | {
+      event: "RematchRequest";
+      data: {
+        action: GameAction;
+        player: marker;
+      };
+    }
+  | {
+      event: "DrawRequest";
+      data: {
+        action: GameAction;
+        player: marker;
+      };
+    }
+  | {
+      event: "TextMessage";
+      data: {
+        content: string;
+        player: { marker: marker };
       };
     }
   | {
@@ -53,4 +84,7 @@ export type socketEvent =
       data: {
         error: string;
       };
+    }
+  | {
+      event: "Ping";
     };

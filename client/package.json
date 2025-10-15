@@ -4,29 +4,35 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --mode dev",
+    "dev": "vite --mode dev --host",
     "build": "tsc && vite build",
     "lint": "eslint -c .eslintrc.json ./src/**/**/*.{ts,tsx} --fix",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "format": "prettier --write 'src/**/*.{ts,tsx,css}'",
+    "format:check": "prettier --check 'src/**/*.{ts,tsx,css}'",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@heroui/button": "2.2.17",
     "@heroui/card": "^2.2.18",
     "@heroui/code": "2.2.12",
     "@heroui/divider": "^2.2.11",
+    "@heroui/drawer": "^2.2.20",
     "@heroui/dropdown": "2.3.17",
     "@heroui/form": "^2.1.18",
     "@heroui/input": "2.4.17",
     "@heroui/kbd": "2.2.13",
     "@heroui/link": "2.2.14",
+    "@heroui/modal": "^2.2.23",
     "@heroui/navbar": "2.2.15",
     "@heroui/radio": "^2.3.18",
     "@heroui/snippet": "2.2.18",
     "@heroui/spinner": "^2.2.14",
     "@heroui/switch": "2.2.15",
-    "@heroui/system": "2.4.13",
+    "@heroui/system": "2.4.18",
     "@heroui/tabs": "^2.2.16",
-    "@heroui/theme": "2.4.13",
+    "@heroui/theme": "2.4.17",
+    "@heroui/use-disclosure": "^2.2.16",
     "@heroui/use-theme": "2.1.6",
     "@react-aria/visually-hidden": "3.8.21",
     "@react-types/shared": "3.28.0",
@@ -34,10 +40,11 @@
     "framer-motion": "11.15.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router-dom": "6.23.0",
+    "react-router-dom": "6",
     "tailwind-variants": "0.3.0",
     "tailwindcss": "3.4.16",
-    "ws": "^8.18.1"
+    "ws": "^8.18.1",
+    "zustand": "^5.0.6"
   },
   "devDependencies": {
     "@types/node": "20.5.7",
@@ -62,5 +69,6 @@
     "typescript": "5.6.3",
     "vite": "^5.2.0",
     "vite-tsconfig-paths": "^4.3.2"
-  }
+  },
+  "packageManager": "pnpm@10.18.3"
 }

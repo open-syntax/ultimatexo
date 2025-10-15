@@ -1,32 +1,331 @@
-use crate::{game::Game, routes::ServerMessage};
-use anyhow::{Context, Result};
-use std::sync::Arc;
-use tokio::sync::{Mutex, broadcast};
+use crate::{
+    error::AppError,
+    handlers::ConnectionContext,
+    models::{Action, ClientMessage, Marker, Room, RoomType, ServerMessage, Status},
+};
+use std::{borrow::Cow, sync::Arc};
+#[cfg(not(debug_assertions))]
+use tokio::time::Instant;
 
-pub fn parse_tuple(s: &str) -> Result<(usize, usize)> {
-    let (a, b) = s
-        .trim()
-        .split_once(',')
-        .context("Failed to split the input (expected a ',')")?;
-    Ok((
-        a.parse().context("Failed to parse first number")?,
-        b.parse().context("Failed to parse second number")?,
-    ))
+pub struct MessageHandler;
+
+impl MessageHandler {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub async fn handle_client_message(
+        &mut self,
+        message: ClientMessage,
+        room: Arc<Room>,
+        ctx: &ConnectionContext,
+    ) -> Result<(), AppError> {
+        dbg!(&message);
+        match message {
+            ClientMessage::TextMessage { content } => {
+                self.handle_text_message(room, content, ctx).await
+            }
+            ClientMessage::GameUpdate { mv } => self.handle_game_update(room, mv, ctx).await,
+            ClientMessage::RematchRequest { action } => {
+                self.handle_game_rematch(room, ctx, action).await
+            }
+            ClientMessage::DrawRequest { action } => {
+                self.handle_draw_request(room, ctx, action).await
+            }
+            ClientMessage::Resign => self.handle_resign_request(room, ctx).await,
+            ClientMessage::Close => self.handle_close_request(room, ctx).await,
+            #[cfg(not(debug_assertions))]
+            ClientMessage::Pong => self.handle_pong_response(ctx).await,
+        }
+    }
+
+    async fn handle_text_message(
+        &mut self,
+        room: Arc<Room>,
+        content: String,
+        ctx: &ConnectionContext,
+    ) -> Result<(), AppError> {
+        let player = room.get_player(&ctx.player_id).await?;
+
+        let message = ServerMessage::TextMessage {
+            content: sanitize_message_content(content)?,
+            player: player.info,
+        };
+
+        room.tx
+            .send(message)
+            .await
+            .map_err(|e| AppError::internal_error(format!("Failed to broadcast message: {}", e)))?;
+
+        Ok(())
+    }
+
+    async fn handle_game_update(
+        &mut self,
+        room: Arc<Room>,
+        mv: [usize; 2],
+        ctx: &ConnectionContext,
+    ) -> Result<(), AppError> {
+        let player = room.get_player(&ctx.player_id).await?;
+
+        let current_player_marker = {
+            let game = room.game.lock().await;
+            game.get_current_player().marker
+        };
+
+        if player.info.marker != current_player_marker && room.info.room_type != RoomType::LocalRoom
+        {
+            return Err(AppError::not_player_turn());
+        }
+
+        {
+            let mut game = room.game.lock().await;
+            game.make_move(mv)?;
+            if room.info.room_type == RoomType::BotRoom
+                && game.get_board_status().eq(&Status::InProgress)
+                && game.apply_ai_move(!current_player_marker).await.is_err()
+            {
+                return Err(AppError::internal_error("Failed to make game move"));
+            }
+        }
+
+        room.send_board().await;
+        Ok(())
+    }
+
+    async fn handle_game_rematch(
+        &mut self,
+        room: Arc<Room>,
+        ctx: &ConnectionContext,
+        action: Action,
+    ) -> Result<(), AppError> {
+        let player_id = &ctx.player_id;
+        let marker = room.get_player(player_id).await?.info.marker;
+
+        let mut game = room.game.lock().await;
+        if game.get_board_status().eq(&Status::InProgress) {
+            return Err(AppError::game_still_ongoing());
+        }
+
+        match action {
+            Action::Accept => {
+                if !game.has_pending_rematch() || game.is_pending_rematch_from(player_id) {
+                    return Err(AppError::not_allowed());
+                }
+                game.rematch_game(None);
+                game.clear_rematch_request();
+                drop(game);
+                room.send_board().await;
+                return Ok(());
+            }
+
+            Action::Request => match room.info.room_type {
+                RoomType::Standard => {
+                    game.request_rematch(player_id.clone());
+                }
+                RoomType::LocalRoom => {
+                    game.rematch_game(None);
+                    drop(game);
+                    room.send_board().await;
+                    return Ok(());
+                }
+                RoomType::BotRoom => {
+                    let difficulty = game.state.difficulty;
+                    game.rematch_game(Some(difficulty));
+                    drop(game);
+                    room.send_board().await;
+                    return Ok(());
+                }
+            },
+
+            Action::Decline => {
+                if !game.has_pending_rematch() {
+                    return Err(AppError::not_allowed());
+                }
+                if game.is_pending_rematch_from(player_id) {
+                    return Err(AppError::not_allowed());
+                }
+                game.clear_rematch_request();
+            }
+        }
+
+        room.tx
+            .send(ServerMessage::RematchRequest {
+                action,
+                player: marker,
+            })
+            .await
+            .map_err(|e| AppError::internal_error(format!("Failed to broadcast rematch: {}", e)))?;
+
+        Ok(())
+    }
+
+    async fn handle_draw_request(
+        &mut self,
+        room: Arc<Room>,
+        ctx: &ConnectionContext,
+        action: Action,
+    ) -> Result<(), AppError> {
+        let player_id = &ctx.player_id;
+        let marker = room.get_player(player_id).await?.info.marker;
+
+        let mut game = room.game.lock().await;
+        if game.get_board_status().ne(&Status::InProgress) {
+            return Err(AppError::game_has_ended());
+        }
+
+        match room.info.room_type {
+            RoomType::Standard => match action {
+                Action::Accept => {
+                    if !game.has_pending_draw() || game.is_pending_draw_from(player_id) {
+                        return Err(AppError::not_allowed());
+                    }
+                    game.draw_game();
+                    game.clear_draw_request();
+                    drop(game);
+                    room.send_board().await;
+                    return Ok(());
+                }
+                Action::Request => {
+                    game.request_draw(player_id.clone());
+                }
+
+                Action::Decline => {
+                    if !game.has_pending_draw() {
+                        return Err(AppError::not_allowed());
+                    }
+                    if game.is_pending_draw_from(player_id) {
+                        return Err(AppError::not_allowed());
+                    }
+                    game.clear_draw_request();
+                }
+            },
+            _ => {
+                return Err(AppError::not_allowed());
+            }
+        };
+
+        room.tx
+            .send(ServerMessage::DrawRequest {
+                action,
+                player: marker,
+            })
+            .await
+            .map_err(|e| AppError::internal_error(format!("Failed to broadcast rematch: {}", e)))?;
+
+        Ok(())
+    }
+
+    async fn handle_resign_request(
+        &mut self,
+        room: Arc<Room>,
+        ctx: &ConnectionContext,
+    ) -> Result<(), AppError> {
+        let marker = room.get_player(&ctx.player_id).await?.info.marker;
+        if marker == Marker::X {
+            room.game
+                .lock()
+                .await
+                .set_board_status(Status::Won(Marker::O));
+            room.game.lock().await.increase_score(1);
+        } else {
+            room.game
+                .lock()
+                .await
+                .set_board_status(Status::Won(Marker::X));
+            room.game.lock().await.increase_score(0);
+        }
+        room.send_board().await;
+        Ok(())
+    }
+
+    async fn handle_close_request(
+        &mut self,
+        room: Arc<Room>,
+        ctx: &ConnectionContext,
+    ) -> Result<(), AppError> {
+        let player = room.get_player(&ctx.player_id).await?;
+
+        if let Some(tx) = player.tx {
+            tx.send(ServerMessage::Close).map_err(|_| {
+                AppError::internal_error("Failed to send close message".to_string())
+            })?;
+        }
+
+        Ok(())
+    }
+    #[cfg(not(debug_assertions))]
+    async fn handle_pong_response(&self, ctx: &ConnectionContext) -> Result<(), AppError> {
+        let mut last_pong = ctx.last_pong.write().await;
+        *last_pong = Instant::now();
+
+        Ok(())
+    }
 }
 
-pub async fn send_board(tx: &broadcast::Sender<String>, game: Arc<Mutex<Game>>) {
-    let game = game.lock().await;
-    let _ = tx.send(
-        ServerMessage::GameUpdate {
-            board: game.state.board.clone(),
-            next_player: game.state.players[0].clone(),
-            next_board: game
-                .state
-                .next_board
-                .map(|b| Some(b))
-                .unwrap_or_else(|| None),
+pub fn sanitize_message_content(content: String) -> Result<String, AppError> {
+    const MAX_MESSAGE_LENGTH: usize = 10000;
+
+    if content.len() > MAX_MESSAGE_LENGTH {
+        return Err(AppError::too_long_text_message(MAX_MESSAGE_LENGTH));
+    }
+
+    let cleaned: Cow<str> = if content
+        .chars()
+        .any(|c| c.is_control() && c != '\n' && c != '\t')
+    {
+        content
+            .chars()
+            .filter(|&c| !c.is_control() || c == '\n' || c == '\t')
+            .collect::<String>()
+            .into()
+    } else {
+        content.into()
+    };
+
+    let normalized = cleaned
+        .lines()
+        .map(|line| {
+            let mut result = String::new();
+            let mut prev_was_space = false;
+
+            for c in line.chars() {
+                if c.is_whitespace() {
+                    if !prev_was_space {
+                        result.push(' ');
+                        prev_was_space = true;
+                    }
+                } else {
+                    result.push(c);
+                    prev_was_space = false;
+                }
+            }
+
+            result.trim().to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let mut final_result = String::new();
+    let mut newline_count = 0;
+
+    for c in normalized.chars() {
+        if c == '\n' {
+            newline_count += 1;
+            if newline_count <= 2 {
+                final_result.push(c);
+            }
+        } else {
+            newline_count = 0;
+            final_result.push(c);
         }
-        .to_json()
-        .unwrap(),
-    );
+    }
+
+    let sanitized = final_result.trim().to_string();
+
+    if sanitized.is_empty() {
+        return Err(AppError::empty_text_message());
+    }
+
+    Ok(sanitized)
 }

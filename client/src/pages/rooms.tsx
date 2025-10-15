@@ -1,7 +1,7 @@
 import { Input } from "@heroui/input";
 import { useEffect, useState } from "react";
 import { Spinner } from "@heroui/spinner";
-import { Link } from "@heroui/link";
+import { Link } from "react-router-dom";
 import { button as buttonStyles } from "@heroui/theme";
 
 import { Controller, SearchIcon } from "@/components/icons";
@@ -82,7 +82,7 @@ export default function RoomsPage() {
               radius: "full",
               variant: "shadow",
             })}
-            href="/create"
+            to="/create"
           >
             <Controller />
             Host
@@ -111,8 +111,8 @@ export default function RoomsPage() {
           value={search}
           variant="bordered"
           onChange={(e) => {
-            setSearch(e.target.value)
-            setRooms(state => ({...state, queried: false}))
+            setSearch(e.target.value);
+            setRooms((state) => ({ ...state, queried: false }));
           }}
           onKeyDown={(e) => e.code === "Enter" && handleFetch()}
         />

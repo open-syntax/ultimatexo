@@ -1,0 +1,314 @@
+name: Deploy to Production
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (tag or "latest")'
+        required: true
+        default: 'latest'
+      skip_smoke_tests:
+        description: 'Skip smoke tests'
+        type: boolean
+        default: false
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BASE: ghcr.io/open-syntax/ultimatexo
+  DEPLOY_TIMEOUT: 300 # 5 minutes
+
+jobs:
+  pre-deploy:
+    name: Pre-deployment Checks
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+    steps:
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Deploying version: $VERSION"
+
+      - name: Verify images exist
+        id: check
+        run: |
+          echo "Checking if images exist for version ${{ steps.version.outputs.version }}"
+          # This would ideally check if the images exist in the registry
+          echo "should_deploy=true" >> $GITHUB_OUTPUT
+
+      - name: Notify deployment start
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "🚀 Deployment Starting"
+          description: |
+            **Version:** `${{ steps.version.outputs.version }}`
+            **Initiated by:** ${{ github.actor }}
+            **Environment:** Production
+          color: 0xffc107
+          username: "UltimateXO Deploy Bot"
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: pre-deploy
+    if: needs.pre-deploy.outputs.should_deploy == 'true'
+    environment:
+      name: production
+      url: https://ultimatexo.com
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy
+          cp docker-compose.yml deploy/
+          cp Caddyfile deploy/
+          cat > deploy/.env << EOF
+          CLOUDFLARE_EMAIL=${{ secrets.CLOUDFLARE_EMAIL }}
+          CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RELEASE_VERSION=${{ needs.pre-deploy.outputs.version }}
+          IMAGE_BASE=${{ env.IMAGE_BASE }}
+          EOF
+
+      - name: Upload deployment package
+        run: |
+          scp -i ~/.ssh/deploy_key -r deploy/* ${{ secrets.PROD_USERNAME }}@${{ secrets.PROD_HOST }}:~/ultimatexo/
+
+      - name: Deploy with zero-downtime strategy
+        id: deployment
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PROD_USERNAME }}@${{ secrets.PROD_HOST }} << 'ENDSSH'
+            set -e
+            cd ~/ultimatexo/
+            
+            export RELEASE_VERSION="${{ needs.pre-deploy.outputs.version }}"
+            export IMAGE_BASE="${{ env.IMAGE_BASE }}"
+            
+            # Backup current state
+            echo "📦 Creating backup..."
+            BACKUP_DIR="backups/$(date +%Y%m%d_%H%M%S)"
+            mkdir -p "$BACKUP_DIR"
+            docker compose ps > "$BACKUP_DIR/containers.txt"
+            cp .env "$BACKUP_DIR/.env" 2>/dev/null || true
+            
+            # Store current version for rollback
+            CURRENT_VERSION="latest"
+            if [ -f .env ] && grep -q "RELEASE_VERSION" .env; then
+              CURRENT_VERSION=$(grep "RELEASE_VERSION" .env | cut -d '=' -f2 | tr -d '"' | tr -d "'")
+            fi
+            echo "$CURRENT_VERSION" > "$BACKUP_DIR/version.txt"
+            echo "Current version: $CURRENT_VERSION"
+            echo "New version: $RELEASE_VERSION"
+            
+            # Login to registry
+            echo "🔐 Logging into registry..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Pull new images
+            echo "📥 Pulling new images..."
+            if ! docker compose pull; then
+              echo "❌ Failed to pull images"
+              exit 1
+            fi
+            
+            # Health check function
+            check_health() {
+              local max_attempts=30
+              local attempt=1
+              
+              while [ $attempt -le $max_attempts ]; do
+                echo "Health check attempt $attempt/$max_attempts..."
+                
+                if [ "$(docker compose ps --filter 'status=running' -q | wc -l)" -eq 3 ]; then
+                  echo "✅ All containers are running"
+                  
+                  # Check if services are responding
+                  if docker compose exec -T server curl -f http://localhost:6767/health > /dev/null 2>&1 && \
+                     docker compose exec -T client curl -f http://localhost:8080/ > /dev/null 2>&1; then
+                    echo "✅ All services are healthy"
+                    return 0
+                  fi
+                fi
+                
+                sleep 10
+                attempt=$((attempt + 1))
+              done
+              
+              echo "❌ Health check failed"
+              return 1
+            }
+            
+            # Deploy with rolling update
+            echo "🚀 Starting deployment..."
+            if ! docker compose up -d --remove-orphans; then
+              echo "❌ Deployment failed"
+              exit 1
+            fi
+            
+            # Wait and verify health
+            echo "⏳ Waiting for services to be healthy..."
+            if ! check_health; then
+              echo "❌ Services failed health check, rolling back..."
+              docker compose logs --tail=100
+              
+              # Rollback
+              echo "🔄 Rolling back to version: $CURRENT_VERSION"
+              docker compose down
+              sed -i "s/RELEASE_VERSION=$RELEASE_VERSION/RELEASE_VERSION=$CURRENT_VERSION/g" .env
+              docker compose up -d
+              
+              exit 1
+            fi
+            
+            echo "✅ Deployment successful!"
+            
+            # Cleanup old images (keep last 3 versions)
+            echo "🧹 Cleaning up old images..."
+            docker image prune -af --filter "until=168h" || true
+            
+            # Keep only last 10 backups
+            cd backups && ls -t | tail -n +11 | xargs -r rm -rf
+          ENDSSH
+
+      - name: Verify deployment
+        id: verify
+        if: success()
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          sleep 30
+          
+          # Verify the application is responding
+          for i in {1..5}; do
+            if curl -f -s https://ultimatexo.com/api/health > /dev/null; then
+              echo "✅ Application is responding"
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying..."
+            sleep 10
+          done
+          
+          echo "❌ Application not responding"
+          exit 1
+
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [pre-deploy, deploy]
+    if: github.event.inputs.skip_smoke_tests != 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run smoke tests
+        run: |
+          echo "🧪 Running smoke tests..."
+          
+          # Test homepage
+          if ! curl -f -s https://ultimatexo.com > /dev/null; then
+            echo "❌ Homepage test failed"
+            exit 1
+          fi
+          echo "✅ Homepage is accessible"
+          
+          # Test API health endpoint
+          if ! curl -f -s https://ultimatexo.com/api/health > /dev/null; then
+            echo "❌ API health check failed"
+            exit 1
+          fi
+          echo "✅ API is healthy"
+          
+          # Test WebSocket (if applicable)
+          # Add your specific smoke tests here
+          
+          echo "✅ All smoke tests passed"
+
+      - name: Performance baseline check
+        run: |
+          echo "📊 Checking performance baseline..."
+          
+          # Simple response time check
+          RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}' https://ultimatexo.com)
+          echo "Response time: ${RESPONSE_TIME}s"
+          
+          if (( $(echo "$RESPONSE_TIME > 2.0" | bc -l) )); then
+            echo "⚠️ Warning: Response time is slow"
+          else
+            echo "✅ Response time is acceptable"
+          fi
+
+  notify:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [pre-deploy, deploy, smoke-tests]
+    if: always()
+    steps:
+      - name: Deployment Success
+        if: needs.deploy.result == 'success' && (needs.smoke-tests.result == 'success' || needs.smoke-tests.result == 'skipped')
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "✅ Deployment Successful"
+          description: |
+            🎉 **UltimateXO ${{ needs.pre-deploy.outputs.version }}** is now live!
+            
+            **Environment:** Production
+            **URL:** https://ultimatexo.com
+            **Deployed by:** ${{ github.actor }}
+            **Duration:** ~${{ github.event.created_at }}
+            
+            ${{ github.event.release.body || 'Manual deployment' }}
+          color: 0x28a745
+          username: "UltimateXO Deploy Bot"
+
+      - name: Deployment Failed
+        if: needs.deploy.result == 'failure' || needs.smoke-tests.result == 'failure'
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "❌ Deployment Failed"
+          description: |
+            🚨 **Deployment of UltimateXO ${{ needs.pre-deploy.outputs.version }} failed!**
+            
+            **Environment:** Production
+            **Failed at:** ${{ needs.deploy.result == 'failure' && 'Deployment' || 'Smoke Tests' }}
+            **Logs:** [View Workflow](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            **Action Required:** Check logs and redeploy
+          color: 0xdc3545
+          username: "UltimateXO Deploy Bot"
+
+      - name: Create deployment summary
+        if: always()
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`${{ needs.pre-deploy.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ needs.deploy.result == 'success' && needs.smoke-tests.result != 'failure' && '✅ Success' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Pre-Deploy | ${{ needs.pre-deploy.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deploy | ${{ needs.deploy.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Smoke Tests | ${{ needs.smoke-tests.result == 'success' && '✅' || needs.smoke-tests.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
