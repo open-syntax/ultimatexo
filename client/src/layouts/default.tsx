@@ -29,10 +29,10 @@ export default function DefaultLayout({
           Made by{" "}
           <Link
             className="text-primary"
-            title="Out Of Syntax Team."
-            to="https://github.com/OutOfSyntax"
+            title="Open Syntax Team"
+            to="https://github.com/open-syntax"
           >
-            Out Of Syntax.
+            Open Syntax
           </Link>
         </span>
       </footer>

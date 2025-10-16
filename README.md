@@ -141,9 +141,9 @@ This project is licensed under the GNU Affero General Public License v3.0
 ## Support 💬
 
 - **Issues**: Found a bug?
-  [Report it here](https://github.com/project-chatty/ultimatexo/issues)
+  [Report it here](https://github.com/open-syntax/ultimatexo/issues)
 - **Discussions**: Have ideas or questions?
-  [Join the discussion](https://github.com/project-chatty/ultimatexo/discussions)
+  [Join the discussion](https://github.com/open-syntax/ultimatexo/discussions)
 - **Website**: [UltimateXO.com](https://UltimateXO.com)
 
 ---
