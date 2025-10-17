@@ -168,6 +168,9 @@ importers:
       vite:
         specifier: ^5.2.0
         version: 5.4.19(@types/node@24.7.2)
+      vite-sitemap:
+        specifier: ^1.17.0
+        version: 1.17.0
       vite-tsconfig-paths:
         specifier: ^4.3.2
         version: 4.3.2(typescript@5.9.3)(vite@5.4.19(@types/node@24.7.2))
@@ -2810,6 +2813,9 @@ packages:
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
+
+  vite-sitemap@1.17.0:
+    resolution: {integrity: sha512-qP9ABHCQEyPSymhPwEVye8g5u3nxbVqMP+skS2jYypt89DuE+ofsL922+Xj9CXJ+F8Zbot75pGws8TPdeE5otQ==}
 
   vite-tsconfig-paths@4.3.2:
     resolution: {integrity: sha512-0Vd/a6po6Q+86rPlntHye7F31zA2URZMbH8M3saAZ/xR9QoGN/L21bxEGfXdWmFdNkqPpRdxFT7nmNe12e9/uA==}
@@ -6086,6 +6092,8 @@ snapshots:
       '@types/react': 18.3.3
 
   util-deprecate@1.0.2: {}
+
+  vite-sitemap@1.17.0: {}
 
   vite-tsconfig-paths@4.3.2(typescript@5.9.3)(vite@5.4.19(@types/node@24.7.2)):
     dependencies:
