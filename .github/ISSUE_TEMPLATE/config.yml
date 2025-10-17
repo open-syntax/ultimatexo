@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: 💬 Discussion Forum
-    url: https://github.com/outofsyntax/ultimatexo/discussions
+    url: https://github.com/open-syntax/ultimatexo/discussions
     about: Ask questions and discuss ideas with the community
   - name: 📚 Documentation
-    url: https://github.com/outofsyntax/ultimatexo#readme
+    url: https://github.com/open-syntax/ultimatexo#readme
     about: Read the documentation
   - name: 🔒 Security Issue
-    url: https://github.com/outofsyntax/ultimatexo/security/advisories/new
+    url: https://github.com/open-syntax/ultimatexo/security/advisories/new
     about: Report a security vulnerability privately

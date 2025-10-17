@@ -1,4 +1,8 @@
-# UltimateXO 🎯
+# UltimateXO 🎯 
+[![CI Status](https://github.com/open-syntax/ultimatexo/workflows/CI/badge.svg)](https://github.com/open-syntax/ultimatexo/actions/workflows/ci.yml)
+[![Build Status](https://github.com/open-syntax/ultimatexo/workflows/Build%20%26%20Publish/badge.svg)](https://github.com/open-syntax/ultimatexo/actions/workflows/build.yml)
+[![License](https://img.shields.io/github/license/open-syntax/ultimatexo)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 The fastest, sleekest, and most fun way to play **Ultimate Tic-Tac-Toe**
 online — free and open source. Built with a Rust backend ⚡ and a modern
@@ -26,47 +30,85 @@ game where local tactics meet global strategy.
 - **Strategic Depth**: Experience the complexity of Ultimate Tic-Tac-Toe's
   nested gameplay
 - **Mobile Friendly**: Optimized for both desktop and mobile devices
+- **Production Ready**: Comprehensive CI/CD with automated testing, security scanning, and zero-downtime deployments
 - **Open Source**: Completely free to use, modify, and contribute to
 
 ## Tech Stack 🛠️
 
 ### Frontend
-
 - **Vite** - Fast build tool and development server
-- **React Router** - A powerfull, declarative routing library
+- **React** + **TypeScript** - Type-safe modern UI framework
+- **React Router** - Powerful, declarative routing library
 - **HeroUI** - Modern component library for beautiful interfaces
-- **TypeScript** - Type-safe development
+- **pnpm** - Fast, efficient package manager
 
 ### Backend
-
 - **Rust** - High-performance, memory-safe game engine
-- **axum** - A fast, web framework for Rust
+- **axum** - Fast web framework for Rust
+- **Tokio** - Async runtime
+
+### Infrastructure
+- **Docker** - Containerization for consistent deployments
+- **Caddy** - Modern web server with automatic HTTPS
+- **Cloudflare** - DNS and DDoS protection
+- **GitHub Actions** - Automated CI/CD pipeline
 
 ## Getting Started 🚀
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
-- Rust (latest stable version)
-- Git
+- Node.js 20+
+- pnpm 8+
+- Rust 1.75+
+- Just command runner (optional but recommended)
+- pre-commit (optional but recommended)
+- Docker & Docker Compose (for production deployment)
 
 ### Installation
 
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/project-chatty/ultimatexo.git
+   git clone https://github.com/open-syntax/ultimatexo.git
    cd ultimatexo
    ```
 
-2. **Start the development server**
+2. **Install dependencies**
+
+   ```bash
+   just install
+   # or manually:
+   cd client && pnpm install
+   cd ../server && cargo build
+   ```
+
+3. **Start the development server**
 
    ```bash
    just dev
+   # or start individually:
+   # cd client && pnpm run dev    # Client on :5173
+   # cd server && cargo run        # Server on :6767
    ```
 
-3. **Open your browser**
+4. **Open your browser**
    Navigate to `http://localhost:5173` to start playing!
+
+### Using Docker
+
+```bash
+# Build and run with Docker Compose
+just docker-build
+just docker-up
+
+# View logs
+just docker-logs
+
+# Stop services
+just docker-down
+```
+
+Visit: http://localhost
 
 ## How to Play 🎮
 
@@ -88,42 +130,72 @@ game where local tactics meet global strategy.
 
 ```text
 ultimatexo/
-├── client/          # Vite + HeroUI frontend
+├── .github/              # CI/CD workflows and configurations
+│   ├── workflows/        # GitHub Actions workflows
+│   └── ISSUE_TEMPLATE/   # Issue and PR templates
+├── client/               # Vite + HeroUI frontend
 │   ├── src/
 │   ├── public/
+│   ├── Dockerfile
 │   └── package.json
-├── server/           # Rust game engine
+├── server/               # Rust game engine
 │   ├── src/
+│   ├── Dockerfile
 │   ├── Cargo.toml
 │   └── Cargo.lock
-├── docs/              # Documentation
+├── scripts/              # Utility scripts
+│   ├── deploy.sh
+│   └── health-check.sh
+├── docker-compose.yml    # Docker orchestration
+├── Caddyfile            # Reverse proxy config
+├── justfile             # Command runner recipes
 └── README.md
 ```
 
-### Contributing 🤝
+### Available Commands
 
-Feel free to help us!
+```bash
+just help 
+```
 
-Here are some areas which need improving.
+### Pre-commit Hooks
 
-- Write tests
-- Improve the client ui/ux.
-- Improve the server websocket
+We use pre-commit hooks to ensure code quality:
+
+```bash
+# Install hooks
+pip install pre-commit
+pre-commit install
+
+# Run manually
+pre-commit run --all-files
+```
+
+## Contributing 🤝
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Areas Needing Improvement
+
+- **Testing**: Write comprehensive tests for both client and server
+- **UI/UX**: Improve the client interface and user experience
+- **WebSocket**: Enhance server WebSocket handling and reliability
+- **Documentation**: Expand guides and add more examples
+- **Accessibility**: Improve keyboard navigation and screen reader support
+
+### Quick Contribution Guide
 
 1. **Fork the repository**
 2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
 3. **Make your changes**
-4. **Add tests** if applicable
-5. **Commit your changes** (`git commit -m 'Add some amazing feature'`)
-6. **Push to the branch** (`git push origin feature/amazing-feature`)
+4. **Run tests and linting** (`just ci-local`)
+5. **Commit using [Conventional Commits](https://www.conventionalcommits.org/)**
+6. **Push to your fork** (`git push origin feature/amazing-feature`)
 7. **Open a Pull Request**
 
-## Performance 🚀
 
-- **Rust Backend**: Sub-millisecond move validation and game state updates
-- **Vite Frontend**: Lightning-fast development and optimized production
-  builds
-- **Efficient Rendering**: Smooth animations and responsive interactions
+## Security 🔒
+See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
 
 ## License 📜
 
@@ -145,6 +217,12 @@ This project is licensed under the GNU Affero General Public License v3.0
 - **Discussions**: Have ideas or questions?
   [Join the discussion](https://github.com/open-syntax/ultimatexo/discussions)
 - **Website**: [UltimateXO.com](https://UltimateXO.com)
+
+### Support us ☕
+
+If you find this package useful, you can support us on Ko-Fi (or just star the repo):
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/ultimatexo)
 
 ---
 
