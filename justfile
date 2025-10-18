@@ -26,7 +26,7 @@ dev:
     echo "🔌 Server: http://localhost:6767"
     just client-dev &
     CLIENT_PID=$!
-    just server-dev &
+    cd {{server_dir}} && cargo run &
     SERVER_PID=$!
     cleanup() {
         echo "🛑 Shutting down..."
