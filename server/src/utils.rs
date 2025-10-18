@@ -20,7 +20,6 @@ impl MessageHandler {
         room: Arc<Room>,
         ctx: &ConnectionContext,
     ) -> Result<(), AppError> {
-        dbg!(&message);
         match message {
             ClientMessage::TextMessage { content } => {
                 self.handle_text_message(room, content, ctx).await
@@ -115,12 +114,21 @@ impl MessageHandler {
                 game.rematch_game(None);
                 game.clear_rematch_request();
                 drop(game);
+                room.tx.send(ServerMessage::RematchRequest {
+                    action,
+                    player: marker,
+                })
+                .await
+                .map_err(|e| AppError::internal_error(format!("Failed to broadcast rematch: {}", e)))?;
                 room.send_board().await;
                 return Ok(());
             }
 
             Action::Request => match room.info.room_type {
                 RoomType::Standard => {
+                    if game.has_pending_rematch() {
+                        return Err(AppError::not_allowed());
+                    }
                     game.request_rematch(player_id.clone());
                 }
                 RoomType::LocalRoom => {
@@ -183,10 +191,19 @@ impl MessageHandler {
                     game.draw_game();
                     game.clear_draw_request();
                     drop(game);
+                    room.tx.send(ServerMessage::DrawRequest {
+                        action,
+                        player: marker,
+                    })
+                    .await
+                    .map_err(|e| AppError::internal_error(format!("Failed to broadcast rematch: {}", e)))?;
                     room.send_board().await;
                     return Ok(());
                 }
                 Action::Request => {
+                    if game.has_pending_draw() {
+                        return Err(AppError::not_allowed());
+                    }
                     game.request_draw(player_id.clone());
                 }
 

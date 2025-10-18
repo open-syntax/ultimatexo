@@ -30,15 +30,10 @@ type Receiver = SplitStream<WebSocket>;
 
 #[utoipa::path(
     get,
-    path = "/ws/{room_id}",
+    path = "/{room_id}",
     params(
         ("room_id" = String, Path, description = "The unique identifier of the room to join"),
         WebSocketQuery
-    ),
-    responses(
-        (status = 101, description = "WebSocket connection established"),
-        (status = 400, description = "Invalid room or authentication failed"),
-        (status = 404, description = "Room not found")
     ),
     description = r#"
 ### Message Format
@@ -48,8 +43,9 @@ All messages are JSON-encoded with a type/event discriminator:
 **Client Messages:**
 ```json
 {
-  "type": "TextMessage|GameUpdate|RematchRequest|DrawRequest|Resign|Pong|Close",
-  "data": { ... }
+    "TextMessage|GameUpdate|RematchRequest|DrawRequest|Resign|Pong|Close": {
+        //
+    }
 }
 ```
 
