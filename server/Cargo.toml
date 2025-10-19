@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.100"
 axum = { version = "0.8.6", features = ["ws"] }
-axum-client-ip = "1.1.3"
 dashmap = "6.1.0"
 dotenv = "0.15.0"
 futures-util = "0.3.31"
@@ -17,9 +16,9 @@ serde_json = "1.0.145"
 thiserror = "2.0.17"
 tokio = { version = "1.48.0", features = ["full"] }
 tokio-util = "0.7.15"
+tower_governor = { version = "0.8", features = ["axum", "tracing"] }
 tracing = "0.1.41"
 tracing-subscriber = {version = "0.3.19", features = ["env-filter"]}
 utoipa = { version = "5.4.0", features = ["axum_extras"] }
-utoipa-axum = "0.2.0"
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 uuid = { version = "1.16.0", features = ["v4"] }
