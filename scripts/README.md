@@ -9,6 +9,7 @@ This directory contains utility scripts for managing the UltimateXO application.
 Production deployment script with health checks and automatic rollback.
 
 **Usage:**
+
 ```bash
 # Deploy specific version
 RELEASE_VERSION=v1.2.3 IMAGE_BASE=ghcr.io/open-syntax/ultimatexo ./deploy.sh
@@ -27,12 +28,14 @@ source .env && ./deploy.sh
 ```
 
 **Features:**
+
 - Automated backup before deployment
 - Health check verification
 - Automatic rollback on failure
 - Cleanup of old images and backups
 
 **Environment Variables:**
+
 - `RELEASE_VERSION` - Version to deploy (required)
 - `IMAGE_BASE` - Base image name (required)
 - `DEPLOY_DIR` - Deployment directory (default: ~/ultimatexo)
@@ -44,6 +47,7 @@ source .env && ./deploy.sh
 Comprehensive health check for all services.
 
 **Usage:**
+
 ```bash
 # Check localhost
 ./health-check.sh
@@ -56,6 +60,7 @@ Comprehensive health check for all services.
 ```
 
 **Checks performed:**
+
 - Docker and Docker Compose availability
 - Container status and health
 - Network configuration
@@ -67,6 +72,7 @@ Comprehensive health check for all services.
 - Performance (response times)
 
 **Exit codes:**
+
 - `0` - All checks passed
 - `1` - One or more checks failed
 
@@ -136,6 +142,7 @@ chmod +x scripts/script-name.sh
 ### Script Not Found
 
 Make sure you're running from the project root:
+
 ```bash
 cd /path/to/ultimatexo
 ./scripts/script-name.sh
@@ -144,6 +151,7 @@ cd /path/to/ultimatexo
 ### Environment Variables Not Set
 
 Check your `.env` file or export variables:
+
 ```bash
 export RELEASE_VERSION=v1.0.0
 export IMAGE_BASE=ghcr.io/open-syntax/ultimatexo

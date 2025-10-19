@@ -1,3 +1,5 @@
+#[cfg(debug_assertions)]
+use crate::handlers::ApiDoc;
 use crate::{
     app::state::AppState,
     handlers::{
@@ -5,16 +7,19 @@ use crate::{
     },
 };
 use anyhow::{Context, Result};
-use axum::{routing::get, Router};
-use std::{env, net::{SocketAddr, ToSocketAddrs}, sync::Arc, time::Duration};
+use axum::{Router, routing::get};
+use std::{
+    env,
+    net::{SocketAddr, ToSocketAddrs},
+    sync::Arc,
+    time::Duration,
+};
 use tokio::signal;
-#[cfg(debug_assertions)]
-use crate::handlers::ApiDoc;
+use tower_governor::{GovernorLayer, governor::GovernorConfigBuilder};
 #[cfg(debug_assertions)]
 use utoipa::OpenApi;
 #[cfg(debug_assertions)]
 use utoipa_swagger_ui::SwaggerUi;
-use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
 
 /// Configuration for the server
 #[derive(Debug, Clone)]
@@ -32,12 +37,12 @@ impl ServerConfig {
         Ok(Self { host, port })
     }
     fn socket_addr(&self) -> Result<SocketAddr> {
-    let addr_str = format!("{}:{}", self.host, self.port);
-    addr_str
-        .to_socket_addrs()?
-        .next()
-        .context("Could not resolve host to SocketAddr")
-} 
+        let addr_str = format!("{}:{}", self.host, self.port);
+        addr_str
+            .to_socket_addrs()?
+            .next()
+            .context("Could not resolve host to SocketAddr")
+    }
     fn http_url(&self) -> String {
         format!("http://{}:{}", self.host, self.port)
     }
@@ -56,9 +61,8 @@ fn build_router(state: Arc<AppState>) -> Router {
     let mut app = Router::new().merge(api_routes).merge(ws_routes);
     #[cfg(debug_assertions)]
     {
-        app = app.merge(
-            SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()),
-        );
+        app = app
+            .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
     }
     app.with_state(state)
 }
@@ -67,10 +71,7 @@ fn log_startup_info(config: &ServerConfig) {
     tracing::info!("Server listening on {}", config.http_url());
     tracing::info!("WebSocket available at {}", config.ws_url());
     #[cfg(debug_assertions)]
-    tracing::info!(
-        "Swagger UI available at {}/swagger-ui",
-        config.http_url()
-    );
+    tracing::info!("Swagger UI available at {}/swagger-ui", config.http_url());
 }
 
 pub async fn start_server() -> Result<()> {
@@ -78,8 +79,7 @@ pub async fn start_server() -> Result<()> {
     let state = Arc::new(AppState::new());
 
     let governor_conf = GovernorConfigBuilder::default()
-        
-                .per_second(2)
+        .per_second(2)
         .burst_size(5)
         .finish()
         .context("Failed to build governor config")?;
@@ -103,10 +103,13 @@ pub async fn start_server() -> Result<()> {
         .context(format!("Failed to bind to {}", addr))?;
     log_startup_info(&config);
 
-    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
-        .with_graceful_shutdown(shutdown_signal())
-        .await
-        .context("Server encountered an error during execution")?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await
+    .context("Server encountered an error during execution")?;
 
     tracing::info!("Server shutdown complete");
     Ok(())

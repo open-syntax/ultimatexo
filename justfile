@@ -5,12 +5,43 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 client_dir := "client"
 server_dir := "server"
 
+# ----------------------------------------------------------------------
+# Setup
+# ----------------------------------------------------------------------
+
+[doc("Setup project (install dependencies, tools, and hooks)")]
+setup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🚀 Running setup..."
+
+    if ! just install; then
+        echo "❌ install failed."
+        read -p "Continue anyway? [y/N]: " reply
+        if [[ ! "$reply" =~ ^[Yy]$ ]]; then
+            echo "🛑 Aborting setup."
+            exit 1
+        fi
+    fi
+
+    if ! just install-dev; then
+        echo "❌ install-dev failed."
+        read -p "Continue anyway? [y/N]: " reply
+        if [[ ! "$reply" =~ ^[Yy]$ ]]; then
+            echo "🛑 Aborting setup."
+            exit 1
+        fi
+    fi
+
+    echo "✅ Setup finished!"
+
+
 # ============================================================================
 # Development
 # ============================================================================
 
 [doc("Start client in development mode")]
-client-dev:
+client-dev: client-install
     cd {{client_dir}} && pnpm dev
 
 [doc("Start server in development mode")]
@@ -24,10 +55,12 @@ dev:
     echo "🚀 Starting development environment..."
     echo "📦 Client: http://localhost:5173"
     echo "🔌 Server: http://localhost:6767"
+
     just client-dev &
     CLIENT_PID=$!
-    cd {{server_dir}} && cargo run &
+    just server-dev &
     SERVER_PID=$!
+
     cleanup() {
         echo "🛑 Shutting down..."
         kill $CLIENT_PID $SERVER_PID 2>/dev/null || true
@@ -50,6 +83,8 @@ install: client-install
     @echo "📦 Installing pre-commit hooks..."
     pip install pre-commit
     pre-commit install
+    pre-commit install --hook-type commit-msg
+    pre-commit autoupdate
     @echo "✅ Installation complete!"
 
 [doc("Install development tools")]
@@ -73,8 +108,9 @@ server-build:
     cd {{server_dir}} && cargo build --release
 
 [doc("Build both client and server for production")]
-build: client-build server-build
+build: setup client-build server-build
     @echo "✅ Build complete!"
+
 
 # ============================================================================
 # Testing

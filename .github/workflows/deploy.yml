@@ -103,17 +103,17 @@ jobs:
           ssh -i ~/.ssh/deploy_key ${{ secrets.PROD_USERNAME }}@${{ secrets.PROD_HOST }} << 'ENDSSH'
             set -e
             cd ~/ultimatexo/
-            
+
             export RELEASE_VERSION="${{ needs.pre-deploy.outputs.version }}"
             export IMAGE_BASE="${{ env.IMAGE_BASE }}"
-            
+
             # Backup current state
             echo "📦 Creating backup..."
             BACKUP_DIR="backups/$(date +%Y%m%d_%H%M%S)"
             mkdir -p "$BACKUP_DIR"
             docker compose ps > "$BACKUP_DIR/containers.txt"
             cp .env "$BACKUP_DIR/.env" 2>/dev/null || true
-            
+
             # Store current version for rollback
             CURRENT_VERSION="latest"
             if [ -f .env ] && grep -q "RELEASE_VERSION" .env; then
@@ -122,29 +122,29 @@ jobs:
             echo "$CURRENT_VERSION" > "$BACKUP_DIR/version.txt"
             echo "Current version: $CURRENT_VERSION"
             echo "New version: $RELEASE_VERSION"
-            
+
             # Login to registry
             echo "🔐 Logging into registry..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
+
             # Pull new images
             echo "📥 Pulling new images..."
             if ! docker compose pull; then
               echo "❌ Failed to pull images"
               exit 1
             fi
-            
+
             # Health check function
             check_health() {
               local max_attempts=30
               local attempt=1
-              
+
               while [ $attempt -le $max_attempts ]; do
                 echo "Health check attempt $attempt/$max_attempts..."
-                
+
                 if [ "$(docker compose ps --filter 'status=running' -q | wc -l)" -eq 3 ]; then
                   echo "✅ All containers are running"
-                  
+
                   # Check if services are responding
                   if docker compose exec -T server curl -f http://localhost:6767/health > /dev/null 2>&1 && \
                      docker compose exec -T client curl -f http://localhost:8080/ > /dev/null 2>&1; then
@@ -152,43 +152,43 @@ jobs:
                     return 0
                   fi
                 fi
-                
+
                 sleep 10
                 attempt=$((attempt + 1))
               done
-              
+
               echo "❌ Health check failed"
               return 1
             }
-            
+
             # Deploy with rolling update
             echo "🚀 Starting deployment..."
             if ! docker compose up -d --remove-orphans; then
               echo "❌ Deployment failed"
               exit 1
             fi
-            
+
             # Wait and verify health
             echo "⏳ Waiting for services to be healthy..."
             if ! check_health; then
               echo "❌ Services failed health check, rolling back..."
               docker compose logs --tail=100
-              
+
               # Rollback
               echo "🔄 Rolling back to version: $CURRENT_VERSION"
               docker compose down
               sed -i "s/RELEASE_VERSION=$RELEASE_VERSION/RELEASE_VERSION=$CURRENT_VERSION/g" .env
               docker compose up -d
-              
+
               exit 1
             fi
-            
+
             echo "✅ Deployment successful!"
-            
+
             # Cleanup old images (keep last 3 versions)
             echo "🧹 Cleaning up old images..."
             docker image prune -af --filter "until=168h" || true
-            
+
             # Keep only last 10 backups
             cd backups && ls -t | tail -n +11 | xargs -r rm -rf
           ENDSSH
@@ -199,7 +199,7 @@ jobs:
         run: |
           echo "Waiting for deployment to stabilize..."
           sleep 30
-          
+
           # Verify the application is responding
           for i in {1..5}; do
             if curl -f -s https://ultimatexo.com/api/health > /dev/null; then
@@ -209,7 +209,7 @@ jobs:
             echo "Attempt $i failed, retrying..."
             sleep 10
           done
-          
+
           echo "❌ Application not responding"
           exit 1
 
@@ -225,34 +225,34 @@ jobs:
       - name: Run smoke tests
         run: |
           echo "🧪 Running smoke tests..."
-          
+
           # Test homepage
           if ! curl -f -s https://ultimatexo.com > /dev/null; then
             echo "❌ Homepage test failed"
             exit 1
           fi
           echo "✅ Homepage is accessible"
-          
+
           # Test API health endpoint
           if ! curl -f -s https://ultimatexo.com/api/health > /dev/null; then
             echo "❌ API health check failed"
             exit 1
           fi
           echo "✅ API is healthy"
-          
+
           # Test WebSocket (if applicable)
           # Add your specific smoke tests here
-          
+
           echo "✅ All smoke tests passed"
 
       - name: Performance baseline check
         run: |
           echo "📊 Checking performance baseline..."
-          
+
           # Simple response time check
           RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}' https://ultimatexo.com)
           echo "Response time: ${RESPONSE_TIME}s"
-          
+
           if (( $(echo "$RESPONSE_TIME > 2.0" | bc -l) )); then
             echo "⚠️ Warning: Response time is slow"
           else
@@ -273,12 +273,12 @@ jobs:
           title: "✅ Deployment Successful"
           description: |
             🎉 **UltimateXO ${{ needs.pre-deploy.outputs.version }}** is now live!
-            
+
             **Environment:** Production
             **URL:** https://ultimatexo.com
             **Deployed by:** ${{ github.actor }}
             **Duration:** ~${{ github.event.created_at }}
-            
+
             ${{ github.event.release.body || 'Manual deployment' }}
           color: 0x28a745
           username: "UltimateXO Deploy Bot"
@@ -291,7 +291,7 @@ jobs:
           title: "❌ Deployment Failed"
           description: |
             🚨 **Deployment of UltimateXO ${{ needs.pre-deploy.outputs.version }} failed!**
-            
+
             **Environment:** Production
             **Failed at:** ${{ needs.deploy.result == 'failure' && 'Deployment' || 'Smoke Tests' }}
             **Logs:** [View Workflow](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})

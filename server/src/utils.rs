@@ -114,12 +114,15 @@ impl MessageHandler {
                 game.rematch_game(None);
                 game.clear_rematch_request();
                 drop(game);
-                room.tx.send(ServerMessage::RematchRequest {
-                    action,
-                    player: marker,
-                })
-                .await
-                .map_err(|e| AppError::internal_error(format!("Failed to broadcast rematch: {}", e)))?;
+                room.tx
+                    .send(ServerMessage::RematchRequest {
+                        action,
+                        player: marker,
+                    })
+                    .await
+                    .map_err(|e| {
+                        AppError::internal_error(format!("Failed to broadcast rematch: {}", e))
+                    })?;
                 room.send_board().await;
                 return Ok(());
             }
@@ -191,12 +194,15 @@ impl MessageHandler {
                     game.draw_game();
                     game.clear_draw_request();
                     drop(game);
-                    room.tx.send(ServerMessage::DrawRequest {
-                        action,
-                        player: marker,
-                    })
-                    .await
-                    .map_err(|e| AppError::internal_error(format!("Failed to broadcast rematch: {}", e)))?;
+                    room.tx
+                        .send(ServerMessage::DrawRequest {
+                            action,
+                            player: marker,
+                        })
+                        .await
+                        .map_err(|e| {
+                            AppError::internal_error(format!("Failed to broadcast rematch: {}", e))
+                        })?;
                     room.send_board().await;
                     return Ok(());
                 }

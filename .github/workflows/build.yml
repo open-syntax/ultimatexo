@@ -180,7 +180,7 @@ jobs:
             **Version:** `${{ needs.build-and-push.outputs.version }}`
             **Build:** ${{ needs.build-and-push.result == 'success' && '✅' || '❌' }}
             **Security Scan:** ${{ needs.security-scan.result == 'success' && '✅' || '❌' }}
-            
+
             [View Workflow](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
           color: ${{ needs.security-scan.result == 'success' && 0x28a745 || 0xdc3545 }}
           username: "UltimateXO CI Bot"

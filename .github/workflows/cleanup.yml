@@ -37,7 +37,7 @@ jobs:
         run: |
           echo "🧹 Cleaning up old GitHub Actions caches..."
           gh extension install actions/gh-actions-cache || true
-          
+
           # Keep caches from main branch and last 7 days
           gh actions-cache list --limit 100 | \
             grep -v "refs/heads/main" | \
@@ -76,7 +76,7 @@ jobs:
             • Images: ${{ needs.cleanup-images.result == 'success' && '✅' || '❌' }}
             • Caches: ${{ needs.cleanup-caches.result == 'success' && '✅' || '❌' }}
             • Workflow Runs: ${{ needs.cleanup-workflow-runs.result == 'success' && '✅' || '❌' }}
-            
+
             [View Details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
           color: 0x0366d6
           username: "UltimateXO Maintenance Bot"
