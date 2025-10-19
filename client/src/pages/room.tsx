@@ -76,7 +76,7 @@ function RoomPage() {
 
     setWs(
       new WebSocket(
-        `/api/ws/${roomId}${params.length >= 1 ? `?${params.join("&")}` : ""}`,
+        `/ws/${roomId}${params.length >= 1 ? `?${params.join("&")}` : ""}`,
       ),
     );
   };
