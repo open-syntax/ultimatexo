@@ -223,6 +223,7 @@ This project is licensed under the GNU Affero General Public License v3.0
 - **Discussions**: Have ideas or questions?
   [Join the discussion](https://github.com/open-syntax/ultimatexo/discussions)
 - **Website**: [UltimateXO.com](https://UltimateXO.com)
+- **Discord**: [Open Syntax](https://discord.gg/5K3d574234)
 
 ### Support us ☕
 
