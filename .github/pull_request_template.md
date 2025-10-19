@@ -1,88 +1,63 @@
-## Description
+# Pull Request
 
-<!-- Provide a clear and concise description of your changes -->
+## What's Changed
+
+<!-- Tell us what this PR does in a few sentences -->
 
 ## Type of Change
 
-<!-- Mark the relevant option with an "x" -->
+<!-- Check what applies -->
 
-- [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
-- [ ] ✨ New feature (non-breaking change which adds functionality)
-- [ ] 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] 📝 Documentation update
-- [ ] 🎨 Style/UI update (non-functional change)
-- [ ] ♻️ Code refactoring (no functional changes)
-- [ ] ⚡ Performance improvement
-- [ ] ✅ Test update
-- [ ] 🔧 Configuration change
-- [ ] 🔒 Security fix
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation
+- [ ] Code cleanup/refactoring
+- [ ] Performance improvement
+- [ ] Tests
+- [ ] Other: ___
 
 ## Related Issues
 
-<!-- Link related issues here using #issue_number -->
-
-Closes #
+Fixes #
 Related to #
 
-## Changes Made
+## How to Test
 
-<!-- List the specific changes made in this PR -->
+<!-- Help reviewers verify your changes -->
 
-- 
-- 
-- 
+**Steps:**
 
-## Testing
+1.
+2.
+3.
 
-<!-- Describe the tests you ran and how to reproduce them -->
+**Environment:**
 
-### Test Configuration
+- OS:
+- Browser (if needed):
+- Node/Rust version:
 
-- **OS**: 
-- **Browser** (if applicable): 
-- **Node version**: 
-- **Rust version**: 
+## Screenshots
 
-### Test Steps
-
-1. 
-2. 
-3. 
-
-## Screenshots (if applicable)
-
-<!-- Add screenshots to help explain your changes -->
+<!-- If your changes are visual, show us! -->
 
 ## Checklist
 
-<!-- Mark completed items with an "x" -->
+- [ ] Code follows project style
+- [ ] Self-reviewed my changes
+- [ ] Added/updated comments where needed
+- [ ] Updated documentation
+- [ ] Added/updated tests
+- [ ] All tests passing locally
+- [ ] No new warnings
+- [ ] Updated CHANGELOG.md (if applicable)
 
-- [ ] My code follows the project's style guidelines
-- [ ] I have performed a self-review of my code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
-- [ ] Any dependent changes have been merged and published
-- [ ] I have updated the CHANGELOG.md (if applicable)
+## Anything Else?
 
-## Pre-commit Checks
-
-- [ ] All pre-commit hooks passed
-- [ ] Linting checks passed
-- [ ] Type checking passed (if applicable)
-- [ ] Tests passed locally
-
-## Additional Notes
-
-<!-- Add any additional information that reviewers should know -->
-
-## Breaking Changes
-
-<!-- If this is a breaking change, describe the impact and migration path -->
+<!-- Heads up for reviewers, migration notes, or other context -->
 
 ---
 
-**Reviewer Notes**: 
-<!-- Add any specific areas you'd like reviewers to focus on -->
+**Reviewers:**
+<!-- Any specific areas you'd like feedback on? -->

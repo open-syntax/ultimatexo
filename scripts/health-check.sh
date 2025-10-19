@@ -40,7 +40,7 @@ print_summary() {
     echo -e "Failed:   ${RED}$FAILED${NC}"
     echo -e "Warnings: ${YELLOW}$WARNINGS${NC}"
     echo ""
-    
+
     if [ $FAILED -eq 0 ]; then
         echo -e "${GREEN}✅ All health checks passed!${NC}"
         return 0
@@ -68,19 +68,19 @@ check_warn() {
 # Docker checks
 check_docker() {
     echo "🐳 Checking Docker..."
-    
+
     if ! command -v docker &> /dev/null; then
         check_fail "Docker is not installed"
         return 1
     fi
     check_pass "Docker is installed"
-    
+
     if ! docker info &> /dev/null; then
         check_fail "Docker daemon is not running"
         return 1
     fi
     check_pass "Docker daemon is running"
-    
+
     if ! command -v docker compose &> /dev/null && ! docker compose version &> /dev/null; then
         check_fail "Docker Compose is not available"
         return 1
@@ -92,13 +92,13 @@ check_docker() {
 check_containers() {
     echo ""
     echo "📦 Checking containers..."
-    
+
     local containers=("ultimatexo-server" "ultimatexo-client" "ultimatexo-proxy")
-    
+
     for container in "${containers[@]}"; do
         if docker ps --filter "name=$container" --filter "status=running" | grep -q "$container"; then
             check_pass "Container $container is running"
-            
+
             # Check container health
             local health=$(docker inspect --format='{{.State.Health.Status}}' "$container" 2>/dev/null || echo "none")
             if [ "$health" = "healthy" ]; then
@@ -118,7 +118,7 @@ check_containers() {
 check_network() {
     echo ""
     echo "🌐 Checking network..."
-    
+
     if docker network ls | grep -q "ultimatexo-network"; then
         check_pass "Network ultimatexo-network exists"
     else
@@ -130,11 +130,11 @@ check_network() {
 check_endpoints() {
     echo ""
     echo "🔌 Checking service endpoints..."
-    
+
     # Check client (homepage)
     if curl -f -s --max-time $TIMEOUT "$BASE_URL" > /dev/null; then
         check_pass "Client homepage is accessible ($BASE_URL)"
-        
+
         # Check response time
         local response_time=$(curl -o /dev/null -s -w '%{time_total}' --max-time $TIMEOUT "$BASE_URL")
         if (( $(echo "$response_time < 1.0" | bc -l) )); then
@@ -145,11 +145,11 @@ check_endpoints() {
     else
         check_fail "Client homepage is not accessible"
     fi
-    
+
     # Check API health endpoint
     if curl -f -s --max-time $TIMEOUT "$API_URL/health" > /dev/null; then
         check_pass "API health endpoint is accessible ($API_URL/health)"
-        
+
         # Parse health response if JSON
         local health_response=$(curl -s --max-time $TIMEOUT "$API_URL/health")
         if echo "$health_response" | jq . &> /dev/null; then
@@ -158,7 +158,7 @@ check_endpoints() {
     else
         check_fail "API health endpoint is not accessible"
     fi
-    
+
     # Check HTTPS redirect
     if [ "$BASE_URL" = "http://localhost" ]; then
         check_warn "Skipping HTTPS check (localhost)"
@@ -176,7 +176,7 @@ check_endpoints() {
 check_resources() {
     echo ""
     echo "💾 Checking resource usage..."
-    
+
     # Check disk space
     local disk_usage=$(df -h . | awk 'NR==2 {print $5}' | sed 's/%//')
     if [ "$disk_usage" -lt 80 ]; then
@@ -186,7 +186,7 @@ check_resources() {
     else
         check_fail "Disk usage is critical (${disk_usage}%)"
     fi
-    
+
     # Check memory usage per container
     if command -v docker &> /dev/null; then
         local high_memory=false
@@ -197,7 +197,7 @@ check_resources() {
                 high_memory=true
             fi
         done < <(docker stats --no-stream --format "{{.Name}} {{.MemUsage}}" 2>/dev/null | grep ultimatexo | awk '{print $1, $2}')
-        
+
         if [ "$high_memory" = false ]; then
             check_pass "Container memory usage is normal"
         fi
@@ -208,9 +208,9 @@ check_resources() {
 check_volumes() {
     echo ""
     echo "💽 Checking volumes..."
-    
+
     local volumes=("ultimatexo-caddy-data" "ultimatexo-caddy-config" "ultimatexo-caddy-logs")
-    
+
     for volume in "${volumes[@]}"; do
         if docker volume ls | grep -q "$volume"; then
             check_pass "Volume $volume exists"
@@ -224,10 +224,10 @@ check_volumes() {
 check_logs() {
     echo ""
     echo "📋 Checking recent logs for errors..."
-    
+
     local containers=("ultimatexo-server" "ultimatexo-client" "ultimatexo-proxy")
     local error_found=false
-    
+
     for container in "${containers[@]}"; do
         if docker ps --filter "name=$container" --filter "status=running" | grep -q "$container"; then
             local error_count=$(docker logs "$container" --tail=100 2>&1 | grep -iE "error|fatal|panic" | wc -l)
@@ -246,20 +246,20 @@ check_ssl() {
     if [ "$BASE_URL" = "http://localhost" ]; then
         return
     fi
-    
+
     echo ""
     echo "🔒 Checking SSL/TLS..."
-    
+
     local domain=$(echo "$BASE_URL" | sed -E 's/https?:\/\///')
-    
+
     if command -v openssl &> /dev/null; then
         local expiry_date=$(echo | openssl s_client -servername "$domain" -connect "$domain:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep notAfter | cut -d= -f2)
-        
+
         if [ -n "$expiry_date" ]; then
             local expiry_epoch=$(date -d "$expiry_date" +%s 2>/dev/null || date -j -f "%b %d %T %Y %Z" "$expiry_date" +%s 2>/dev/null)
             local current_epoch=$(date +%s)
             local days_until_expiry=$(( (expiry_epoch - current_epoch) / 86400 ))
-            
+
             if [ "$days_until_expiry" -gt 30 ]; then
                 check_pass "SSL certificate is valid (expires in $days_until_expiry days)"
             elif [ "$days_until_expiry" -gt 7 ]; then
@@ -275,19 +275,19 @@ check_ssl() {
 check_performance() {
     echo ""
     echo "⚡ Checking performance..."
-    
+
     if command -v curl &> /dev/null; then
         # Multiple requests to get average
         local total_time=0
         local requests=5
-        
+
         for i in $(seq 1 $requests); do
             local time=$(curl -o /dev/null -s -w '%{time_total}' --max-time $TIMEOUT "$BASE_URL" 2>/dev/null || echo "0")
             total_time=$(echo "$total_time + $time" | bc)
         done
-        
+
         local avg_time=$(echo "scale=3; $total_time / $requests" | bc)
-        
+
         if (( $(echo "$avg_time < 0.5" | bc -l) )); then
             check_pass "Average response time is excellent (${avg_time}s)"
         elif (( $(echo "$avg_time < 1.0" | bc -l) )); then
@@ -303,7 +303,7 @@ check_performance() {
 # Main
 main() {
     print_header
-    
+
     check_docker
     check_containers
     check_network
@@ -313,7 +313,7 @@ main() {
     check_logs
     check_ssl
     check_performance
-    
+
     print_summary
 }
 

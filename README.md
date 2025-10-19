@@ -1,4 +1,5 @@
-# UltimateXO 🎯 
+# UltimateXO 🎯
+
 [![CI Status](https://github.com/open-syntax/ultimatexo/workflows/CI/badge.svg)](https://github.com/open-syntax/ultimatexo/actions/workflows/ci.yml)
 [![Build Status](https://github.com/open-syntax/ultimatexo/workflows/Build%20%26%20Publish/badge.svg)](https://github.com/open-syntax/ultimatexo/actions/workflows/build.yml)
 [![License](https://img.shields.io/github/license/open-syntax/ultimatexo)](LICENSE)
@@ -30,12 +31,14 @@ game where local tactics meet global strategy.
 - **Strategic Depth**: Experience the complexity of Ultimate Tic-Tac-Toe's
   nested gameplay
 - **Mobile Friendly**: Optimized for both desktop and mobile devices
-- **Production Ready**: Comprehensive CI/CD with automated testing, security scanning, and zero-downtime deployments
+- **Production Ready**: Comprehensive CI/CD with automated testing,
+  security scanning, and zero-downtime deployments
 - **Open Source**: Completely free to use, modify, and contribute to
 
 ## Tech Stack 🛠️
 
 ### Frontend
+
 - **Vite** - Fast build tool and development server
 - **React** + **TypeScript** - Type-safe modern UI framework
 - **React Router** - Powerful, declarative routing library
@@ -43,11 +46,13 @@ game where local tactics meet global strategy.
 - **pnpm** - Fast, efficient package manager
 
 ### Backend
+
 - **Rust** - High-performance, memory-safe game engine
 - **axum** - Fast web framework for Rust
 - **Tokio** - Async runtime
 
 ### Infrastructure
+
 - **Docker** - Containerization for consistent deployments
 - **Caddy** - Modern web server with automatic HTTPS
 - **Cloudflare** - DNS and DDoS protection
@@ -76,7 +81,7 @@ game where local tactics meet global strategy.
 2. **Install dependencies**
 
    ```bash
-   just install
+   just setup
    # or manually:
    cd client && pnpm install
    cd ../server && cargo build
@@ -108,7 +113,7 @@ just docker-logs
 just docker-down
 ```
 
-Visit: http://localhost
+Visit: <http://localhost>
 
 ## How to Play 🎮
 
@@ -155,7 +160,7 @@ ultimatexo/
 ### Available Commands
 
 ```bash
-just help 
+just help
 ```
 
 ### Pre-commit Hooks
@@ -173,7 +178,8 @@ pre-commit run --all-files
 
 ## Contributing 🤝
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions!
+Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ### Areas Needing Improvement
 
@@ -193,8 +199,8 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 6. **Push to your fork** (`git push origin feature/amazing-feature`)
 7. **Open a Pull Request**
 
-
 ## Security 🔒
+
 See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
 
 ## License 📜

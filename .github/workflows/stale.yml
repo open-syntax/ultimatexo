@@ -17,7 +17,7 @@ jobs:
       - uses: actions/stale@v10
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          
+
           # Issue settings
           days-before-issue-stale: 60
           days-before-issue-close: 14
@@ -32,7 +32,7 @@ jobs:
             this is still relevant, please reopen the issue or create a new one with
             updated information.
           close-issue-reason: 'not_planned'
-          
+
           # PR settings
           days-before-pr-stale: 30
           days-before-pr-close: 7
@@ -45,12 +45,12 @@ jobs:
           close-pr-message: >
             This pull request has been automatically closed due to inactivity.
             Feel free to reopen if you want to continue working on this.
-          
+
           # General settings
           operations-per-run: 100
           remove-stale-when-updated: true
           ascending: true
-          
+
           # Don't mark issues/PRs with these labels as stale
           exempt-all-milestones: true
           exempt-draft-pr: true
