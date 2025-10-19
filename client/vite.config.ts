@@ -26,9 +26,10 @@ export default defineConfig(({ mode }) => {
         },
 
         "/ws": {
-          target: `http://${env.VITE_API_URI}:${env.VITE_API_PORT}/ws`,
+          target: `ws://${env.VITE_API_URI}:${env.VITE_API_PORT}`,
           ws: true,
           changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/ws/, ""),
         },
       },
     },
