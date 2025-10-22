@@ -55,21 +55,21 @@ const GameStatus = ({
     <>
       <ScoreBoard player={player} score={score} />
       <RematchModal
+        openModal={currentOpenModal}
         rematch={rematch}
         rematchStatus={rematchStatus}
-        openModal={currentOpenModal}
         setOpenModal={setCurrentOpenModal}
       />
       <GameStatusModal
         boardStatus={boardStatus}
+        openModal={currentOpenModal}
         player={player}
         rematch={rematch}
-        openModal={currentOpenModal}
         setOpenModal={setCurrentOpenModal}
       />
       <RematchStatusModal
-        rematchStatus={rematchStatus}
         openModal={currentOpenModal}
+        rematchStatus={rematchStatus}
         setOpenModal={setCurrentOpenModal}
       />
     </>
