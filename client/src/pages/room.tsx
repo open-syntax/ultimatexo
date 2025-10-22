@@ -41,19 +41,25 @@ function RoomPage() {
   const { player, board, status, score, rematchStatus, drawStatus, setStatus } =
     useGame();
   const { setWs, setMode } = RoomStore();
-  let { state } = useLocation();
+  let { state } = useLocation() as unknown as {
+    state: {
+      roomId: string;
+      password?: string;
+      isReconnecting: boolean;
+      mode: "Online" | "Local" | "Bot";
+    } | null;
+  };
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    if (state?.password && roomId === state?.roomId) {
+    if (!state) return;
+    if (state.password && roomId === state.roomId) {
       setIsLoading(false);
       handleWebSocket(state.password);
     }
 
-    if (state?.mode) {
-      setMode(state.mode);
-    }
+    setMode(state.mode);
   }, [state]);
 
   const handleWebSocket = (password: string) => {

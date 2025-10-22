@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@heroui/button";
 
-import { GameStore } from "@/store";
+import { GameStore, RoomStore } from "@/store";
 import { GameAction } from "@/types/actions";
 import { BoardStatus } from "@/types";
 
@@ -24,6 +24,9 @@ interface DuringGameActionsProps {
 
 function Actions({ drawStatus, rematchStatus, boardStatus }: ActionsParams) {
   const { draw, resign, rematch } = GameStore();
+  const { mode } = RoomStore();
+
+  if (mode !== "Online") return;
 
   return (
     <div className="flex w-full items-center justify-center gap-2">
