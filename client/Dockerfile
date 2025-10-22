@@ -14,7 +14,7 @@ RUN pnpm run build
 
 FROM nginx:1.29-alpine AS runner
 WORKDIR /usr/share/nginx/html
-RUN rm -rf ./*
+RUN apk update && apk upgrade && rm -rf ./*
 
 COPY --from=builder /app/dist .
 COPY nginx.conf /etc/nginx/nginx.conf

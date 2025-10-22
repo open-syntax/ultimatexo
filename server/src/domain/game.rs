@@ -236,7 +236,7 @@ impl GameEngine {
     }
 
     async fn get_ai_move(&self, ai_player: Marker) -> Option<Move> {
-        let ai = MinimaxAI::new(self.state.difficulty.min(5) as usize);
+        let ai = MinimaxAI::new(self.state.difficulty as usize);
         ai.find_best_move_parallel(&self.state, ai_player).await
     }
 
