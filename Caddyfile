@@ -1,42 +1,121 @@
 ultimatexo.com {
+    # Security headers
     header {
-        Strict-Transport-Security max-age=31536000;
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options nosniff
         X-Frame-Options DENY
         X-XSS-Protection "1; mode=block"
         Referrer-Policy strict-origin-when-cross-origin
-        Content-Security-Policy "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' wss://ultimatexo.com ws://ultimatexo.com https:;"
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        # Fixed CSP - use wss:// only in production, allow self for WebSocket
+        Content-Security-Policy "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' wss://ultimatexo.com https://ultimatexo.com;"
+        # Remove server version disclosure
+        -Server
     }
 
+    # TLS configuration
     tls {$CLOUDFLARE_EMAIL} {
         dns cloudflare {$CLOUDFLARE_API_TOKEN}
+        protocols tls1.2 tls1.3
     }
 
-    @api_routes path /api/* /ws
-    handle @api_routes {
-            uri strip_prefix /api
-            reverse_proxy server:6767 {
-                health_uri /health
-                health_interval 30s
-                health_timeout 5s
-                health_status 2xx
-            }
+    # Enable HTTP/3
+    protocols h1 h2 h3
+
+    # Encode responses
+    encode gzip zstd
+
+    # WebSocket route - must come FIRST before API routes
+    @websocket {
+        path /ws /ws/*
+        header Connection *Upgrade*
+        header Upgrade websocket
     }
 
-    handle {
-        reverse_proxy client:8080 {
+    handle @websocket {
+        reverse_proxy server:6767 {
+            # WebSocket-specific headers
+            header_up Host {host}
             header_up X-Real-IP {remote_host}
             header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}
+
+            # Health check
+            health_uri /health
+            health_interval 30s
+            health_timeout 5s
+            health_status 2xx
+
+            # WebSocket timeouts
+            transport http {
+                read_timeout 0
+                write_timeout 0
+            }
         }
     }
 
+    # API routes (REST endpoints)
+    @api_routes {
+        path /api /api/*
+    }
+
+    handle @api_routes {
+        uri strip_prefix /api
+        reverse_proxy server:6767 {
+            # Standard headers
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+
+            # Health check
+            health_uri /health
+            health_interval 30s
+            health_timeout 5s
+            health_status 2xx
+
+            # Connection pooling
+            transport http {
+                keepalive 30s
+                keepalive_idle_conns 10
+            }
+        }
+    }
+
+    # Static files and SPA routing
+    handle {
+        reverse_proxy client:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+
+            # Health check
+            health_uri /health
+            health_interval 30s
+            health_timeout 5s
+            health_status 2xx
+        }
+    }
+
+    # Access logging
     log {
         output file /var/log/caddy/ultimatexo-access.log {
             roll_size 100mb
-            roll_keep 3
+            roll_keep 5
+            roll_keep_days 30
         }
         format json
         level INFO
+    }
+
+    # Error logging
+    log error {
+        output file /var/log/caddy/ultimatexo-error.log {
+            roll_size 50mb
+            roll_keep 3
+        }
+        format json
+        level ERROR
     }
 }
