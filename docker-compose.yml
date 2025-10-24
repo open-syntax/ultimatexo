@@ -1,5 +1,5 @@
 # UltimateXO Docker Compose Configuration
-# Production-ready setup with health checks, logging, and resource limits
+# Production-ready setup with enhanced security, monitoring, and reliability
 
 version: '3.9'
 
@@ -16,18 +16,28 @@ services:
       - RUST_LOG=${RUST_LOG:-info}
       - HOST=0.0.0.0
       - PORT=6767
+      - TZ=UTC
 
-    # Resource limits
+    # Improved resource limits with more realistic production values
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '2.0'
+          memory: 1G
         reservations:
-          cpus: '0.25'
-          memory: 128M
+          cpus: '0.5'
+          memory: 256M
+      # Add update strategy for zero-downtime deployments
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 5s
 
-    # Health check configuration
+    # Enhanced health check
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6767/health"]
       interval: 30s
@@ -35,27 +45,38 @@ services:
       retries: 3
       start_period: 40s
 
-    # Logging configuration
+    # Logging configuration with labels
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
-        max-file: "3"
+        max-file: "5"
         compress: "true"
+        labels: "service,environment"
 
-    # Security options
+    # Enhanced security
     security_opt:
       - no-new-privileges:true
 
-    # Read-only root filesystem (if applicable)
-    # read_only: true
-    # tmpfs:
-    #   - /tmp
+    # Run as non-root user (requires USER in Dockerfile)
+    # user: "1000:1000"
+
+    # Read-only root filesystem
+    read_only: true
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+
+    # Linux capabilities (drop all, add only what's needed)
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
 
     labels:
       - "com.docker.compose.project=ultimatexo"
       - "com.docker.compose.service=server"
-      - "traefik.enable=false"
+      - "com.ultimatexo.component=backend"
+      - "com.ultimatexo.version=${RELEASE_VERSION:-latest}"
 
   client:
     image: ${IMAGE_BASE:-ghcr.io/open-syntax/ultimatexo}-client:${RELEASE_VERSION:-latest}
@@ -67,45 +88,69 @@ services:
     environment:
       - NODE_ENV=production
       - NGINX_ENTRYPOINT_QUIET_LOGS=1
+      - TZ=UTC
 
     depends_on:
       server:
         condition: service_healthy
 
-    # Resource limits
+    # Improved resource limits
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 256M
+          cpus: '1.0'
+          memory: 512M
         reservations:
-          cpus: '0.1'
-          memory: 64M
+          cpus: '0.25'
+          memory: 128M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 5s
 
-    # Health check configuration
+    # Enhanced health check
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
-    # Logging configuration
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
-        max-file: "3"
+        max-file: "5"
         compress: "true"
+        labels: "service,environment"
 
-    # Security options
+    # Enhanced security
     security_opt:
       - no-new-privileges:true
+
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:size=50M,mode=0755
+      - /var/run:size=10M,mode=0755
+      - /tmp:size=50M,mode=1777
+
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETUID
+      - SETGID
 
     labels:
       - "com.docker.compose.project=ultimatexo"
       - "com.docker.compose.service=client"
-      - "traefik.enable=false"
+      - "com.ultimatexo.component=frontend"
+      - "com.ultimatexo.version=${RELEASE_VERSION:-latest}"
 
   proxy:
     image: ghcr.io/slothcroissant/caddy-cloudflaredns:latest
@@ -123,9 +168,10 @@ services:
       - caddy_logs:/var/log/caddy
 
     environment:
-      ACME_AGREE: "true"
-      CLOUDFLARE_EMAIL: ${CLOUDFLARE_EMAIL}
-      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
+      - ACME_AGREE=true
+      - CLOUDFLARE_EMAIL=${CLOUDFLARE_EMAIL}
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+      - TZ=UTC
 
     depends_on:
       server:
@@ -138,17 +184,21 @@ services:
 
     restart: unless-stopped
 
-    # Resource limits
+    # Improved resource limits
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 256M
+          cpus: '1.0'
+          memory: 512M
         reservations:
-          cpus: '0.1'
-          memory: 64M
+          cpus: '0.25'
+          memory: 128M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
 
-    # Health check
+    # Enhanced health check
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2019/metrics"]
       interval: 30s
@@ -156,21 +206,27 @@ services:
       retries: 3
       start_period: 40s
 
-    # Logging configuration
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
-        max-file: "3"
+        max-file: "5"
         compress: "true"
+        labels: "service,environment"
 
-    # Security options
     security_opt:
       - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
 
     labels:
       - "com.docker.compose.project=ultimatexo"
       - "com.docker.compose.service=proxy"
+      - "com.ultimatexo.component=proxy"
+      - "com.ultimatexo.version=${RELEASE_VERSION:-latest}"
 
 networks:
   app-network:
@@ -179,6 +235,8 @@ networks:
     ipam:
       config:
         - subnet: 172.28.0.0/16
+    driver_opts:
+      com.docker.network.bridge.name: br-ultimatexo
     labels:
       - "com.docker.compose.project=ultimatexo"
       - "com.docker.compose.network=app-network"
@@ -186,18 +244,33 @@ networks:
 volumes:
   caddy_data:
     name: ultimatexo-caddy-data
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${CADDY_DATA_PATH:-./volumes/caddy_data}
     labels:
       - "com.docker.compose.project=ultimatexo"
       - "com.docker.compose.volume=caddy-data"
 
   caddy_config:
     name: ultimatexo-caddy-config
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${CADDY_CONFIG_PATH:-./volumes/caddy_config}
     labels:
       - "com.docker.compose.project=ultimatexo"
       - "com.docker.compose.volume=caddy-config"
 
   caddy_logs:
     name: ultimatexo-caddy-logs
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${CADDY_LOGS_PATH:-./volumes/caddy_logs}
     labels:
       - "com.docker.compose.project=ultimatexo"
       - "com.docker.compose.volume=caddy-logs"

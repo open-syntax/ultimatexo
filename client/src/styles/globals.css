@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 @layer base {
-    input {
-        outline: none;
-    }
+  input {
+    outline: none;
+  }
 }
