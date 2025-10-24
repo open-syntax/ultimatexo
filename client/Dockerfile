@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.4
 
 # Builder stage
-FROM node:24-alpine AS builder
+FROM node:25-alpine AS builder
 
 # Install security updates
 RUN apk update && apk upgrade --no-cache
