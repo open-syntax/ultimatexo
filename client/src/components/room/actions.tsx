@@ -24,9 +24,6 @@ interface DuringGameActionsProps {
 
 function Actions({ drawStatus, rematchStatus, boardStatus }: ActionsParams) {
   const { draw, resign, rematch } = GameStore();
-  const { mode } = RoomStore();
-
-  if (mode !== "Online") return;
 
   return (
     <div className="flex w-full items-center justify-center gap-2">
@@ -54,7 +51,7 @@ const PostGameActions = ({ rematch, rematchStatus }: PostGameActions) => {
           rematchSent || rematch(GameAction.Requested);
         }}
       >
-        {rematchSent ? "Rematch" : "Rematch Sent"}
+        {rematchSent ? "Rematch Sent" : "Rematch"}
       </Button>
     </>
   );
@@ -65,6 +62,8 @@ const DuringGameActions = ({
   draw,
   resign,
 }: DuringGameActionsProps) => {
+  const { mode } = RoomStore();
+  
   const [isConfirm, setIsConfirm] = useState(false);
 
   useEffect(() => {
@@ -84,7 +83,7 @@ const DuringGameActions = ({
 
   return (
     <>
-      <Button
+      {mode === "Online" && <Button
         className={drawStatus === GameAction.Requested ? "animate-pulse" : ""}
         isDisabled={drawStatus === GameAction.Sent}
         onPress={() => {
@@ -99,7 +98,7 @@ const DuringGameActions = ({
           : drawStatus === GameAction.Requested
             ? "Accept Draw"
             : "Request Draw"}
-      </Button>
+      </Button>}
 
       {/* Resign Button  */}
       {!isConfirm ? (
