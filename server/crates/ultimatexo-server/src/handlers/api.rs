@@ -1,7 +1,5 @@
-use crate::{
-    app::AppState,
-    models::{GetRoomQuery, RoomInfo},
-};
+use crate::app::AppState;
+use ultimatexo_core::{GetRoomQuery, RoomInfo};
 use axum::{
     Json,
     extract::{Path, Query, State},

@@ -1,11 +1,11 @@
 use crate::{
     app::AppState,
-    error::AppError,
     handlers::{ConnectionContext, spawn_receive_task, spawn_send_task},
-    models::{
-        Marker, PlayerAction, Room, RoomType, SerizlizedPlayer, ServerMessage, Status,
-        WebSocketQuery,
-    },
+};
+use ultimatexo_core::{
+    AppError,
+    Marker, PlayerAction, Room, RoomType, SerizlizedPlayer, ServerMessage, Status,
+    WebSocketQuery,
 };
 use axum::{
     extract::{

@@ -4,12 +4,12 @@ use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
 
-use crate::{
+use ultimatexo_core::{
     domain::RoomRules,
     error::AppError,
     models::{PlayerAction, Room, RoomInfo, SerizlizedPlayer, ServerMessage, WebSocketQuery},
-    services::CleanupService,
 };
+use crate::CleanupService;
 
 pub struct RoomService {
     rooms: Arc<DashMap<String, Arc<Room>>>,

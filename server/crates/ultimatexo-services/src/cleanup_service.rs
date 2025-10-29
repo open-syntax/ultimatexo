@@ -1,4 +1,4 @@
-use crate::{
+use ultimatexo_core::{
     domain::RoomRules,
     models::{PlayerAction, Room, SerizlizedPlayer, ServerMessage, Status},
 };

@@ -3,13 +3,8 @@ use app::start_server;
 use dotenv::dotenv;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
-mod ai;
 mod app;
-mod domain;
-mod error;
 mod handlers;
-mod models;
-mod services;
 mod utils;
 
 #[tokio::main]

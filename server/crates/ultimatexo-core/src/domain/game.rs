@@ -1,5 +1,4 @@
 use crate::{
-    ai::{MinimaxAI, Move},
     error::AppError,
     models::{Board, GameState, Marker, PlayerInfo, Status},
 };
@@ -233,22 +232,6 @@ impl GameEngine {
 
     pub fn clear_draw_request(&mut self) {
         self.state.pending_draw = None;
-    }
-
-    async fn get_ai_move(&self, ai_player: Marker) -> Option<Move> {
-        let ai = MinimaxAI::new(self.state.difficulty as usize);
-        ai.find_best_move_parallel(&self.state, ai_player).await
-    }
-
-    pub async fn apply_ai_move(&mut self, ai_player: Marker) -> Result<(), AppError> {
-        if let Some(ai_move) = self.get_ai_move(ai_player).await
-            && self
-                .make_move([ai_move.board_index, ai_move.cell_index])
-                .is_ok()
-        {
-            return Ok(());
-        }
-        Err(AppError::ai_move_failed())
     }
 
     pub fn play_random_move(&mut self) {

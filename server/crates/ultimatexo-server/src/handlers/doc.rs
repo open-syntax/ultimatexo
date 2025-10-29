@@ -1,17 +1,15 @@
 use utoipa::OpenApi;
 
-use crate::{
-    handlers::{
-        api::{
-            __path_check_server_memory, __path_create_room, __path_get_room, __path_get_rooms,
-            __path_health_check,
-        },
-        websocket::__path_websocket_handler,
+use crate::handlers::{
+    api::{
+        __path_check_server_memory, __path_create_room, __path_get_room, __path_get_rooms,
+        __path_health_check,
     },
-    models::{
-        Action, Board, ClientMessage, GetRoomQuery, PlayerAction, RoomInfo, SerizlizedPlayer,
-        ServerMessage, WebSocketQuery,
-    },
+    websocket::__path_websocket_handler,
+};
+use ultimatexo_core::{
+    Action, Board, ClientMessage, GetRoomQuery, PlayerAction, RoomInfo, SerizlizedPlayer,
+    ServerMessage, WebSocketQuery,
 };
 
 #[derive(OpenApi)]

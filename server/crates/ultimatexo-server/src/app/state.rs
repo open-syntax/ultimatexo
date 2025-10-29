@@ -1,11 +1,11 @@
 use anyhow::Result;
 
-use crate::{
-    domain::{BotRoomRules, LocalRoomRules, StandardRoomRules},
-    error::AppError,
-    models::{RoomInfo, RoomType},
-    services::RoomService,
+use ultimatexo_core::{
+    BotRoomRules, LocalRoomRules, StandardRoomRules,
+    AppError,
+    RoomInfo, RoomType,
 };
+use ultimatexo_services::RoomService;
 use std::{collections::HashMap, sync::Arc};
 
 pub struct AppState {

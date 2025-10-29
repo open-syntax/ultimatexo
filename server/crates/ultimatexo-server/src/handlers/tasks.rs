@@ -1,7 +1,7 @@
-use crate::{
-    error::AppError,
-    models::{ClientMessage, Room, ServerMessage},
-    utils::MessageHandler,
+use crate::utils::MessageHandler;
+use ultimatexo_core::{
+    AppError,
+    ClientMessage, Room, ServerMessage,
 };
 use anyhow::Result;
 use axum::extract::ws::{Message, WebSocket};

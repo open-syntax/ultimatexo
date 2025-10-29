@@ -1258,30 +1258,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "dashmap",
- "dotenv",
- "futures-util",
- "minimax",
- "rand 0.9.2",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
- "tokio",
- "tokio-util",
- "tower_governor",
- "tracing",
- "tracing-subscriber",
- "utoipa",
- "utoipa-swagger-ui",
- "uuid",
-]
-
-[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1682,6 +1658,65 @@ name = "typenum"
 version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
+
+[[package]]
+name = "ultimatexo-ai"
+version = "0.1.0"
+dependencies = [
+ "minimax",
+ "tokio",
+ "ultimatexo-core",
+]
+
+[[package]]
+name = "ultimatexo-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "rand 0.9.2",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "utoipa",
+ "uuid",
+]
+
+[[package]]
+name = "ultimatexo-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dotenv",
+ "futures-util",
+ "serde_json",
+ "tokio",
+ "tower_governor",
+ "tracing",
+ "tracing-subscriber",
+ "ultimatexo-core",
+ "ultimatexo-services",
+ "utoipa",
+ "utoipa-swagger-ui",
+]
+
+[[package]]
+name = "ultimatexo-services"
+version = "0.1.0"
+dependencies = [
+ "dashmap",
+ "rand 0.9.2",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "ultimatexo-ai",
+ "ultimatexo-core",
+ "uuid",
+]
 
 [[package]]
 name = "unicase"

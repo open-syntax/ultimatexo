@@ -1,4 +1,4 @@
-use crate::models::{Board, GameState, MacroBoard, Marker, Status};
+use ultimatexo_core::models::{Board, GameState, MacroBoard, Marker, Status};
 use std::{
     cmp::{max, min},
     sync::{Arc, Mutex},
