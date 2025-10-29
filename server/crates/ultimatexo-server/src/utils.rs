@@ -1,12 +1,11 @@
 use crate::handlers::ConnectionContext;
-use ultimatexo_core::{
-    AppError,
-    Action, ClientMessage, Marker, Room, RoomType, ServerMessage, Status,
-};
-use ultimatexo_services::GameAIService;
 use std::{borrow::Cow, sync::Arc};
 #[cfg(not(debug_assertions))]
 use tokio::time::Instant;
+use ultimatexo_core::{
+    Action, AppError, ClientMessage, Marker, Room, RoomType, ServerMessage, Status,
+};
+use ultimatexo_services::GameAIService;
 
 pub struct MessageHandler;
 
@@ -83,7 +82,9 @@ impl MessageHandler {
             game.make_move(mv)?;
             if room.info.room_type == RoomType::BotRoom
                 && game.get_board_status().eq(&Status::InProgress)
-                && GameAIService::apply_ai_move(&mut game, !current_player_marker).await.is_err()
+                && GameAIService::apply_ai_move(&mut game, !current_player_marker)
+                    .await
+                    .is_err()
             {
                 return Err(AppError::internal_error("Failed to make game move"));
             }

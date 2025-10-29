@@ -1,12 +1,10 @@
 use anyhow::Result;
 
+use std::{collections::HashMap, sync::Arc};
 use ultimatexo_core::{
-    BotRoomRules, LocalRoomRules, StandardRoomRules,
-    AppError,
-    RoomInfo, RoomType,
+    AppError, BotRoomRules, LocalRoomRules, RoomInfo, RoomType, StandardRoomRules,
 };
 use ultimatexo_services::RoomService;
-use std::{collections::HashMap, sync::Arc};
 
 pub struct AppState {
     room_services: HashMap<RoomType, Arc<RoomService>>,

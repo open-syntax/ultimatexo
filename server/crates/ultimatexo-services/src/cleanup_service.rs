@@ -1,12 +1,13 @@
-use ultimatexo_core::{
-    domain::RoomRules,
-    models::{PlayerAction, Room, SerizlizedPlayer, ServerMessage, Status},
-};
 use dashmap::DashMap;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
+use ultimatexo_core::{
+    domain::RoomRules,
+    models::{PlayerAction, Room, SerizlizedPlayer, ServerMessage, Status},
+};
 
+#[derive(Default)]
 pub struct CleanupService;
 
 impl CleanupService {

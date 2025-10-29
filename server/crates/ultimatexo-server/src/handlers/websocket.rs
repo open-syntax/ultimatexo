@@ -2,17 +2,16 @@ use crate::{
     app::AppState,
     handlers::{ConnectionContext, spawn_receive_task, spawn_send_task},
 };
-use ultimatexo_core::{
-    AppError,
-    Marker, PlayerAction, Room, RoomType, SerizlizedPlayer, ServerMessage, Status,
-    WebSocketQuery,
-};
 use axum::{
     extract::{
         Path, Query, State, WebSocketUpgrade,
         ws::{Message, WebSocket},
     },
     response::Response,
+};
+use ultimatexo_core::{
+    AppError, Marker, PlayerAction, Room, RoomType, SerizlizedPlayer, ServerMessage, Status,
+    WebSocketQuery,
 };
 
 #[cfg(not(debug_assertions))]

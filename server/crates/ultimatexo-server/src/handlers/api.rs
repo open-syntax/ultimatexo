@@ -1,5 +1,4 @@
 use crate::app::AppState;
-use ultimatexo_core::{GetRoomQuery, RoomInfo};
 use axum::{
     Json,
     extract::{Path, Query, State},
@@ -7,6 +6,7 @@ use axum::{
 };
 use serde_json::{Value, json};
 use std::sync::Arc;
+use ultimatexo_core::{GetRoomQuery, RoomInfo};
 
 #[utoipa::path(
     get,
