@@ -1,11 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-    "crates/ultimatexo-core",
-    "crates/ultimatexo-ai",
-    "crates/ultimatexo-services",
-    "crates/ultimatexo-server",
-]
+members = ["crates/core", "crates/ai", "crates/services", "crates/server"]
 
 [workspace.package]
 version = "0.1.0"
@@ -13,9 +8,9 @@ edition = "2024"
 
 [workspace.dependencies]
 # Internal dependencies
-ultimatexo-core = { path = "crates/ultimatexo-core" }
-ultimatexo-ai = { path = "crates/ultimatexo-ai" }
-ultimatexo-services = { path = "crates/ultimatexo-services" }
+ultimatexo-core = { path = "crates/core" }
+ultimatexo-ai = { path = "crates/ai" }
+ultimatexo-services = { path = "crates/services" }
 
 # External dependencies
 anyhow = "1.0.100"

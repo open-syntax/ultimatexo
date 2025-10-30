@@ -20,15 +20,22 @@ repos:
       - id: mixed-line-ending
 
   # Rust formatting and linting
+
   - repo: https://github.com/doublify/pre-commit-rust
     rev: v1.0
     hooks:
-      - id: fmt
-        name: Rust Format (server)
-        args: ['--manifest-path', 'server/Cargo.toml', '--']
-      - id: clippy
-        name: Rust Clippy (server)
-        args: ['--manifest-path', 'server/Cargo.toml', '--', '-D', 'warnings']
+    - id: fmt
+      name: Rust Format (workspace)
+      entry: bash -c 'cd server && cargo fmt --all'
+      language: system
+      pass_filenames: false
+
+    - id: clippy
+      name: Rust Clippy (workspace)
+      entry: bash -c 'cd server && cargo clippy --workspace --all-targets --all-features -- -D warnings'
+      language: system
+      pass_filenames: false
+
 
   # JavaScript/TypeScript for client
   - repo: https://github.com/pre-commit/mirrors-prettier
