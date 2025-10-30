@@ -64,7 +64,7 @@ services:
     # Read-only root filesystem
     read_only: true
     tmpfs:
-      - /tmp:size=100M,mode=1777
+      - /tmp:size=20M,mode=1777
 
     # Linux capabilities (drop all, add only what's needed)
     cap_drop:
