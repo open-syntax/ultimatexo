@@ -4,16 +4,12 @@ use serde::{Deserialize, Serialize, Serializer};
 use std::ops::Not;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Copy, PartialEq, Deserialize, Eq, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize, Eq, ToSchema, Default)]
 pub enum Marker {
+    #[default]
     Empty,
     X,
     O,
-}
-impl Default for Marker {
-    fn default() -> Self {
-        Self::Empty
-    }
 }
 impl Serialize for Marker {
     fn serialize<T>(&self, serializer: T) -> Result<T::Ok, T::Error>
