@@ -36,9 +36,9 @@ RUN apk update && \
     apk add --no-cache curl && \
     rm -rf /var/cache/apk/*
 
-# Create non-root user for nginx
-RUN addgroup -g 101 -S nginx || true && \
-    adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx || true
+# Ensure nginx group and user exist (may already exist in base image)
+RUN getent group nginx || addgroup -g 101 -S nginx && \
+    id -u nginx >/dev/null 2>&1 || adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx
 
 WORKDIR /usr/share/nginx/html
 
