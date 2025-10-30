@@ -93,7 +93,6 @@ export default defineConfig(({ mode }) => {
           target: `ws://${apiUri}:${apiPort}`,
           ws: true,
           changeOrigin: true,
-          rewrite: (path) => path,
         },
       },
     },
