@@ -58,7 +58,7 @@ fn build_router(state: Arc<AppState>) -> Router {
         .route("/health", get(health_check))
         .route("/mem", get(check_server_memory));
     let ws_routes = Router::new().route("/{room_id}", get(websocket_handler));
-    let mut app = Router::new().merge(api_routes).merge(ws_routes);
+    let mut app = Router::new().merge(api_routes).nest("/ws", ws_routes);
     #[cfg(debug_assertions)]
     {
         app = app
