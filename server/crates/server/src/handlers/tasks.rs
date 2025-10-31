@@ -1,8 +1,4 @@
-use crate::{
-    error::AppError,
-    models::{ClientMessage, Room, ServerMessage},
-    utils::MessageHandler,
-};
+use crate::utils::MessageHandler;
 use anyhow::Result;
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::{SinkExt, StreamExt, stream::SplitStream};
@@ -15,6 +11,7 @@ use tokio::{
     task::JoinHandle,
 };
 use tracing::{error, warn};
+use ultimatexo_core::{AppError, ClientMessage, Room, ServerMessage};
 
 #[cfg(not(debug_assertions))]
 use tokio::{sync::RwLock, time::Instant};
