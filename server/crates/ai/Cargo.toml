@@ -1,0 +1,9 @@
+[package]
+name = "ultimatexo-ai"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ultimatexo-core = { workspace = true }
+minimax = { workspace = true }
+tokio = { workspace = true }

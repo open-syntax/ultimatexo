@@ -9,4 +9,4 @@ pub use messages::{
     WebSocketQuery,
 };
 pub use player::{Player, PlayerInfo};
-pub use room::{Room, RoomInfo, RoomType};
+pub use room::{BotLevel, Room, RoomInfo, RoomType};

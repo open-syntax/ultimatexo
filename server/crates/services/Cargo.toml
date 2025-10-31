@@ -1,0 +1,14 @@
+[package]
+name = "ultimatexo-services"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ultimatexo-core = { workspace = true }
+ultimatexo-ai = { workspace = true }
+dashmap = { workspace = true }
+rand = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
