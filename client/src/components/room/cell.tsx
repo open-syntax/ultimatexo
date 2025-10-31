@@ -40,7 +40,7 @@ function Cell({ boardStatus, mark, board, index }: CellProps) {
 
   if (isAvailable) {
     // uxClasses = "cursor-pointer outline outline-2 outline-primary rounded-sm";
-    uxClasses = "cursor-pointer rounded-sm";
+    uxClasses = "cursor-pointer";
   }
 
   if (
@@ -48,12 +48,7 @@ function Cell({ boardStatus, mark, board, index }: CellProps) {
     move.lastMove[0] === board &&
     move.lastMove[1] === index
   ) {
-    if (mark === ("X" as unknown as boardCell)) {
-      defaultClasses =
-        defaultClasses + " *:before:bg-warning-400 *:after:bg-warning-400";
-    } else {
-      defaultClasses = defaultClasses + " *:before:border-warning-400";
-    }
+    defaultClasses = defaultClasses + " border-4 border-primary";
   }
 
   return (
@@ -73,7 +68,7 @@ function Cell({ boardStatus, mark, board, index }: CellProps) {
         </div>
       ) : (
         // eslint-disable-next-line react/self-closing-comp
-        <div className={cn(uxClasses, "h-full w-full")}></div>
+        <div className={cn("h-full w-full", uxClasses)}></div>
       )}
     </button>
   );
