@@ -32,7 +32,7 @@ const ChatLayout = ({
   return (
     <div
       className={
-        "flex flex-col gap-4 rounded-3xl bg-default-50 p-4 " + className
+        "bg-default-50 flex flex-col gap-4 rounded-3xl p-4 " + className
       }
       style={{ height: document.getElementById("board")?.offsetHeight }}
     >
@@ -120,14 +120,14 @@ const Chat = () => {
   return (
     <>
       <Button
-        className="fixed bottom-4 right-4 z-[5] size-12 min-w-12 overflow-visible rounded-full p-0"
+        className="fixed right-4 bottom-4 z-[5] size-12 min-w-12 overflow-visible rounded-full p-0"
         color="primary"
         variant="solid"
         onPress={() => handleOnOpen()}
       >
         <ChatIcon className="fill-background stroke-background" />
         {!isRead && (
-          <i className="absolute -right-1 -top-1 z-10 size-4 rounded-full bg-danger-400" />
+          <i className="bg-danger-400 absolute -top-1 -right-1 z-10 size-4 rounded-full" />
         )}
       </Button>
       <Drawer

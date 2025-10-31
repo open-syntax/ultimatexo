@@ -80,7 +80,7 @@ const ScoreBoard = ({ player, score }: ScoreBoardProps) => {
   return (
     <div className="max-xs:scale-50 mx-auto grid w-fit scale-75 grid-cols-3 items-center justify-center gap-5 rounded-xl border text-2xl font-semibold">
       <div className="flex w-full flex-col justify-around gap-2 px-6 py-4 text-center">
-        <span className="text-4xl text-primary">{player.marker}</span>
+        <span className="text-primary text-4xl">{player.marker}</span>
         <div className="h-px w-full bg-white" />
         You
       </div>

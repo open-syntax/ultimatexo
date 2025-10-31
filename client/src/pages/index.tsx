@@ -55,7 +55,7 @@ export default function IndexPage() {
             </Link>
           </div>
 
-          <p className="relative w-full text-center before:absolute before:-left-4 before:top-1/2 before:h-px before:w-1/2 before:translate-y-1/2 before:bg-default-400 before:content-[''] after:absolute after:-right-4 after:top-1/2 after:h-px after:w-1/2 after:translate-y-1/2 after:bg-default-400 after:content-['']">
+          <p className="before:bg-default-400 after:bg-default-400 relative w-full text-center before:absolute before:top-1/2 before:-left-4 before:h-px before:w-1/2 before:translate-y-1/2 before:content-[''] after:absolute after:top-1/2 after:-right-4 after:h-px after:w-1/2 after:translate-y-1/2 after:content-['']">
             OR
           </p>
 

@@ -7,7 +7,7 @@ import { Lock } from "./icons";
 function RoomCard({ room }: { room: room }) {
   return (
     <Link
-      className="col-span-1 rounded-lg bg-foreground-100 p-4 shadow-2xl transition duration-400 hover:shadow-primary-100 dark:bg-default-50"
+      className="bg-foreground-100 hover:shadow-primary-100 dark:bg-default-50 col-span-1 rounded-lg p-4 shadow-2xl transition duration-400"
       to={`/room/${room.id}`}
     >
       <div className="flex justify-between">

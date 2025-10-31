@@ -95,10 +95,10 @@ const RoomForm = () => {
     <DefaultLayout>
       <RoomLayout>
         <div
-          className={`${base()} ${body()} max-h-[calc(16rem+2rem)] min-w-[calc(200px+2rem)] max-w-xl px-4 py-4 max-sm:max-h-[calc(22rem+2rem)]`}
+          className={`${base()} ${body()} max-h-[calc(16rem+2rem)] max-w-xl min-w-[calc(200px+2rem)] px-4 py-4 max-sm:max-h-[calc(22rem+2rem)]`}
         >
           <h1
-            className={`${header()} mx-auto !w-fit !text-center font-bold leading-4`}
+            className={`${header()} mx-auto !w-fit !text-center leading-4 font-bold`}
           >
             Create Room
           </h1>
@@ -128,7 +128,7 @@ const RoomForm = () => {
                 <Bot /> Bot
               </CustomRadio>
             </RadioGroup>
-            <div className="h-px w-full overflow-y-auto bg-foreground-400 sm:h-full sm:w-px" />
+            <div className="bg-foreground-400 h-px w-full overflow-y-auto sm:h-full sm:w-px" />
             <Form
               autoComplete="off"
               className="flexc-col flex h-full w-full"
@@ -151,8 +151,8 @@ const RoomForm = () => {
                   />
                   <label
                     className={cn(
-                      "relative flex cursor-pointer justify-around gap-2 rounded-full bg-content2 p-2",
-                      "before:absolute before:left-1 before:top-1 before:h-[calc(100%-8px)] before:w-[calc(50%-2px)] before:rounded-full before:bg-primary before:transition before:content-['']",
+                      "bg-content2 relative flex cursor-pointer justify-around gap-2 rounded-full p-2",
+                      "before:bg-primary before:absolute before:top-1 before:left-1 before:h-[calc(100%-8px)] before:w-[calc(50%-2px)] before:rounded-full before:transition before:content-['']",
                       !isPublic && "before:translate-x-[calc(100%-4px)]",
                       "*:z-10 *:select-none",
                       mode === "Local" && "cursor-default opacity-50",

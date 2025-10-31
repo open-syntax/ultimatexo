@@ -24,9 +24,9 @@ function MiniBoard({ board, status, index }: MiniBoardProps) {
 
   if (board.status === "O" || board.status === "X") {
     return (
-      <div className="flex h-full w-full items-center justify-center rounded-xl bg-primary-100">
+      <div className="bg-primary-100 flex h-full w-full items-center justify-center rounded-xl">
         <div
-          className={`flex h-full w-full items-center justify-center rounded-xl text-8xl font-bold text-primary ${board.status === "X" ? "text-primary" : "text-primary-600"}`}
+          className={`text-primary flex h-full w-full items-center justify-center rounded-xl text-8xl font-bold ${board.status === "X" ? "text-primary" : "text-primary-600"}`}
         >
           {board.status === "X" ? (
             <X className="scale-[4]" />
@@ -41,9 +41,9 @@ function MiniBoard({ board, status, index }: MiniBoardProps) {
   return (
     <div
       className={cn(
-        `grid aspect-square h-full w-full grid-cols-3 grid-rows-3 place-items-center gap-2 rounded-xl bg-primary p-2 transition-shadow duration-500 max-sm:gap-1 max-sm:p-1`,
+        `bg-primary grid aspect-square h-full w-full grid-cols-3 grid-rows-3 place-items-center gap-2 rounded-xl p-2 transition-shadow duration-500 max-sm:gap-1 max-sm:p-1`,
         isAvailable && player?.marker === nextPlayer
-          ? "bg-primary shadow-[0_0_8px_1px] shadow-primary"
+          ? "bg-primary shadow-primary shadow-[0_0_8px_1px]"
           : "bg-primary-100",
       )}
     >

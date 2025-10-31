@@ -58,12 +58,12 @@ function Cell({ boardStatus, mark, board, index }: CellProps) {
 
   return (
     <button
-      className={cn(defaultClasses, "relative animate-appearance-in")}
+      className={cn(defaultClasses, "animate-appearance-in relative")}
       onClick={() => handleClick()}
     >
       {mark ? (
         <div
-          className={`flex h-full w-full items-center justify-center rounded-xl text-8xl font-bold text-primary ${mark === ("X" as unknown as boardCell) ? "text-primary" : "text-primary-600"}`}
+          className={`text-primary flex h-full w-full items-center justify-center rounded-xl text-8xl font-bold ${mark === ("X" as unknown as boardCell) ? "text-primary" : "text-primary-600"}`}
         >
           {mark === ("X" as unknown as boardCell) ? (
             <X className="scale-[1.5] max-sm:scale-110" strokeWidth={3} />
