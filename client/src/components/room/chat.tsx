@@ -3,13 +3,15 @@ import { Button } from "@heroui/button";
 import { Drawer, DrawerBody, DrawerContent } from "@heroui/drawer";
 import { useDisclosure } from "@heroui/use-disclosure";
 import { Input } from "@heroui/input";
-import { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { cn } from "@heroui/theme";
 
-import { Chat as ChatIcon } from "../icons";
+import { Chat as ChatIcon, X } from "../icons";
 
 import { Message } from "@/types/messages";
-import { marker } from "@/types/player";
+import { marker, Player } from "@/types/player";
 import { PlayerStore, RoomStore } from "@/store";
+import useWindowSize from "@/hooks/useWindowSize";
 
 interface props {
   chat: Message[];
@@ -19,6 +21,16 @@ interface props {
 
   input: string;
   setInput: React.Dispatch<React.SetStateAction<string>>;
+}
+
+interface ChatProps {
+  chat: Message[];
+  handleMessageSend: (e: React.FormEvent<HTMLFormElement>) => void;
+  input: string;
+  setInput: React.Dispatch<React.SetStateAction<string>>;
+  player: Player | null;
+  isOpen: boolean;
+  onOpenChange: () => void;
 }
 
 const ChatLayout = ({
@@ -45,7 +57,7 @@ const ChatLayout = ({
             id={`message-${i}`}
           >
             <p
-              className={`max-w-[80%] rounded-3xl px-4 py-2 text-start ${message.player.marker === marker ? "bg-primary" : "bg-default-200"}`}
+              className={`max-w-[80%] break-all rounded-3xl px-4 py-2 text-start ${message.player.marker === marker ? "bg-primary" : "bg-default-200"}`}
             >
               {message.content}
             </p>
@@ -73,12 +85,81 @@ const ChatLayout = ({
   );
 };
 
+const MobileChat = ({
+  chat,
+  handleMessageSend,
+  input,
+  setInput,
+  player,
+  isOpen,
+  onOpenChange,
+}: ChatProps) => {
+  return (
+    <Drawer
+      backdrop="transparent"
+      isOpen={isOpen}
+      placement="bottom"
+      size="xl"
+      onOpenChange={onOpenChange}
+    >
+      <DrawerContent className="left-1/2 h-full max-w-xl -translate-x-1/2">
+        <DrawerBody className="h-full">
+          <ChatLayout
+            chat={chat}
+            className="!h-full"
+            handleMessageSend={handleMessageSend}
+            input={input}
+            marker={player?.marker}
+            setInput={setInput}
+          />
+        </DrawerBody>
+      </DrawerContent>
+    </Drawer>
+  );
+};
+
+const DesktopChat = ({
+  chat,
+  handleMessageSend,
+  input,
+  setInput,
+  player,
+  isOpen,
+  onOpenChange,
+}: ChatProps) => {
+  
+  const chatRef = useRef<HTMLDivElement>(null);
+  
+  return (
+    <div
+      ref={chatRef}
+      className={cn(
+        isOpen ? `w-1/3` : "w-0",
+        "relative mt-auto transition-width ease-in-out overflow-hidden h-full",
+      )}
+    >
+      <X className="absolute right-5 top-5 cursor-pointer" onClick={() => onOpenChange()} />
+      <ChatLayout
+        chat={chat}
+        className="rounded-xl"
+        handleMessageSend={handleMessageSend}
+        input={input}
+        marker={player?.marker}
+        setInput={setInput}
+      />
+    </div>
+  );
+};
+
 const Chat = () => {
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  const { width } = useWindowSize();
+
   const { player } = PlayerStore();
   const { chat, sendMessage } = RoomStore();
 
   const [input, setInput] = useState<string>("");
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [isRead, setIsRead] = useState<boolean>(true);
 
   useEffect(() => {
@@ -130,26 +211,27 @@ const Chat = () => {
           <i className="absolute -right-1 -top-1 z-10 size-4 rounded-full bg-danger-400" />
         )}
       </Button>
-      <Drawer
-        backdrop="transparent"
-        isOpen={isOpen}
-        placement="bottom"
-        size="xl"
-        onOpenChange={onOpenChange}
-      >
-        <DrawerContent className="left-1/2 h-full max-w-xl -translate-x-1/2">
-          <DrawerBody className="h-full">
-            <ChatLayout
-              chat={chat}
-              className="!h-full"
-              handleMessageSend={handleMessageSend}
-              input={input}
-              marker={player?.marker}
-              setInput={setInput}
-            />
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
+      {width! >= 720 ? (
+        <DesktopChat
+          chat={chat}
+          handleMessageSend={handleMessageSend}
+          input={input}
+          isOpen={isOpen}
+          player={player}
+          setInput={setInput}
+          onOpenChange={onOpenChange}
+        />
+      ) : (
+        <MobileChat
+          chat={chat}
+          handleMessageSend={handleMessageSend}
+          input={input}
+          isOpen={isOpen}
+          player={player}
+          setInput={setInput}
+          onOpenChange={onOpenChange}
+        />
+      )}
     </>
   );
 };
