@@ -81,7 +81,7 @@ function Instructions() {
                   if your opponent&apos;s move sends you to a board that&apos;s
                   already won or full, you can play on{" "}
                   <span className="text-primary font-bold">
-                    any board avilable
+                    any board available
                   </span>{" "}
                   on the entire grid.
                 </li>
