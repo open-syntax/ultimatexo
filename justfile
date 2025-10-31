@@ -58,7 +58,7 @@ dev:
 
     just client-dev &
     CLIENT_PID=$!
-    just server-dev &
+    cd {{server_dir}} && cargo run &
     SERVER_PID=$!
 
     cleanup() {

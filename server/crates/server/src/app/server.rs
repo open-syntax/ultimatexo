@@ -60,11 +60,11 @@ fn build_router(state: Arc<AppState>) -> Router {
     let ws_routes = Router::new().route("/{room_id}", get(websocket_handler));
     #[cfg(debug_assertions)]
     let app = {
-        let app = Router::new().merge(api_routes).merge(ws_routes);
+        let app = Router::new().merge(api_routes).nest("/ws", ws_routes);
         app.merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
     };
     #[cfg(not(debug_assertions))]
-    let app = Router::new().merge(api_routes).merge(ws_routes);
+    let app = Router::new().merge(api_routes).nest("/ws", ws_routes);
     app.with_state(state)
 }
 
