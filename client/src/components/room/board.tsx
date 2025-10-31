@@ -12,7 +12,7 @@ interface params {
 function Board({ board }: params) {
   return (
     <div
-      className="mx-auto grid aspect-square h-auto max-h-[calc(100svh-10rem)] w-full max-w-xl grid-cols-3 grid-rows-3 place-items-center gap-3"
+      className="grid aspect-square h-auto max-h-[calc(100svh-10rem)] w-full max-w-xl grid-cols-3 grid-rows-3 place-items-center gap-3"
       id="board"
     >
       {board.boards.map((miniBoard, i) => (

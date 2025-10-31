@@ -174,16 +174,18 @@ function RoomPage() {
         </RoomLayout>
       ) : board && player ? (
         <div className="container mx-auto my-auto flex h-[calc(100svh-64px-48px-64px)] max-w-7xl flex-grow flex-col justify-center gap-4 px-6">
-          <GameStatus
-            boardStatus={board.status}
-            drawStatus={drawStatus}
-            player={player}
-            rematchStatus={rematchStatus}
-            score={score}
-          />
-          <div>
-            <Board board={board} />
-            <Chat />
+          <div className="flex flex-col gap-4">
+            <GameStatus
+              boardStatus={board.status}
+              drawStatus={drawStatus}
+              player={player}
+              rematchStatus={rematchStatus}
+              score={score}
+            />
+            <div className="flex grow gap-4 items-center justify-center">
+              <Board board={board} />
+              <Chat />
+            </div>
           </div>
           <Actions
             boardStatus={board.status}

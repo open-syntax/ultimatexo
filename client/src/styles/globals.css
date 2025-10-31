@@ -7,3 +7,26 @@
     outline: none;
   }
 }
+
+.animate-chat-open {
+  width: 33.333333%;
+  animation: chat-close 1s ease-in reverse;
+}
+
+.animate-chat-close {
+  width: 0;
+  margin-left: -16px;
+  animation: chat-close 1s ease-in;
+}
+
+@keyframes chat-close {
+  0% {
+    width: 33.333333%;
+    display: block;
+  }
+  100% {
+    width: 0;
+    margin-left: -16px;
+    display: none;
+  }
+}
