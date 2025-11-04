@@ -169,8 +169,8 @@ importers:
         specifier: ^1.17.0
         version: 1.17.0
       vite-tsconfig-paths:
-        specifier: ^4.3.2
-        version: 4.3.2(typescript@5.9.3)(vite@7.1.12(@types/node@24.9.2)(jiti@1.21.7)(yaml@2.8.1))
+        specifier: ^5.1.4
+        version: 5.1.4(typescript@5.9.3)(vite@7.1.12(@types/node@24.9.2)(jiti@1.21.7)(yaml@2.8.1))
 
 packages:
 
@@ -2864,8 +2864,8 @@ packages:
   vite-sitemap@1.17.0:
     resolution: {integrity: sha512-qP9ABHCQEyPSymhPwEVye8g5u3nxbVqMP+skS2jYypt89DuE+ofsL922+Xj9CXJ+F8Zbot75pGws8TPdeE5otQ==}
 
-  vite-tsconfig-paths@4.3.2:
-    resolution: {integrity: sha512-0Vd/a6po6Q+86rPlntHye7F31zA2URZMbH8M3saAZ/xR9QoGN/L21bxEGfXdWmFdNkqPpRdxFT7nmNe12e9/uA==}
+  vite-tsconfig-paths@5.1.4:
+    resolution: {integrity: sha512-cYj0LRuLV2c2sMqhqhGpaO3LretdtMn/BVX4cPLanIZuwwrkVl+lK84E/miEXkCHWXuq65rhNN4rXsBcOB3S4w==}
     peerDependencies:
       vite: '*'
     peerDependenciesMeta:
@@ -6178,7 +6178,7 @@ snapshots:
 
   vite-sitemap@1.17.0: {}
 
-  vite-tsconfig-paths@4.3.2(typescript@5.9.3)(vite@7.1.12(@types/node@24.9.2)(jiti@1.21.7)(yaml@2.8.1)):
+  vite-tsconfig-paths@5.1.4(typescript@5.9.3)(vite@7.1.12(@types/node@24.9.2)(jiti@1.21.7)(yaml@2.8.1)):
     dependencies:
       debug: 4.4.3
       globrex: 0.1.2
