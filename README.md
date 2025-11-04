@@ -62,7 +62,7 @@ game where local tactics meet global strategy.
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 20.19+ or 22.12+
 - pnpm 8+
 - Rust 1.75+
 - Just command runner (optional but recommended)

@@ -25,7 +25,7 @@ unacceptable behavior to the project maintainers.
 
 ### Prerequisites
 
-- **Node.js** 20.x or higher
+- **Node.js** 20.19.x or higher, or 22.12.x or higher
 - **pnpm** 8.x or higher
 - **Rust** 1.75 or higher
 - **Docker** and Docker Compose
