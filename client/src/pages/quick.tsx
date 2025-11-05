@@ -19,10 +19,7 @@ function Quick() {
   });
   const attempts = useRef(0);
 
-  useEffect(() => {
-    fetchRooms();
-  }, []);
-
+  
   const fetchRooms = async () => {
     attempts.current++;
 
@@ -46,13 +43,19 @@ function Quick() {
         });
       }
     } else {
+      
+      // eslint-disable-next-line react-hooks/purity
       const rand = Math.floor(Math.random() * len);
       const room = data[rand];
-
+      
       navigate(`/room/${room.id}`);
     }
   };
-
+  
+  useEffect(() => {
+    fetchRooms();
+  }, []);
+  
   const createBotRoom = async () => {
     const res = await fetch(`/api/rooms`, {
       method: "POST",
