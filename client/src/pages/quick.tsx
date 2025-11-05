@@ -24,7 +24,9 @@ function Quick() {
     attempts.current++;
 
     const res = await fetch("/api/rooms");
-    const data = (await res.json()) as { id: string }[];
+    let data = (await res.json()) as { id: string; is_protected: boolean}[];
+
+    data = data.filter((room) => !room.is_protected);
 
     const len = data.length;
 
@@ -32,10 +34,10 @@ function Quick() {
       if (attempts.current < 3) {
         setStatus({
           state: "loading",
-          message: `attempt num ${attempts.current}, retrying in 2 seconds...`,
+          message: `attempt num ${attempts.current}, retrying in 5 seconds...`,
         });
 
-        setTimeout(() => fetchRooms(), 2000);
+        setTimeout(() => fetchRooms(), 5000);
       } else {
         setStatus({
           state: "notfound",
@@ -43,7 +45,7 @@ function Quick() {
         });
       }
     } else {
-      
+
       // eslint-disable-next-line react-hooks/purity
       const rand = Math.floor(Math.random() * len);
       const room = data[rand];

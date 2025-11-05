@@ -54,6 +54,7 @@ function RoomPage() {
 
   useEffect(() => {
     if (!state) return;
+
     if (state.password && roomId === state.roomId) {
       setIsLoading(false);
       handleWebSocket(state.password);
@@ -145,7 +146,8 @@ function RoomPage() {
             </Link>
           </div>
         </RoomLayout>
-      ) : status.status === RoomStatus.auth ||
+      ) : (status.status === RoomStatus.auth &&
+          !(state?.password && roomId === state?.roomId)) ||
         status.status === RoomStatus.authFailed ? (
         <RoomLayout>
           <form
@@ -182,7 +184,7 @@ function RoomPage() {
               rematchStatus={rematchStatus}
               score={score}
             />
-            <div className="flex grow gap-4 items-center justify-center">
+            <div className="flex grow items-center justify-center gap-4">
               <Board board={board} />
               <Chat />
             </div>
