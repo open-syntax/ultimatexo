@@ -48,7 +48,7 @@ function Cell({ boardStatus, mark, board, index }: CellProps) {
     move.lastMove[0] === board &&
     move.lastMove[1] === index
   ) {
-    defaultClasses = defaultClasses + " border-4 border-primary";
+    defaultClasses = defaultClasses + " bg-primary-50/50 shadow-inner shadow-primary-600/80";
   }
 
   return (
