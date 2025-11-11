@@ -3,8 +3,11 @@ import { Link } from "@heroui/link";
 import { button as buttonStyles } from "@heroui/theme";
 
 import DefaultLayout from "@/layouts/default";
+import { PlayerStore } from "@/store";
 
 function Instructions() {
+  const { theme } = PlayerStore();
+
   return (
     <DefaultLayout>
       <div className="flex flex-col gap-4 lg:flex-row">
@@ -23,7 +26,7 @@ function Instructions() {
             <img
               alt="board"
               className="aspect-square rounded-lg object-cover"
-              src="/board.png"
+              src={theme === "dark" ? "/board-dark.png" : "/board-light.png"}
             />
           </CardBody>
         </Card>
@@ -64,6 +67,14 @@ function Instructions() {
                   grid to win the game.
                 </li>
               </ol>
+              <iframe
+                className="mt-4 aspect-video w-full rounded-lg"
+                src="https://www.youtube.com/embed/37PC0bGMiTI"
+                title="Ultimate Tic-Tac-Toe: The Rules"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+              ></iframe>
             </CardBody>
           </Card>
           <Card className="border border-foreground-100 p-4" radius="sm">
