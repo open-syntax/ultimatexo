@@ -8,13 +8,16 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use axum::{Router, routing::get};
+#[cfg(not(debug_assertions))]
+use std::time::Duration;
 use std::{
     env,
     net::{SocketAddr, ToSocketAddrs},
     sync::Arc,
-    time::Duration,
 };
+
 use tokio::signal;
+#[cfg(not(debug_assertions))]
 use tower_governor::{GovernorLayer, governor::GovernorConfigBuilder};
 #[cfg(debug_assertions)]
 use utoipa::OpenApi;
@@ -79,15 +82,23 @@ pub async fn start_server() -> Result<()> {
     let config = ServerConfig::from_env()?;
     let state = Arc::new(AppState::new());
 
+    #[cfg(not(debug_assertions))]
     let governor_conf = GovernorConfigBuilder::default()
         .per_second(2)
         .burst_size(5)
         .finish()
         .context("Failed to build governor config")?;
 
+    #[cfg(not(debug_assertions))]
     let governor_limiter = governor_conf.limiter().clone();
+    #[cfg(not(debug_assertions))]
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_secs(60));
+        let mut interval = tokio::time::interval(Duration::from_secs(
+            env::var("GOVERNOR_CLEANUP_INTERVAL_SECS")
+                .unwrap_or_else(|_| "60".to_string())
+                .parse()
+                .unwrap_or(60),
+        ));
         loop {
             interval.tick().await;
             tracing::debug!("rate limiting storage size: {}", governor_limiter.len());
@@ -96,6 +107,8 @@ pub async fn start_server() -> Result<()> {
     });
 
     let app = build_router(state);
+
+    #[cfg(not(debug_assertions))]
     let app = app.layer(GovernorLayer::new(governor_conf));
 
     let addr = config.socket_addr()?;
