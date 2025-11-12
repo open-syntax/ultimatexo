@@ -44,8 +44,6 @@ const useGame = () => {
 
   useEffect(() => {
     if (!ws) return;
-    // eslint-disable-next-line no-console
-    console.info("Connected");
 
     let playerMarker: marker = null;
 
@@ -58,11 +56,6 @@ const useGame = () => {
     ws.onmessage = (event) => {
       const e: socketEvent = JSON.parse(event.data);
       const eventName = e.event;
-
-      if (e.event !== "Ping") {
-        // eslint-disable-next-line no-console
-        console.log(e);
-      }
 
       switch (eventName) {
         case "GameUpdate":
@@ -85,6 +78,7 @@ const useGame = () => {
           let status: RoomStatus, message: string;
 
           switch (e.data.action) {
+            case playerActions.PlayerReconnected:
             case playerActions.PlayerJoined:
               status = RoomStatus.connected;
               if (playerMarker) {
@@ -97,6 +91,7 @@ const useGame = () => {
                   "roomId",
                   window.location.pathname.split("/")[2],
                 );
+                sessionStorage.setItem("playerId", e.data.player.id);
                 setPlayer(e.data.player);
                 message = "Connected";
                 break;

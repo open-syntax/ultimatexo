@@ -65,20 +65,21 @@ function RoomPage() {
 
   const handleWebSocket = (password: string) => {
     // if the room id is the same as the one in the session storage, we can reuse the websocket
-    const room_id = sessionStorage.getItem("room_id");
+    const room_id = sessionStorage.getItem("roomId");
+    const player_id = sessionStorage.getItem("playerId");
 
     const params = [];
 
     if (room_id && room_id === roomId) {
-      params.push(`room_id=${room_id}`);
+      params.push(`is_reconnecting=true`);
     }
 
     if (password) {
       params.push(`password=${password}`);
     }
 
-    if (player?.id) {
-      params.push(`player_id=${player.id}`);
+    if (player_id) {
+      params.push(`player_id=${player_id}`);
     }
 
     setWs(

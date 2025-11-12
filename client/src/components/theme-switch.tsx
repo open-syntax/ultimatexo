@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { useTheme } from "@heroui/use-theme";
 
 import { SunFilledIcon, MoonFilledIcon } from "@/components/icons";
+import { PlayerStore } from "@/store";
 
 export interface ThemeSwitchProps {
   className?: string;
@@ -17,6 +18,7 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = ({
 }) => {
   const [isMounted, setIsMounted] = useState(false);
 
+  const { setTheme: setCurrentTheme } = PlayerStore();
   const { theme, setTheme } = useTheme();
 
   const {
@@ -34,6 +36,10 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = ({
   useEffect(() => {
     setIsMounted(true);
   }, [isMounted]);
+
+  useEffect(() => {
+    setCurrentTheme(theme as "light" | "dark");
+  }, [theme]);
 
   // Prevent Hydration Mismatch
   if (!isMounted) return <div className="h-6 w-6" />;
