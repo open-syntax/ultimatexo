@@ -11,7 +11,7 @@ Vite + HeroUI frontend 🎨.
 
 **🎮 Play instantly at [UltimateXO.com](https://UltimateXO.com)**
 
-![Gameplay Preview](client/public/board-dark.png)
+![Gameplay Preview](client/public/board.svg)
 
 ## What is Ultimate Tic-Tac-Toe?
 
