@@ -92,6 +92,8 @@ services:
     depends_on:
       server:
         condition: service_healthy
+      client-builder:
+        condition: service_healthy
 
     networks:
       - app-network
@@ -144,7 +146,17 @@ services:
     container_name: ultimatexo-client-builder
     volumes:
       - client_dist:/target
-    command: sh -c "cp -r /srv/www/* /target/ && echo 'Client files copied successfully'"
+    command: sh -c "cp -rv /srv/www/* /target/ && touch /target/.ready && echo 'Client files copied successfully' || { echo 'Failed to copy client files' >&2; exit 1; }"
+    
+    restart: on-failure:3
+    
+    healthcheck:
+      test: ["CMD", "test", "-f", "/target/.ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    
     labels:
       - "com.docker.compose.project=ultimatexo"
       - "com.docker.compose.service=client-builder"
