@@ -53,7 +53,6 @@ pub fn spawn_heartbeat_task(ctx: Arc<ConnectionContext>) -> JoinHandle<()> {
         ));
 
         loop {
-
             interval.tick().await;
 
             let last_pong_time = *ctx.last_pong.read().await;
