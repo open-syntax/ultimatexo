@@ -34,6 +34,6 @@ export const siteConfig = {
   links: {
     github: "https://github.com/open-syntax/UltimateXO",
     discord: "https://discord.gg/qvcc5Z2Ksu",
-    sponsor: "https://ko-fi.com/ultimatexo",
+    sponsor: "https://ko-fi.com/opensyntax",
   },
 };
