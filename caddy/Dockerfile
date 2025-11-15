@@ -16,14 +16,14 @@ RUN apk update && \
     rm -rf /var/cache/apk/*
 
 RUN mkdir -p /var/log/caddy /srv/www && \
-    chown -R caddy:caddy /var/log/caddy /srv/www
+    chown -R nobody:nobody /var/log/caddy /srv/www
 
 WORKDIR /srv
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:2019/metrics || exit 1
 
-USER caddy
+USER nobody
 
 EXPOSE 80 443 443/udp
 
