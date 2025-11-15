@@ -43,13 +43,27 @@ pub fn spawn_heartbeat_task(ctx: Arc<ConnectionContext>) -> JoinHandle<()> {
     use tokio::time::interval;
     use tracing::debug;
     tokio::spawn(async move {
-        let mut interval = interval(Duration::from_millis(300));
+        use std::env;
+
+        let mut interval = interval(Duration::from_secs(
+            env::var("WEBSOCKET_PING_INTERVAL_SECS")
+                .unwrap_or_else(|_| "3".to_string())
+                .parse()
+                .unwrap_or(3),
+        ));
 
         loop {
             interval.tick().await;
 
             let last_pong_time = *ctx.last_pong.read().await;
-            if last_pong_time.elapsed() > Duration::from_secs(1) {
+            if last_pong_time.elapsed()
+                > Duration::from_secs(
+                    env::var("WEBSOCKET_PONG_TIMEOUT_SECS")
+                        .unwrap_or_else(|_| "10".to_string())
+                        .parse()
+                        .unwrap_or(10),
+                )
+            {
                 let _ = ctx.player_tx.send(ServerMessage::Close);
                 warn!("Player {} timed out - no pong received", ctx.player_id);
                 break;

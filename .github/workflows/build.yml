@@ -11,7 +11,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false # Don't cancel builds
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
@@ -24,12 +24,14 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write # For sigstore signing
+      id-token: write
     outputs:
       client-image: ${{ steps.meta-client.outputs.tags }}
       server-image: ${{ steps.meta-server.outputs.tags }}
+      caddy-image: ${{ steps.meta-caddy.outputs.tags }}
       client-digest: ${{ steps.build-client.outputs.digest }}
       server-digest: ${{ steps.build-server.outputs.digest }}
+      caddy-digest: ${{ steps.build-caddy.outputs.digest }}
       version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout repository
@@ -75,7 +77,7 @@ jobs:
             type=sha,prefix={{branch}}-
           labels: |
             org.opencontainers.image.title=UltimateXO Client
-            org.opencontainers.image.description=UltimateXO game client
+            org.opencontainers.image.description=UltimateXO game client (static files)
             org.opencontainers.image.vendor=OutOfSyntax
 
       - name: Extract server metadata
@@ -93,6 +95,23 @@ jobs:
           labels: |
             org.opencontainers.image.title=UltimateXO Server
             org.opencontainers.image.description=UltimateXO game server
+            org.opencontainers.image.vendor=OutOfSyntax
+
+      - name: Extract caddy metadata
+        id: meta-caddy
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_BASE }}-caddy
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix={{branch}}-
+          labels: |
+            org.opencontainers.image.title=UltimateXO Caddy
+            org.opencontainers.image.description=Caddy proxy with Cloudflare DNS
             org.opencontainers.image.vendor=OutOfSyntax
 
       - name: Build and push client image
@@ -121,7 +140,19 @@ jobs:
           provenance: true
           sbom: true
 
-  # Vulnerability scanning of built images
+      - name: Build and push caddy image
+        id: build-caddy
+        uses: docker/build-push-action@v6
+        with:
+          context: ./caddy
+          push: true
+          tags: ${{ steps.meta-caddy.outputs.tags }}
+          labels: ${{ steps.meta-caddy.outputs.labels }}
+          cache-from: type=gha,scope=ultimatexo-caddy
+          cache-to: type=gha,mode=max,scope=ultimatexo-caddy
+          provenance: true
+          sbom: true
+
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -129,15 +160,15 @@ jobs:
     permissions:
       contents: read
       packages: read
-      security-events: write # For uploading SARIF
+      security-events: write
     strategy:
       matrix:
-        image: [client, server]
+        image: [client, server, caddy]
     steps:
       - name: Run Trivy scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ matrix.image == 'client' && needs.build-and-push.outputs.client-digest || needs.build-and-push.outputs.server-digest }}
+          image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ matrix.image == 'client' && needs.build-and-push.outputs.client-digest || matrix.image == 'server' && needs.build-and-push.outputs.server-digest || needs.build-and-push.outputs.caddy-digest }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -154,7 +185,7 @@ jobs:
       - name: Run Trivy scanner (table output)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ matrix.image == 'client' && needs.build-and-push.outputs.client-digest || needs.build-and-push.outputs.server-digest }}
+          image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ matrix.image == 'client' && needs.build-and-push.outputs.client-digest || matrix.image == 'server' && needs.build-and-push.outputs.server-digest || needs.build-and-push.outputs.caddy-digest }}
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
@@ -163,7 +194,6 @@ jobs:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
-  # Notify on completion
   notify:
     name: Notify Build Status
     runs-on: ubuntu-latest

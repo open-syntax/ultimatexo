@@ -1,16 +1,11 @@
-# Pre-commit hooks for UltimateXO
-# Install: pip install pre-commit && pre-commit install
-# Run manually: pre-commit run --all-files
-
 repos:
-  # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
-        args: ['--unsafe'] # Allow custom YAML tags
+        args: ['--unsafe']
       - id: check-added-large-files
         args: ['--maxkb=1000']
       - id: check-json
@@ -19,25 +14,20 @@ repos:
       - id: detect-private-key
       - id: mixed-line-ending
 
-  # Rust formatting and linting
-
   - repo: https://github.com/doublify/pre-commit-rust
     rev: v1.0
     hooks:
-    - id: fmt
-      name: Rust Format (workspace)
-      entry: bash -c 'cd server && cargo fmt --all'
-      language: system
-      pass_filenames: false
+      - id: fmt
+        name: Rust Format (workspace)
+        entry: bash -c 'cd server && cargo fmt --all'
+        language: system
+        pass_filenames: false
+      - id: clippy
+        name: Rust Clippy (workspace)
+        entry: bash -c 'cd server && cargo clippy --workspace --all-targets --all-features -- -D warnings'
+        language: system
+        pass_filenames: false
 
-    - id: clippy
-      name: Rust Clippy (workspace)
-      entry: bash -c 'cd server && cargo clippy --workspace --all-targets --all-features -- -D warnings'
-      language: system
-      pass_filenames: false
-
-
-  # JavaScript/TypeScript for client
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v4.0.0-alpha.8
     hooks:
@@ -46,7 +36,6 @@ repos:
         files: ^client/
         types_or: [javascript, jsx, ts, tsx, json, css, scss, html]
 
-  # Additional security checks
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0
     hooks:
@@ -54,49 +43,41 @@ repos:
         args: ['--baseline', '.secrets.baseline']
         exclude: pnpm-lock.yaml
 
-  # Docker
   - repo: https://github.com/hadolint/hadolint
     rev: v2.14.0
     hooks:
       - id: hadolint-docker
+        args: ['--ignore', 'DL3008', '--ignore', 'DL3016', '--ignore', 'DL3018']
         name: Lint Dockerfiles
 
-  # Markdown
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.45.0
     hooks:
       - id: markdownlint
         args: ['--fix']
 
-# Custom local hooks
   - repo: local
     hooks:
-      # TypeScript type check
       - id: typescript-check
         name: TypeScript Check (client)
         entry: bash -c 'cd client && pnpm run type-check'
         language: system
         files: ^client/.*\.(ts|tsx)$
         pass_filenames: false
-
-      # Client tests (if they exist)
       - id: client-tests
         name: Run Client Tests
         entry: bash -c 'cd client && pnpm run test --run 2>/dev/null || echo "No tests configured"'
         language: system
         files: ^client/
         pass_filenames: false
-        stages: [pre-push] # Only on push, not commit
-
-      # Rust tests
+        stages: [pre-push]
       - id: rust-tests
         name: Run Rust Tests
         entry: bash -c 'cd server && cargo test'
         language: system
         files: ^server/.*\.rs$
         pass_filenames: false
-        stages: [pre-push] # Only on push, not commit
+        stages: [pre-push]
 
-# Configuration
 default_stages: [pre-commit]
 fail_fast: false

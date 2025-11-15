@@ -1,3 +1,5 @@
+use std::env;
+
 use crate::{
     domain::RoomRules,
     error::AppError,
@@ -57,7 +59,12 @@ impl RoomRules for StandardRoomRules {
     }
 
     fn get_cleanup_timeout(&self) -> std::time::Duration {
-        std::time::Duration::from_secs(10)
+        std::time::Duration::from_secs(
+            env::var("ROOM_CLEANUP_TIMEOUT_SECS")
+                .unwrap_or_else(|_| "300".to_string())
+                .parse()
+                .unwrap_or(300),
+        )
     }
 
     fn get_max_players(&self) -> usize {
