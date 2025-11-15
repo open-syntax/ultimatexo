@@ -2,7 +2,6 @@ name: Cleanup & Maintenance
 
 on:
   schedule:
-    # Run weekly on Sundays at 2 AM UTC
     - cron: '0 2 * * 0'
   workflow_dispatch:
 
@@ -16,7 +15,7 @@ jobs:
       - name: Delete old container images
         uses: snok/container-retention-policy@v2
         with:
-          image-names: ultimatexo-client,ultimatexo-server
+          image-names: ultimatexo-client,ultimatexo-server,ultimatexo-caddy
           cut-off: 30 days ago UTC
           account-type: org
           org-name: open-syntax
@@ -38,7 +37,6 @@ jobs:
           echo "🧹 Cleaning up old GitHub Actions caches..."
           gh extension install actions/gh-actions-cache || true
 
-          # Keep caches from main branch and last 7 days
           gh actions-cache list --limit 100 | \
             grep -v "refs/heads/main" | \
             awk '{print $1}' | \

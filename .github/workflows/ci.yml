@@ -15,7 +15,6 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
-  # Code quality checks
   lint:
     name: Lint & Format Check
     runs-on: ubuntu-latest
@@ -57,7 +56,6 @@ jobs:
         working-directory: client
         run: pnpm install --frozen-lockfile
 
-      # Client checks
       - name: Lint client
         working-directory: client
         run: pnpm run lint || echo "No lint script found"
@@ -70,7 +68,6 @@ jobs:
         working-directory: client
         run: pnpm run type-check || echo "No type check script found"
 
-      # Server checks
       - name: Format check server
         working-directory: server
         run: cargo fmt -- --check
@@ -78,6 +75,11 @@ jobs:
       - name: Clippy server
         working-directory: server
         run: cargo clippy -- -D warnings
+
+      - name: Validate Caddyfile
+        uses: docker://caddy:2.8.4-alpine
+        with:
+          args: caddy validate --config ./caddy/Caddyfile --adapter caddyfile
 
   security-audit:
     name: Security Audit
@@ -112,7 +114,7 @@ jobs:
 
       - name: Audit npm dependencies
         working-directory: client
-        run: pnpm audit --prod || true # Don't fail on advisory
+        run: pnpm audit --prod || true
 
   test:
     name: Test
@@ -214,6 +216,15 @@ jobs:
           tags: ultimatexo-server:ci
           cache-from: type=gha,scope=ultimatexo-server
           cache-to: type=gha,mode=max,scope=ultimatexo-server
+
+      - name: Build caddy image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./caddy
+          push: false
+          tags: ultimatexo-caddy:ci
+          cache-from: type=gha,scope=ultimatexo-caddy
+          cache-to: type=gha,mode=max,scope=ultimatexo-caddy
 
   ci-status:
     name: CI Status

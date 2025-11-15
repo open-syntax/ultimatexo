@@ -1,5 +1,19 @@
+{
+
+    servers {
+        protocols h1 h2 h3
+    }
+
+    email {$CLOUDFLARE_EMAIL}
+}
+
 ultimatexo.com {
-    # Security headers
+    root * /srv/www
+
+    file_server
+
+    encode gzip zstd
+
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options nosniff
@@ -7,25 +21,23 @@ ultimatexo.com {
         X-XSS-Protection "1; mode=block"
         Referrer-Policy strict-origin-when-cross-origin
         Permissions-Policy "geolocation=(), microphone=(), camera=()"
-        # Fixed CSP - use wss:// only in production, allow self for WebSocket
-        Content-Security-Policy "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' wss://ultimatexo.com https://ultimatexo.com;"
-        # Remove server version disclosure
+        Content-Security-Policy "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://storage.ko-fi.com; font-src 'self' https:; connect-src 'self' wss://ultimatexo.com https://ultimatexo.com; frame-src 'self' https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com;"
         -Server
     }
 
-    # TLS configuration
-    tls {$CLOUDFLARE_EMAIL} {
+    tls {
         dns cloudflare {$CLOUDFLARE_API_TOKEN}
         protocols tls1.2 tls1.3
     }
 
-    # Enable HTTP/3
-    protocols h1 h2 h3
+    rate_limit {
+        zone dynamic {
+            key {remote_host}
+            events 100
+            window 1m
+        }
+    }
 
-    # Encode responses
-    encode gzip zstd
-
-    # WebSocket route - must come FIRST before API routes
     @websocket {
         path /ws /ws/*
         header Connection *Upgrade*
@@ -34,19 +46,16 @@ ultimatexo.com {
 
     handle @websocket {
         reverse_proxy server:6767 {
-            # WebSocket-specific headers
             header_up Host {host}
             header_up X-Real-IP {remote_host}
             header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}
 
-            # Health check
             health_uri /health
             health_interval 30s
             health_timeout 5s
             health_status 2xx
 
-            # WebSocket timeouts
             transport http {
                 read_timeout 0
                 write_timeout 0
@@ -54,7 +63,6 @@ ultimatexo.com {
         }
     }
 
-    # API routes (REST endpoints)
     @api_routes {
         path /api /api/*
     }
@@ -62,19 +70,16 @@ ultimatexo.com {
     handle @api_routes {
         uri strip_prefix /api
         reverse_proxy server:6767 {
-            # Standard headers
             header_up Host {host}
             header_up X-Real-IP {remote_host}
             header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}
 
-            # Health check
             health_uri /health
             health_interval 30s
             health_timeout 5s
             health_status 2xx
 
-            # Connection pooling
             transport http {
                 keepalive 30s
                 keepalive_idle_conns 10
@@ -82,23 +87,30 @@ ultimatexo.com {
         }
     }
 
-    # Static files and SPA routing
-    handle {
-        reverse_proxy client:8080 {
-            header_up Host {host}
-            header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-For {remote_host}
-            header_up X-Forwarded-Proto {scheme}
-
-            # Health check
-            health_uri /health
-            health_interval 30s
-            health_timeout 5s
-            health_status 2xx
-        }
+    handle /health {
+        respond "healthy" 200
     }
 
-    # Access logging
+    @static {
+        path *.js *.css *.woff *.woff2 *.ttf *.eot *.otf
+    }
+
+    handle @static {
+        header Cache-Control "public, max-age=31536000, immutable"
+    }
+
+    @images {
+        path *.png *.jpg *.jpeg *.gif *.ico *.svg *.webp *.avif
+    }
+
+    handle @images {
+        header Cache-Control "public, max-age=2592000"
+    }
+
+    handle {
+        try_files {path} /index.html
+    }
+
     log {
         output file /var/log/caddy/ultimatexo-access.log {
             roll_size 100mb
@@ -109,7 +121,6 @@ ultimatexo.com {
         level INFO
     }
 
-    # Error logging
     log error {
         output file /var/log/caddy/ultimatexo-error.log {
             roll_size 50mb
