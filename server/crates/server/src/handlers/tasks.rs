@@ -53,7 +53,6 @@ pub fn spawn_heartbeat_task(ctx: Arc<ConnectionContext>) -> JoinHandle<()> {
         ));
 
         loop {
-            use std::env;
 
             interval.tick().await;
 
