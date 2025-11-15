@@ -1,17 +1,12 @@
 {
-
     servers {
         protocols h1 h2 h3
     }
-
-    email {$CLOUDFLARE_EMAIL}
 }
 
 ultimatexo.com {
     root * /srv/www
-
     file_server
-
     encode gzip zstd
 
     header {
@@ -30,14 +25,6 @@ ultimatexo.com {
         protocols tls1.2 tls1.3
     }
 
-    rate_limit {
-        zone dynamic {
-            key {remote_host}
-            events 100
-            window 1m
-        }
-    }
-
     @websocket {
         path /ws /ws/*
         header Connection *Upgrade*
@@ -50,12 +37,6 @@ ultimatexo.com {
             header_up X-Real-IP {remote_host}
             header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}
-
-            health_uri /health
-            health_interval 30s
-            health_timeout 5s
-            health_status 2xx
-
             transport http {
                 read_timeout 0
                 write_timeout 0
@@ -74,12 +55,6 @@ ultimatexo.com {
             header_up X-Real-IP {remote_host}
             header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}
-
-            health_uri /health
-            health_interval 30s
-            health_timeout 5s
-            health_status 2xx
-
             transport http {
                 keepalive 30s
                 keepalive_idle_conns 10
@@ -112,21 +87,12 @@ ultimatexo.com {
     }
 
     log {
-        output file /var/log/caddy/ultimatexo-access.log {
+        output file /var/log/caddy/ultimatexo.log {
             roll_size 100mb
             roll_keep 5
             roll_keep_days 30
         }
         format json
         level INFO
-    }
-
-    log error {
-        output file /var/log/caddy/ultimatexo-error.log {
-            roll_size 50mb
-            roll_keep 3
-        }
-        format json
-        level ERROR
     }
 }

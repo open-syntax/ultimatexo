@@ -77,12 +77,11 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "443:443/udp" # HTTP/3 support
-      - "2019:2019"   # Admin API (optional, remove in production)
+      - "443:443/udp"
 
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - client_dist:/srv/www:ro  # Mount client static files
+      - client_dist:/srv/www:ro
       - caddy_data:/data
       - caddy_config:/config
       - caddy_logs:/var/log/caddy
@@ -143,7 +142,6 @@ services:
       - "com.ultimatexo.component=proxy"
       - "com.ultimatexo.version=${RELEASE_VERSION:-latest}"
 
-  # Helper service to copy client files (runs once)
   client-builder:
     image: ${IMAGE_BASE:-ghcr.io/open-syntax/ultimatexo}-client:${RELEASE_VERSION:-latest}
     container_name: ultimatexo-client-builder
