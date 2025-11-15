@@ -1,11 +1,12 @@
 # syntax=docker/dockerfile:1.4
 
-FROM caddy:2.8.4-builder AS builder
+FROM caddy:2.9-builder AS builder
 
 RUN xcaddy build \
-    --with github.com/caddy-dns/cloudflare
+    --with github.com/caddy-dns/cloudflare \
+    --with github.com/mholt/caddy-ratelimit
 
-FROM caddy:2.8.4-alpine
+FROM caddy:2.9-alpine
 
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 
@@ -26,8 +27,8 @@ USER caddy
 
 EXPOSE 80 443 443/udp
 
-LABEL org.opencontainers.image.title="Caddy with Cloudflare DNS" \
-      org.opencontainers.image.description="Caddy web server with Cloudflare DNS plugin" \
+LABEL org.opencontainers.image.title="Caddy with Cloudflare DNS + Rate Limiting" \
+      org.opencontainers.image.description="Caddy web server with Cloudflare DNS and rate limiting plugins" \
       org.opencontainers.image.vendor="open-syntax" \
       org.opencontainers.image.source="https://github.com/open-syntax/ultimatexo"
 

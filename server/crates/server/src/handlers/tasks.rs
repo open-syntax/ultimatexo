@@ -43,6 +43,8 @@ pub fn spawn_heartbeat_task(ctx: Arc<ConnectionContext>) -> JoinHandle<()> {
     use tokio::time::interval;
     use tracing::debug;
     tokio::spawn(async move {
+        use std::env;
+
         let mut interval = interval(Duration::from_secs(
             env::var("WEBSOCKET_PING_INTERVAL_SECS")
                 .unwrap_or_else(|_| "3".to_string())

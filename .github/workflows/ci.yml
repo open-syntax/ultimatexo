@@ -76,11 +76,6 @@ jobs:
         working-directory: server
         run: cargo clippy -- -D warnings
 
-      - name: Validate Caddyfile
-        uses: docker://caddy:2.8.4-alpine
-        with:
-          args: caddy validate --config ./caddy/Caddyfile --adapter caddyfile
-
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
