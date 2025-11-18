@@ -55,8 +55,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:6767/health || exit 1
 
 ENTRYPOINT ["/usr/local/bin/server"]
-
-LABEL org.opencontainers.image.title="UltimateXO Server" \
-      org.opencontainers.image.description="Production server for UltimateXO" \
-      org.opencontainers.image.vendor="open-syntax" \
-      org.opencontainers.image.source="https://github.com/open-syntax/ultimatexo"

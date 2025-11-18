@@ -17,11 +17,6 @@ COPY . .
 RUN pnpm run build && \
     test -d dist && test -f dist/index.html
 
-FROM scratch AS runner
+FROM alpine AS runner
 
 COPY --from=builder /app/dist /srv/www
-
-LABEL org.opencontainers.image.title="UltimateXO Client" \
-      org.opencontainers.image.description="Built static files for UltimateXO client" \
-      org.opencontainers.image.vendor="open-syntax" \
-      org.opencontainers.image.source="https://github.com/open-syntax/ultimatexo"

@@ -1,36 +1,15 @@
-version: '3.9'
-
 services:
   server:
-    image: ${IMAGE_BASE:-ghcr.io/open-syntax/ultimatexo}-server:${RELEASE_VERSION:-latest}
+    image: ${IMAGE_BASE:-ghcr.io/open-syntax/ultimatexo}-server:${VERSION:-latest}
     container_name: ultimatexo-server
-    networks:
-      - app-network
-    restart: unless-stopped
 
     environment:
-      - RUST_BACKTRACE=1
-      - RUST_LOG=${RUST_LOG:-info}
-      - HOST=0.0.0.0
-      - PORT=6767
-      - TZ=UTC
+      HOST: 0.0.0.0
+      PORT: 6767
+      RUST_LOG: ${RUST_LOG:-info}
 
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
-        failure_action: rollback
-      rollback_config:
-        parallelism: 1
-        delay: 5s
+    networks:
+      - app-network
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6767/health"]
@@ -39,37 +18,31 @@ services:
       retries: 3
       start_period: 40s
 
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
-        compress: "true"
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
 
     security_opt:
       - no-new-privileges:true
-
     read_only: true
     tmpfs:
-      - /tmp:size=20M,mode=1777
-
+      - /tmp
     cap_drop:
       - ALL
     cap_add:
       - NET_BIND_SERVICE
 
-    labels:
-      - "com.docker.compose.project=ultimatexo"
-      - "com.docker.compose.service=server"
-      - "com.ultimatexo.component=backend"
-      - "com.ultimatexo.version=${RELEASE_VERSION:-latest}"
-
   proxy:
-    build:
-      context: ./caddy
-      dockerfile: Dockerfile
-    image: ${IMAGE_BASE:-ghcr.io/open-syntax/ultimatexo}-caddy:${RELEASE_VERSION:-latest}
+    image: ${IMAGE_BASE:-ghcr.io/open-syntax/ultimatexo}-caddy:${VERSION:-latest}
     container_name: ultimatexo-proxy
+    user: "0:0"
 
     ports:
       - "80:80"
@@ -77,129 +50,55 @@ services:
       - "443:443/udp"
 
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - client_dist:/srv/www:ro
       - caddy_data:/data
       - caddy_config:/config
-      - caddy_logs:/var/log/caddy
 
     environment:
-      - ACME_AGREE=true
-      - CLOUDFLARE_EMAIL=${CLOUDFLARE_EMAIL}
-      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
-      - TZ=UTC
+      CLOUDFLARE_EMAIL: ${CLOUDFLARE_EMAIL}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
+
+    networks:
+      - app-network
 
     depends_on:
       server:
         condition: service_healthy
 
-    networks:
-      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
     restart: unless-stopped
 
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: '1'
           memory: 512M
         reservations:
           cpus: '0.25'
           memory: 128M
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
-
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
-        compress: "true"
-
-    security_opt:
-      - no-new-privileges:true
-
-    cap_drop:
-      - ALL
-    cap_add:
-      - NET_BIND_SERVICE
-
-    labels:
-      - "com.docker.compose.project=ultimatexo"
-      - "com.docker.compose.service=proxy"
-      - "com.ultimatexo.component=proxy"
-      - "com.ultimatexo.version=${RELEASE_VERSION:-latest}"
 
   client-builder:
-    image: ${IMAGE_BASE:-ghcr.io/open-syntax/ultimatexo}-client:${RELEASE_VERSION:-latest}
+    image: ${IMAGE_BASE:-ghcr.io/open-syntax/ultimatexo}-client:${VERSION:-latest}
     container_name: ultimatexo-client-builder
+
     volumes:
       - client_dist:/target
-    command: sh -c "cp -r /srv/www/* /target/ && echo 'Client files copied successfully'"
-    labels:
-      - "com.docker.compose.project=ultimatexo"
-      - "com.docker.compose.service=client-builder"
-      - "com.ultimatexo.component=client-builder"
+
+    command: sh -c "cp -r /srv/www/* /target/ && echo 'Client files copied'"
+
+    restart: "no"
 
 networks:
   app-network:
     driver: bridge
-    name: ultimatexo-network
-    ipam:
-      config:
-        - subnet: 172.28.0.0/16
-    driver_opts:
-      com.docker.network.bridge.name: br-ultimatexo
-    labels:
-      - "com.docker.compose.project=ultimatexo"
-      - "com.docker.compose.network=app-network"
 
 volumes:
   client_dist:
-    name: ultimatexo-client-dist
-    driver: local
-    labels:
-      - "com.docker.compose.project=ultimatexo"
-      - "com.docker.compose.volume=client-dist"
-
   caddy_data:
-    name: ultimatexo-caddy-data
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${CADDY_DATA_PATH:-./volumes/caddy_data}
-    labels:
-      - "com.docker.compose.project=ultimatexo"
-      - "com.docker.compose.volume=caddy-data"
-
   caddy_config:
-    name: ultimatexo-caddy-config
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${CADDY_CONFIG_PATH:-./volumes/caddy_config}
-    labels:
-      - "com.docker.compose.project=ultimatexo"
-      - "com.docker.compose.volume=caddy-config"
-
-  caddy_logs:
-    name: ultimatexo-caddy-logs
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${CADDY_LOGS_PATH:-./volumes/caddy_logs}
-    labels:
-      - "com.docker.compose.project=ultimatexo"
-      - "com.docker.compose.volume=caddy-logs"
