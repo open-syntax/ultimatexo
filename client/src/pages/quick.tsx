@@ -19,12 +19,11 @@ function Quick() {
   });
   const attempts = useRef(0);
 
-  
   const fetchRooms = async () => {
     attempts.current++;
 
     const res = await fetch("/api/rooms");
-    let data = (await res.json()) as { id: string; is_protected: boolean}[];
+    let data = (await res.json()) as { id: string; is_protected: boolean }[];
 
     data = data.filter((room) => !room.is_protected);
 
@@ -45,19 +44,18 @@ function Quick() {
         });
       }
     } else {
-
       // eslint-disable-next-line react-hooks/purity
       const rand = Math.floor(Math.random() * len);
       const room = data[rand];
-      
+
       navigate(`/room/${room.id}`);
     }
   };
-  
+
   useEffect(() => {
     fetchRooms();
   }, []);
-  
+
   const createBotRoom = async () => {
     const res = await fetch(`/api/rooms`, {
       method: "POST",

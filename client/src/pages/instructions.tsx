@@ -3,11 +3,52 @@ import { Link } from "@heroui/link";
 import { button as buttonStyles } from "@heroui/theme";
 
 import DefaultLayout from "@/layouts/default";
-import { PlayerStore } from "@/store";
+import Board from "@/components/room/board";
+import { BoardStatus, Board as BoardType } from "@/types";
+
+const boardData = {
+  boards: [
+    {
+      cells: [null, null, "X", null, null, "X", null, null, "X"],
+      status: "X",
+    },
+    {
+      cells: [null, "X", null, null, null, null, null, "O", null],
+      status: null,
+    },
+    {
+      cells: [null, "O", null, "O", null, null, null, null, null],
+      status: null,
+    },
+    {
+      cells: [null, null, null, "X", "X", "X", null, null, null],
+      status: "X",
+    },
+    {
+      cells: [null, null, "X", "O", "O", null, null, null, "X"],
+      status: null,
+    },
+    {
+      cells: ["O", null, null, "O", null, null, "O", null, null],
+      status: "O",
+    },
+    {
+      cells: [null, null, "X", null, null, null, null, null, "O"],
+      status: null,
+    },
+    {
+      cells: [null, null, null, null, null, null, "X", null, null],
+      status: null,
+    },
+    {
+      cells: ["O", null, null, "O", "X", null, null, null, null],
+      status: null,
+    },
+  ],
+  status: null,
+};
 
 function Instructions() {
-  const { theme } = PlayerStore();
-
   return (
     <DefaultLayout>
       <div className="flex flex-col gap-4 lg:flex-row">
@@ -17,16 +58,19 @@ function Instructions() {
               The Basics
             </h1>
           </CardHeader>
-          <CardBody className="space-y-4">
+          <CardBody className="space-y-4 items-center">
             <p>
               UltimateXO is played on a 3x3 grid of smaller Tic-Tac-Toe, The
               goal is to win 3 smaller boards in a row, column, or diagonal to
               claim victory on the main grid.
             </p>
-            <img
-              alt="board"
-              className="aspect-square rounded-lg object-cover"
-              src={theme === "dark" ? "/board-dark.png" : "/board-light.png"}
+            <Board
+              board={
+                boardData as unknown as {
+                  boards: BoardType;
+                  status: BoardStatus | null;
+                }
+              }
             />
           </CardBody>
         </Card>

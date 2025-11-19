@@ -127,9 +127,8 @@ const DesktopChat = ({
   isOpen,
   onOpenChange,
 }: ChatProps) => {
-  
   const chatRef = useRef<HTMLDivElement>(null);
-  
+
   return (
     <div
       ref={chatRef}
@@ -138,7 +137,10 @@ const DesktopChat = ({
         "relative mt-auto transition-width ease-in-out overflow-hidden h-full",
       )}
     >
-      <X className="absolute right-5 top-5 cursor-pointer" onClick={() => onOpenChange()} />
+      <X
+        className="absolute right-5 top-5 cursor-pointer"
+        onClick={() => onOpenChange()}
+      />
       <ChatLayout
         chat={chat}
         className="rounded-xl"

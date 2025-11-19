@@ -63,7 +63,7 @@ const DuringGameActions = ({
   resign,
 }: DuringGameActionsProps) => {
   const { mode } = RoomStore();
-  
+
   const [isConfirm, setIsConfirm] = useState(false);
 
   useEffect(() => {
@@ -83,22 +83,24 @@ const DuringGameActions = ({
 
   return (
     <>
-      {mode === "Online" && <Button
-        className={drawStatus === GameAction.Requested ? "animate-pulse" : ""}
-        isDisabled={drawStatus === GameAction.Sent}
-        onPress={() => {
-          if (drawStatus === GameAction.Sent) return;
-          if (drawStatus === GameAction.Requested)
-            return draw(GameAction.Accepted);
-          draw(GameAction.Requested);
-        }}
-      >
-        {drawStatus === GameAction.Sent
-          ? "Draw Requested"
-          : drawStatus === GameAction.Requested
-            ? "Accept Draw"
-            : "Request Draw"}
-      </Button>}
+      {mode === "Online" && (
+        <Button
+          className={drawStatus === GameAction.Requested ? "animate-pulse" : ""}
+          isDisabled={drawStatus === GameAction.Sent}
+          onPress={() => {
+            if (drawStatus === GameAction.Sent) return;
+            if (drawStatus === GameAction.Requested)
+              return draw(GameAction.Accepted);
+            draw(GameAction.Requested);
+          }}
+        >
+          {drawStatus === GameAction.Sent
+            ? "Draw Requested"
+            : drawStatus === GameAction.Requested
+              ? "Accept Draw"
+              : "Request Draw"}
+        </Button>
+      )}
 
       {/* Resign Button  */}
       {!isConfirm ? (
