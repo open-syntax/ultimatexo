@@ -79,7 +79,7 @@ impl MessageHandler {
             game.make_move(mv)?;
             if room.info.room_type == RoomType::BotRoom
                 && game.get_board_status().eq(&Status::InProgress)
-                && GameAIService::apply_ai_move(&mut game, !current_player_marker)
+                && GameAIService::make_ai_move(&mut game, !current_player_marker)
                     .await
                     .is_err()
             {

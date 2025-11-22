@@ -61,9 +61,9 @@ impl RoomService {
                 .await
         } else {
             self.rules.can_join_room(
-                &room.info,
                 current_count,
-                payload.password,
+                &room.info.password,
+                &payload.password,
                 room.is_pending_cleanup().await,
             )?;
             self.handle_new_connection(room, payload.player_id, addr)
@@ -141,7 +141,7 @@ impl RoomService {
             );
         }
 
-        self.schedule_delayed_cleanup(room, leaving_player_id).await;
+        self.schedule_cleanup(room, leaving_player_id).await;
 
         Ok(())
     }
@@ -153,7 +153,7 @@ impl RoomService {
         }
     }
 
-    async fn schedule_delayed_cleanup(&self, room: Arc<Room>, player_id: &str) {
+    async fn schedule_cleanup(&self, room: Arc<Room>, player_id: &str) {
         let cleanup_token = CancellationToken::new();
         *room.deletion_token.lock().await = Some(cleanup_token.clone());
 

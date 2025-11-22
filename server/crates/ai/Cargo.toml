@@ -7,3 +7,4 @@ edition.workspace = true
 ultimatexo-core = { workspace = true }
 minimax = { workspace = true }
 tokio = { workspace = true }
+rand = { workspace = true }

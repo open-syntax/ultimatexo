@@ -5,9 +5,12 @@ use crate::{
 };
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use std::sync::{
-    Arc,
-    atomic::{AtomicUsize, Ordering},
+use std::{
+    env,
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
 };
 use tokio::sync::{
     Mutex,
@@ -59,10 +62,23 @@ pub struct Room {
 
 impl Room {
     pub fn new(info: RoomInfo, tx: Sender<ServerMessage>) -> Self {
-        let difficulty: Option<u8> = match info.bot_level.as_ref() {
-            Some(BotLevel::Beginner) => Some(2),
-            Some(BotLevel::Intermediate) => Some(5),
-            Some(BotLevel::Advanced) => Some(8),
+        let begginer_difficulity = env::var("BOT_BEGINNER_DIFFICULTY")
+            .ok()
+            .and_then(|val| val.parse::<u8>().ok())
+            .unwrap_or(2);
+        let intermediate_difficulity = env::var("BOT_INTERMEDIATE_DIFFICULTY")
+            .ok()
+            .and_then(|val| val.parse::<u8>().ok())
+            .unwrap_or(5);
+        let advanced_difficulity = env::var("BOT_ADVANCED_DIFFICULTY")
+            .ok()
+            .and_then(|val| val.parse::<u8>().ok())
+            .unwrap_or(8);
+
+        let difficulty = match info.bot_level {
+            Some(BotLevel::Beginner) => Some(begginer_difficulity),
+            Some(BotLevel::Intermediate) => Some(intermediate_difficulity),
+            Some(BotLevel::Advanced) => Some(advanced_difficulity),
             None => None,
         };
         Self {

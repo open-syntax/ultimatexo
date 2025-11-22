@@ -17,9 +17,9 @@ use std::{net::SocketAddr, sync::Arc};
 use tokio::{select, sync::Mutex};
 use tracing::{debug, error, info, warn};
 use ultimatexo_core::{
-    AppError, Marker, PlayerAction, Room, RoomType, SerizlizedPlayer, ServerMessage, Status,
-    WebSocketQuery,
+    AppError, PlayerAction, Room, RoomType, SerizlizedPlayer, ServerMessage, Status, WebSocketQuery,
 };
+use ultimatexo_services::GameAIService;
 
 pub type Sender = Arc<Mutex<SplitSink<WebSocket, Message>>>;
 type Receiver = SplitStream<WebSocket>;
@@ -82,9 +82,8 @@ async fn handle_socket(
     let (player_tx, player_rx) = tokio::sync::mpsc::unbounded_channel();
 
     let connection_ctx = Arc::new(ConnectionContext::new(player_id.clone(), player_tx));
-    handle_player_connection_message(room.clone(), connection_ctx.clone(), is_reconnecting).await?;
 
-    handle_game_start(room.clone()).await;
+    handle_game_start(room.clone(), connection_ctx.clone(), is_reconnecting).await?;
 
     let mut send_task = spawn_send_task(sender, player_rx, connection_ctx.clone());
     let mut receive_task = spawn_receive_task(receiver, room.clone(), connection_ctx.clone());
@@ -142,7 +141,14 @@ async fn handle_socket(
     Ok(())
 }
 
-async fn handle_game_start(room: Arc<Room>) {
+async fn handle_game_start(
+    room: Arc<Room>,
+    ctx: Arc<ConnectionContext>,
+    is_reconnecting: bool,
+) -> Result<(), AppError> {
+    let player_id = &ctx.player_id.clone();
+    handle_player_connection_message(room.clone(), ctx, is_reconnecting).await?;
+
     let player_count = room.get_player_count();
     let game_status = room.game.lock().await.get_board_status();
     match room.info.room_type {
@@ -155,10 +161,16 @@ async fn handle_game_start(room: Arc<Room>) {
             }
         }
         RoomType::BotRoom => {
-            let current_player = room.players.lock().await[0].info.marker;
+            let player_marker = room.get_player(player_id).await?.info.marker;
+            let current_player = room.game.lock().await.get_current_player().marker;
             room.game.lock().await.set_board_status(Status::InProgress);
-            if current_player == Marker::O {
-                room.game.lock().await.play_random_move();
+            if current_player != player_marker {
+                let mut game = room.game.lock().await;
+                if is_reconnecting {
+                    GameAIService::make_ai_move(&mut game, current_player).await?;
+                } else {
+                    GameAIService::make_random_ai_move(&mut game, current_player).await?;
+                }
             }
             room.send_board().await;
         }
@@ -167,6 +179,8 @@ async fn handle_game_start(room: Arc<Room>) {
             room.send_board().await;
         }
     }
+
+    Ok(())
 }
 async fn handle_player_connection_message(
     room: Arc<Room>,
@@ -212,14 +226,18 @@ async fn send_error_and_close(
     sender: Sender,
     error: AppError,
     addr: SocketAddr,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    warn!("User {} got Error {}", addr, error.clone());
-    let error_msg = ServerMessage::Error(error);
-    let json_msg = error_msg.to_json()?;
-    sender
-        .lock()
-        .await
-        .send(Message::Text(json_msg.into()))
-        .await?;
+) -> Result<(), AppError> {
+    info!(
+        "Sending error and closing connection for {}: {}",
+        addr, error
+    );
+    let mut sender = sender.lock().await;
+    let error_msg = Message::Text(format!("Error: {}", error).into());
+    if let Err(e) = sender.send(error_msg).await {
+        warn!("Failed to send error message to {}: {}", addr, e);
+    }
+    if let Err(e) = sender.send(Message::Close(None)).await {
+        warn!("Failed to close WebSocket for {}: {}", addr, e);
+    }
     Ok(())
 }

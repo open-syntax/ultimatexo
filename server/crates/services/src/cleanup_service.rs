@@ -2,8 +2,9 @@ use axum::extract::ws::Message;
 use dashmap::DashMap;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 use ultimatexo_core::{
+    RoomType,
     domain::RoomRules,
     models::{PlayerAction, Room, SerizlizedPlayer, ServerMessage, Status},
 };
@@ -63,37 +64,48 @@ impl CleanupService {
         rooms: Arc<DashMap<String, Arc<Room>>>,
         timeout_game_state: Status,
     ) {
-        debug!(
-            "Executing timeout cleanup for room {} (player {} timed out)",
-            room_id, disconnected_player_id
-        );
-
         if !rooms.contains_key(&room_id) {
             debug!("Room {} already removed, skipping timeout cleanup", room_id);
             return;
         }
-
-        if let Ok(timed_out_player) = room.get_player(&disconnected_player_id).await {
-            {
-                let mut game_lock = room.game.lock().await;
-                game_lock.set_board_status(timeout_game_state);
-            }
-
+        {
+            let mut game_lock = room.game.lock().await;
+            game_lock.set_board_status(timeout_game_state);
+        }
+        if room.info.room_type == RoomType::Standard {
+            let timed_out_player = room.get_player(&disconnected_player_id).await.unwrap();
             let timeout_msg = ServerMessage::PlayerUpdate {
                 action: PlayerAction::Left,
                 player: SerizlizedPlayer::new(timed_out_player.info.marker, None),
             };
-            let opponent_tx = room
-                .get_opponent(&disconnected_player_id)
-                .await
-                .unwrap()
-                .tx
-                .unwrap();
-
+            let opponent = room.get_opponent(&disconnected_player_id).await.unwrap();
+            let opponent_tx = &opponent.tx.unwrap();
             let board_msg = room.get_board_message().await;
-            let _ = opponent_tx.send(board_msg);
-            let _ = opponent_tx.send(timeout_msg);
-            let _ = opponent_tx.send(ServerMessage::WebsocketMessage(Message::Close(None)));
+
+            if let Err(e) = opponent_tx.send(board_msg) {
+                warn!(
+                    "Failed to send board message to opponent {} in room {}: {:?}",
+                    opponent.id, room_id, e
+                );
+            }
+            if let Err(e) = opponent_tx.send(timeout_msg) {
+                warn!(
+                    "Failed to send timeout message to opponent {} in room {}: {:?}",
+                    opponent.id, room_id, e
+                );
+            }
+            if let Err(e) = opponent_tx.send(ServerMessage::WebsocketMessage(Message::Close(None)))
+            {
+                warn!(
+                    "Failed to send close message to opponent {} in room {}: {:?}",
+                    opponent.id, room_id, e
+                );
+            }
+        }
+        if rooms.remove(&room_id).is_some() {
+            info!("Room {} cleaned up after timeout", room_id);
+        } else {
+            debug!("Room {} doesn't Exist during timeout cleanup", room_id);
         }
     }
 
@@ -109,7 +121,7 @@ impl CleanupService {
         if rooms.remove(room_id).is_some() {
             info!("Room {} removed", room_id);
         } else {
-            debug!("Room {} doesnt Exist", room_id);
+            debug!("Room {} doesn't Exist", room_id);
         }
     }
 }

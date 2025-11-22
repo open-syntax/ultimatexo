@@ -3,7 +3,6 @@ use crate::{
     models::{Board, GameState, Marker, PlayerInfo, Status},
 };
 use anyhow::Result;
-use rand::Rng;
 
 #[derive(Debug)]
 pub struct GameEngine {
@@ -232,12 +231,6 @@ impl GameEngine {
 
     pub fn clear_draw_request(&mut self) {
         self.state.pending_draw = None;
-    }
-
-    pub fn play_random_move(&mut self) {
-        let mut rng = rand::rng();
-        let mv: [usize; 2] = [rng.random_range(0..9), rng.random_range(0..9)];
-        self.make_move(mv).unwrap();
     }
 
     pub fn rematch_game(&mut self, difficulty: Option<u8>) {
