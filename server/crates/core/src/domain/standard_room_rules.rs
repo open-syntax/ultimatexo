@@ -44,7 +44,6 @@ impl RoomRules for StandardRoomRules {
     fn should_delete_room_immediately(
         &self,
         current_player_count: usize,
-        _has_bot: bool,
         has_pending_cleanup: bool,
     ) -> bool {
         current_player_count < 1 || has_pending_cleanup
@@ -61,9 +60,9 @@ impl RoomRules for StandardRoomRules {
     fn get_cleanup_timeout(&self) -> std::time::Duration {
         std::time::Duration::from_secs(
             env::var("ROOM_CLEANUP_TIMEOUT_SECS")
-                .unwrap_or_else(|_| "300".to_string())
+                .unwrap_or_else(|_| "60".to_string())
                 .parse()
-                .unwrap_or(300),
+                .unwrap_or(60),
         )
     }
 

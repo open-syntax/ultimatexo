@@ -4,7 +4,7 @@ mod doc;
 mod tasks;
 mod websocket;
 
-pub use api::{check_server_memory, create_room, get_room, get_rooms, health_check};
+pub use api::{create_room, get_room, get_rooms, health_check};
 #[cfg(debug_assertions)]
 pub use doc::ApiDoc;
 #[cfg(not(debug_assertions))]

@@ -22,7 +22,6 @@ pub trait RoomRules: Send + Sync {
     fn should_delete_room_immediately(
         &self,
         current_player_count: usize,
-        has_bot: bool,
         has_pending_cleanup: bool,
     ) -> bool;
 

@@ -1,7 +1,5 @@
 use crate::handlers::ConnectionContext;
 use std::{borrow::Cow, sync::Arc};
-#[cfg(not(debug_assertions))]
-use tokio::time::Instant;
 use ultimatexo_core::{
     Action, AppError, ClientMessage, Marker, Room, RoomType, ServerMessage, Status,
 };
@@ -32,7 +30,6 @@ impl MessageHandler {
                 self.handle_draw_request(room, ctx, action).await
             }
             ClientMessage::Resign => self.handle_resign_request(room, ctx).await,
-            ClientMessage::Close => self.handle_close_request(room, ctx).await,
             #[cfg(not(debug_assertions))]
             ClientMessage::Pong => self.handle_pong_response(ctx).await,
         }
@@ -246,7 +243,11 @@ impl MessageHandler {
         room: Arc<Room>,
         ctx: &ConnectionContext,
     ) -> Result<(), AppError> {
-        let marker = room.get_player(&ctx.player_id).await?.info.marker;
+        let player_id = &ctx.player_id;
+        let marker = match room.info.room_type {
+            RoomType::LocalRoom => room.game.lock().await.get_current_player().marker,
+            _ => room.get_player(player_id).await?.info.marker,
+        };
         if marker == Marker::X {
             room.game
                 .lock()
@@ -264,23 +265,9 @@ impl MessageHandler {
         Ok(())
     }
 
-    async fn handle_close_request(
-        &mut self,
-        room: Arc<Room>,
-        ctx: &ConnectionContext,
-    ) -> Result<(), AppError> {
-        let player = room.get_player(&ctx.player_id).await?;
-
-        if let Some(tx) = player.tx {
-            tx.send(ServerMessage::Close).map_err(|_| {
-                AppError::internal_error("Failed to send close message".to_string())
-            })?;
-        }
-
-        Ok(())
-    }
     #[cfg(not(debug_assertions))]
     async fn handle_pong_response(&self, ctx: &ConnectionContext) -> Result<(), AppError> {
+        use tokio::time::Instant;
         let mut last_pong = ctx.last_pong.write().await;
         *last_pong = Instant::now();
 
