@@ -4,25 +4,22 @@ use crate::{
 };
 use axum::{
     extract::{
-        Path, Query, State, WebSocketUpgrade,
+        ConnectInfo, Path, Query, State, WebSocketUpgrade,
         ws::{Message, WebSocket},
     },
     response::Response,
 };
-use ultimatexo_core::{
-    AppError, Marker, PlayerAction, Room, RoomType, SerizlizedPlayer, ServerMessage, Status,
-    WebSocketQuery,
-};
-
-#[cfg(not(debug_assertions))]
-use crate::handlers::spawn_heartbeat_task;
 use futures_util::{
     SinkExt, StreamExt,
     stream::{SplitSink, SplitStream},
 };
-use std::sync::Arc;
-use tokio::{sync::Mutex, try_join};
-use tracing::{error, info, warn};
+use std::{net::SocketAddr, sync::Arc};
+use tokio::{select, sync::Mutex};
+use tracing::{debug, error, info, warn};
+use ultimatexo_core::{
+    AppError, PlayerAction, Room, RoomType, SerizlizedPlayer, ServerMessage, Status, WebSocketQuery,
+};
+use ultimatexo_services::GameAIService;
 
 pub type Sender = Arc<Mutex<SplitSink<WebSocket, Message>>>;
 type Receiver = SplitStream<WebSocket>;
@@ -31,40 +28,18 @@ type Receiver = SplitStream<WebSocket>;
     get,
     path = "/{room_id}",
     params(
-        ("room_id" = String, Path, description = "The unique identifier of the room to join"),
+        ("room_id" = String, Path),
         WebSocketQuery
     ),
-    description = r#"
-### Message Format
-
-All messages are JSON-encoded with a type/event discriminator:
-
-**Client Messages:**
-```json
-{
-    "TextMessage|GameUpdate|RematchRequest|DrawRequest|Resign|Pong|Close": {
-        //
-    }
-}
-```
-
-**Server Messages:**
-```json
-{
-  "event": "TextMessage|GameUpdate|PlayerUpdate|RematchRequest|DrawRequest|Ping|Error",
-  "data": { ... }
-}
-```
-    "#,
-    tag = "websocket"
 )]
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
     Path(room_id): Path<String>,
     State(state): State<Arc<AppState>>,
     Query(payload): Query<WebSocketQuery>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> Response {
-    ws.on_upgrade(move |socket| handle_socket_upgrade(socket, state, room_id, payload))
+    ws.on_upgrade(move |socket| handle_socket_upgrade(socket, state, room_id, payload, addr))
 }
 
 async fn handle_socket_upgrade(
@@ -72,12 +47,23 @@ async fn handle_socket_upgrade(
     state: Arc<AppState>,
     room_id: String,
     payload: WebSocketQuery,
+    addr: SocketAddr,
 ) {
     let (sender, receiver) = socket.split();
     let sender = Arc::new(Mutex::new(sender));
 
-    if let Err(error) = handle_socket(sender.clone(), receiver, state, room_id, payload).await {
-        let _ = send_error_and_close(sender, error).await;
+    if let Err(error) = handle_socket(
+        sender.clone(),
+        receiver,
+        state,
+        room_id.clone(),
+        payload,
+        addr,
+    )
+    .await
+        && let Err(e) = send_error_and_close(sender, error, addr).await
+    {
+        warn!("Failed to send error message to {}: {}", room_id, e);
     }
 }
 async fn handle_socket(
@@ -86,47 +72,83 @@ async fn handle_socket(
     state: Arc<AppState>,
     room_id: String,
     payload: WebSocketQuery,
+    addr: SocketAddr,
 ) -> Result<(), AppError> {
+    info!("User {} is connecting room {}", addr, room_id);
     let room_service = state.get_room_service(&room_id).await?;
     let is_reconnecting = payload.is_reconnecting;
-    let (room, player_id) = room_service.join_room(&room_id, payload).await?;
+    let (room, player_id) = room_service.join_room(&room_id, payload, addr).await?;
 
     let (player_tx, player_rx) = tokio::sync::mpsc::unbounded_channel();
 
     let connection_ctx = Arc::new(ConnectionContext::new(player_id.clone(), player_tx));
-    handle_player_connection(room.clone(), connection_ctx.clone(), is_reconnecting).await?;
 
-    handle_game_start(room.clone()).await;
+    handle_game_start(room.clone(), connection_ctx.clone(), is_reconnecting).await?;
 
-    let send_task = spawn_send_task(sender, player_rx, connection_ctx.clone());
-    let receive_task = spawn_receive_task(receiver, room.clone(), connection_ctx.clone());
+    let mut send_task = spawn_send_task(sender, player_rx, connection_ctx.clone());
+    let mut receive_task = spawn_receive_task(receiver, room.clone(), connection_ctx.clone());
 
-    #[cfg(not(debug_assertions))]
-    let heartbeat_task = spawn_heartbeat_task(connection_ctx.clone());
+    let result = {
+        #[cfg(debug_assertions)]
+        {
+            select! {
+                r = &mut send_task => {
+                    receive_task.abort();
+                    ("send", r)
+                },
+                r = &mut receive_task => {
+                    send_task.abort();
+                    ("receive", r)
+                },
+            }
+        }
+        #[cfg(not(debug_assertions))]
+        {
+            use crate::handlers::spawn_heartbeat_task;
 
-    #[cfg(not(debug_assertions))]
-    match try_join!(heartbeat_task, send_task, receive_task) {
-        Ok(_) => info!("All tasks completed successfully"),
-        Err(e) => error!("One or more tasks failed: {}", e),
+            let mut heartbeat_task = spawn_heartbeat_task(connection_ctx.clone());
+            select! {
+                r = &mut heartbeat_task => {
+                    send_task.abort();
+                    receive_task.abort();
+                    ("heartbeat", r)
+                },
+                r = &mut send_task => {
+                    heartbeat_task.abort();
+                    receive_task.abort();
+                    ("send", r)
+                },
+                r = &mut receive_task => {
+                    heartbeat_task.abort();
+                    send_task.abort();
+                    ("receive", r)
+                },
+            }
+        }
+    };
+
+    match result {
+        (name, Ok(_)) => debug!("Room {}: {} task completed", room.info.id, name),
+        (name, Err(e)) => error!("Room {}: {} task failed: {}", room.info.id, name, e),
     }
-
-    #[cfg(debug_assertions)]
-    match try_join!(send_task, receive_task) {
-        Ok(_) => info!("All tasks completed successfully"),
-        Err(e) => error!("One or more tasks failed: {}", e),
-    }
-
     if let Err(e) = room_service
         .handle_player_leaving(room_id.as_str(), player_id.as_str())
         .await
     {
-        warn!("Error during player disconnect cleanup: {}", e);
+        error!("Error during player disconnect cleanup: {}", e);
     }
-    tracing::info!("Player {} disconnected from room {}", player_id, room_id);
+    info!("Player {} disconnected from room {}", player_id, room_id);
     Ok(())
 }
 
-async fn handle_game_start(room: Arc<Room>) {
+async fn handle_game_start(
+    room: Arc<Room>,
+    ctx: Arc<ConnectionContext>,
+    is_reconnecting: bool,
+) -> Result<(), AppError> {
+    let player_id = &ctx.player_id.clone();
+    handle_player_connection_message(room.clone(), ctx, is_reconnecting).await?;
+
     let player_count = room.get_player_count();
     let game_status = room.game.lock().await.get_board_status();
     match room.info.room_type {
@@ -139,10 +161,16 @@ async fn handle_game_start(room: Arc<Room>) {
             }
         }
         RoomType::BotRoom => {
-            let current_player = room.players.lock().await[0].info.marker;
+            let player_marker = room.get_player(player_id).await?.info.marker;
+            let current_player = room.game.lock().await.get_current_player().marker;
             room.game.lock().await.set_board_status(Status::InProgress);
-            if current_player == Marker::O {
-                room.game.lock().await.play_random_move();
+            if current_player != player_marker {
+                let mut game = room.game.lock().await;
+                if is_reconnecting {
+                    GameAIService::make_ai_move(&mut game, current_player).await?;
+                } else {
+                    GameAIService::make_random_ai_move(&mut game, current_player).await?;
+                }
             }
             room.send_board().await;
         }
@@ -151,8 +179,10 @@ async fn handle_game_start(room: Arc<Room>) {
             room.send_board().await;
         }
     }
+
+    Ok(())
 }
-async fn handle_player_connection(
+async fn handle_player_connection_message(
     room: Arc<Room>,
     ctx: Arc<ConnectionContext>,
     is_reconnection: bool,
@@ -177,11 +207,10 @@ async fn handle_player_connection(
             player: SerizlizedPlayer::new(player.info.marker, Some(player.id)),
         })
         .unwrap();
-    let other_player = room.get_other_player(&ctx.player_id).await;
-    if let Ok(player) = other_player
+    if let Ok(opponent) = room.get_opponent(&ctx.player_id).await
         && room.info.room_type == RoomType::Standard
     {
-        player
+        opponent
             .tx
             .unwrap()
             .send(ServerMessage::PlayerUpdate {
@@ -196,14 +225,19 @@ async fn handle_player_connection(
 async fn send_error_and_close(
     sender: Sender,
     error: AppError,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let error_msg = ServerMessage::Error(error);
-    let json_msg = error_msg.to_json()?;
-    sender
-        .lock()
-        .await
-        .send(Message::Text(json_msg.into()))
-        .await?;
-    sender.lock().await.close().await?;
+    addr: SocketAddr,
+) -> Result<(), AppError> {
+    info!(
+        "Sending error and closing connection for {}: {}",
+        addr, error
+    );
+    let mut sender = sender.lock().await;
+    let error_msg = Message::Text(format!("Error: {}", error).into());
+    if let Err(e) = sender.send(error_msg).await {
+        warn!("Failed to send error message to {}: {}", addr, e);
+    }
+    if let Err(e) = sender.send(Message::Close(None)).await {
+        warn!("Failed to close WebSocket for {}: {}", addr, e);
+    }
     Ok(())
 }

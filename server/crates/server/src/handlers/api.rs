@@ -1,11 +1,11 @@
 use crate::app::AppState;
 use axum::{
     Json,
-    extract::{Path, Query, State},
+    extract::{ConnectInfo, Path, Query, State},
     http::StatusCode,
 };
 use serde_json::{Value, json};
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 use ultimatexo_core::{GetRoomQuery, RoomInfo};
 
 #[utoipa::path(
@@ -61,28 +61,17 @@ pub async fn get_room(
     tag = "rooms"
 )]
 pub async fn create_room(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     State(state): State<Arc<AppState>>,
     Json(room_info): Json<RoomInfo>,
 ) -> Result<Json<Value>, StatusCode> {
     match state.create_room(room_info).await {
-        Ok(room_id) => Ok(Json(json!({ "room_id": room_id }))),
+        Ok(room_id) => {
+            tracing::info!("User {} created room {}", addr, room_id);
+            Ok(Json(json!({ "room_id": room_id })))
+        }
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
-}
-
-#[utoipa::path(
-    get,
-    path = "/mem",
-    responses(
-        (status = 200, description = "Memory information retrieved", body = inline(Object))
-    ),
-    tag = "system"
-)]
-pub async fn check_server_memory(
-    State(state): State<Arc<AppState>>,
-) -> Result<Json<Value>, StatusCode> {
-    let mem = state.check_server_memory().await;
-    Ok(Json(json!({ "mem": mem })))
 }
 
 #[utoipa::path(

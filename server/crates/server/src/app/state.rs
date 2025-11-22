@@ -36,14 +36,6 @@ impl AppState {
         }
     }
 
-    pub async fn check_server_memory(&self) -> usize {
-        let mut mem = 0;
-        for service in self.room_services.values() {
-            mem += service.check_memory();
-        }
-        mem
-    }
-
     pub async fn create_room(&self, room_info: RoomInfo) -> Result<String, AppError> {
         if room_info.room_type == RoomType::BotRoom && room_info.bot_level.is_none() {
             return Err(AppError::missing_bot_level());

@@ -1,8 +1,10 @@
+use axum::extract::ws::Message;
 use dashmap::DashMap;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
 use ultimatexo_core::{
+    RoomType,
     domain::RoomRules,
     models::{PlayerAction, Room, SerizlizedPlayer, ServerMessage, Status},
 };
@@ -25,14 +27,14 @@ impl CleanupService {
     ) {
         let timeout_duration = game_rules.get_cleanup_timeout();
         let timeout_game_state = game_rules.get_timeout_game_state(
-            room.get_other_player(&disconnected_player_id)
+            room.get_player(&disconnected_player_id)
                 .await
                 .unwrap()
                 .info
                 .marker,
         );
         let room_id = room.info.id.clone();
-        info!(
+        debug!(
             "Scheduling cleanup for room {} in {:?}",
             room_id, timeout_duration
         );
@@ -49,7 +51,7 @@ impl CleanupService {
                     ).await;
                 }
                 _ = cleanup_token.cancelled() => {
-                    info!("Cleanup cancelled for room {} (player likely reconnected)", room_id);
+                    debug!("Cleanup cancelled for room {}", room_id);
                 }
             }
         });
@@ -62,41 +64,64 @@ impl CleanupService {
         rooms: Arc<DashMap<String, Arc<Room>>>,
         timeout_game_state: Status,
     ) {
-        info!(
-            "Executing timeout cleanup for room {} (player {} timed out)",
-            room_id, disconnected_player_id
-        );
-
         if !rooms.contains_key(&room_id) {
             debug!("Room {} already removed, skipping timeout cleanup", room_id);
             return;
         }
-
-        if let Ok(timed_out_player) = room.get_player(&disconnected_player_id).await {
-            {
-                let mut game_lock = room.game.lock().await;
-                game_lock.set_board_status(timeout_game_state);
-            }
-
+        {
+            let mut game_lock = room.game.lock().await;
+            game_lock.set_board_status(timeout_game_state);
+        }
+        if room.info.room_type == RoomType::Standard {
+            let timed_out_player = room.get_player(&disconnected_player_id).await.unwrap();
             let timeout_msg = ServerMessage::PlayerUpdate {
                 action: PlayerAction::Left,
                 player: SerizlizedPlayer::new(timed_out_player.info.marker, None),
             };
+            let opponent = room.get_opponent(&disconnected_player_id).await.unwrap();
+            let opponent_tx = &opponent.tx.unwrap();
+            let board_msg = room.get_board_message().await;
 
-            room.send_board().await;
-            if room.tx.send(timeout_msg).await.is_err() {
-                warn!("Failed to send timeout notification for room {}", room_id);
+            if let Err(e) = opponent_tx.send(board_msg) {
+                warn!(
+                    "Failed to send board message to opponent {} in room {}: {:?}",
+                    opponent.id, room_id, e
+                );
+            }
+            if let Err(e) = opponent_tx.send(timeout_msg) {
+                warn!(
+                    "Failed to send timeout message to opponent {} in room {}: {:?}",
+                    opponent.id, room_id, e
+                );
+            }
+            if let Err(e) = opponent_tx.send(ServerMessage::WebsocketMessage(Message::Close(None)))
+            {
+                warn!(
+                    "Failed to send close message to opponent {} in room {}: {:?}",
+                    opponent.id, room_id, e
+                );
             }
         }
-
-        room.shutdown().await;
         if rooms.remove(&room_id).is_some() {
-            info!("Room {} removed due to timeout cleanup", room_id);
+            info!("Room {} cleaned up after timeout", room_id);
         } else {
-            debug!(
-                "Room {} was already removed during timeout cleanup",
-                room_id
-            );
+            debug!("Room {} doesn't Exist during timeout cleanup", room_id);
+        }
+    }
+
+    pub async fn remove_room_immediately(
+        &self,
+        rooms: Arc<DashMap<String, Arc<Room>>>,
+        room: Arc<Room>,
+        room_id: &str,
+    ) {
+        if let Some(token) = room.deletion_token.lock().await.take() {
+            token.cancel();
+        }
+        if rooms.remove(room_id).is_some() {
+            info!("Room {} removed", room_id);
+        } else {
+            debug!("Room {} doesn't Exist", room_id);
         }
     }
 }

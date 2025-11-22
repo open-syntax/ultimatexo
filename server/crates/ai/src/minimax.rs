@@ -1,3 +1,4 @@
+use rand::Rng;
 use std::{
     cmp::{max, min},
     sync::{Arc, Mutex},
@@ -26,6 +27,17 @@ pub struct MinimaxAI {
 impl MinimaxAI {
     pub fn new(depth: usize) -> Self {
         Self { max_depth: depth }
+    }
+
+    pub async fn find_random_move(&self, game_state: &GameState, _player: Marker) -> Option<Move> {
+        let valid_moves = self.get_valid_moves(game_state);
+        if valid_moves.is_empty() {
+            return None;
+        }
+
+        let mut rng = rand::rng();
+        let random_index = rng.random_range(0..valid_moves.len());
+        Some(valid_moves[random_index])
     }
 
     pub async fn find_best_move_parallel(

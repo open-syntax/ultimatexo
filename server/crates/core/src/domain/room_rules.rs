@@ -1,14 +1,14 @@
 use crate::{
     error::AppError,
-    models::{Marker, RoomInfo, Status},
+    models::{Marker, Status},
 };
 
 pub trait RoomRules: Send + Sync {
     fn can_join_room(
         &self,
-        room_info: &RoomInfo,
         current_player_count: usize,
-        provided_password: Option<String>,
+        room_password: &Option<String>,
+        provided_password: &Option<String>,
         pending_shutdown: bool,
     ) -> Result<(), AppError>;
 
@@ -22,7 +22,6 @@ pub trait RoomRules: Send + Sync {
     fn should_delete_room_immediately(
         &self,
         current_player_count: usize,
-        has_bot: bool,
         has_pending_cleanup: bool,
     ) -> bool;
 

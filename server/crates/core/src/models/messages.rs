@@ -1,27 +1,28 @@
 use super::{Board, PlayerInfo};
 use crate::{error::AppError, models::Marker};
 use anyhow::Result;
+use axum::extract::ws::Message;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string;
 use utoipa::{IntoParams, ToSchema};
 
 #[derive(Deserialize, Clone, Debug, ToSchema)]
 pub enum ClientMessage {
-    #[schema(title = "TextMessage")]
-    TextMessage { content: String },
-    #[schema(title = "GameUpdate")]
-    GameUpdate { mv: [usize; 2] },
-    #[schema(title = "RematchRequest")]
-    RematchRequest { action: Action },
-    #[schema(title = "DrawRequest")]
-    DrawRequest { action: Action },
-    #[schema(title = "Resign")]
+    TextMessage {
+        content: String,
+    },
+    GameUpdate {
+        mv: [usize; 2],
+    },
+    RematchRequest {
+        action: Action,
+    },
+    DrawRequest {
+        action: Action,
+    },
     Resign,
     #[cfg(not(debug_assertions))]
-    #[schema(title = "Pong")]
     Pong,
-    #[serde(skip)]
-    Close,
 }
 #[derive(Serialize, Debug, Deserialize, Clone, ToSchema)]
 pub enum Action {
@@ -58,9 +59,10 @@ impl SerizlizedPlayer {
 #[derive(Serialize, Debug, Clone, ToSchema)]
 #[serde(tag = "event", content = "data")]
 pub enum ServerMessage {
-    #[schema(title = "TextMessage")]
-    TextMessage { content: String, player: PlayerInfo },
-    #[schema(title = "GameUpdate")]
+    TextMessage {
+        content: String,
+        player: PlayerInfo,
+    },
     GameUpdate {
         board: Board,
         next_player: PlayerInfo,
@@ -68,21 +70,22 @@ pub enum ServerMessage {
         last_move: Option<[usize; 2]>,
         score: [usize; 2],
     },
-    #[schema(title = "PlayerUpdate")]
     PlayerUpdate {
         action: PlayerAction,
         player: SerizlizedPlayer,
     },
-    #[schema(title = "RematchRequest")]
-    RematchRequest { action: Action, player: Marker },
-    #[schema(title = "DrawRequest")]
-    DrawRequest { action: Action, player: Marker },
+    RematchRequest {
+        action: Action,
+        player: Marker,
+    },
+    DrawRequest {
+        action: Action,
+        player: Marker,
+    },
     #[serde(skip_serializing)]
-    Close,
+    WebsocketMessage(Message),
     #[cfg(not(debug_assertions))]
-    #[schema(title = "Ping")]
     Ping,
-    #[schema(title = "Error")]
     Error(AppError),
 }
 impl ServerMessage {

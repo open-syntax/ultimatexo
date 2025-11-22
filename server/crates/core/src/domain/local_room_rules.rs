@@ -1,7 +1,7 @@
 use crate::{
     domain::RoomRules,
     error::AppError,
-    models::{Marker, RoomInfo, Status},
+    models::{Marker, Status},
 };
 
 #[derive(Default)]
@@ -10,12 +10,12 @@ pub struct LocalRoomRules;
 impl RoomRules for LocalRoomRules {
     fn can_join_room(
         &self,
-        _room_info: &RoomInfo,
         current_player_count: usize,
-        _provided_password: Option<String>,
-        _pending_shutdown: bool,
+        _room_password: &Option<String>,
+        _provided_password: &Option<String>,
+        pending_shutdown: bool,
     ) -> Result<(), AppError> {
-        if current_player_count >= self.get_max_players() {
+        if current_player_count >= self.get_max_players() || pending_shutdown {
             return Err(AppError::room_full());
         }
         Ok(())
@@ -23,20 +23,23 @@ impl RoomRules for LocalRoomRules {
 
     fn can_reconnect_room(
         &self,
-        _current_player_count: usize,
-        _pending_shutdown: bool,
-        _player_id: &Option<String>,
+        current_player_count: usize,
+        pending_shutdown: bool,
+        player_id: &Option<String>,
     ) -> Result<(), AppError> {
+        if current_player_count < self.get_max_players() && pending_shutdown && player_id.is_some()
+        {
+            return Ok(());
+        }
         Err(AppError::not_allowed())
     }
 
     fn should_delete_room_immediately(
         &self,
-        current_player_count: usize,
-        _has_bot: bool,
+        _current_player_count: usize,
         _has_pending_cleanup: bool,
     ) -> bool {
-        current_player_count == 0
+        false
     }
 
     fn get_disconnect_game_state(&self) -> Status {

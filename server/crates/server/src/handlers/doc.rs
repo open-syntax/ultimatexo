@@ -1,10 +1,7 @@
 use utoipa::OpenApi;
 
 use crate::handlers::{
-    api::{
-        __path_check_server_memory, __path_create_room, __path_get_room, __path_get_rooms,
-        __path_health_check,
-    },
+    api::{__path_create_room, __path_get_room, __path_get_rooms, __path_health_check},
     websocket::__path_websocket_handler,
 };
 use ultimatexo_core::{
@@ -19,7 +16,6 @@ use ultimatexo_core::{
         get_rooms,
         get_room,
         create_room,
-        check_server_memory,
         health_check,
     ),
     components(

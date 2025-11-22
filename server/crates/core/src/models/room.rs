@@ -3,23 +3,21 @@ use crate::{
     error::AppError,
     models::{Marker, Player, PlayerInfo, ServerMessage},
 };
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::{
+    env,
     sync::{
         Arc,
-        atomic::{AtomicBool, AtomicUsize, Ordering},
+        atomic::{AtomicUsize, Ordering},
     },
-    time::Duration,
 };
-use tokio::{
-    sync::{
-        Mutex,
-        mpsc::{Receiver, Sender},
-    },
-    time::timeout,
+use tokio::sync::{
+    Mutex,
+    mpsc::{Receiver, Sender},
 };
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, info, warn};
+use tracing::debug;
 use utoipa::ToSchema;
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize, ToSchema)]
@@ -60,15 +58,27 @@ pub struct Room {
     pub game: Arc<Mutex<GameEngine>>,
     pub info: RoomInfo,
     pub deletion_token: Mutex<Option<CancellationToken>>,
-    pub is_shutdown: AtomicBool,
 }
 
 impl Room {
     pub fn new(info: RoomInfo, tx: Sender<ServerMessage>) -> Self {
-        let difficulty: Option<u8> = match info.bot_level.as_ref() {
-            Some(BotLevel::Beginner) => Some(2),
-            Some(BotLevel::Intermediate) => Some(5),
-            Some(BotLevel::Advanced) => Some(8),
+        let begginer_difficulity = env::var("BOT_BEGINNER_DIFFICULTY")
+            .ok()
+            .and_then(|val| val.parse::<u8>().ok())
+            .unwrap_or(2);
+        let intermediate_difficulity = env::var("BOT_INTERMEDIATE_DIFFICULTY")
+            .ok()
+            .and_then(|val| val.parse::<u8>().ok())
+            .unwrap_or(5);
+        let advanced_difficulity = env::var("BOT_ADVANCED_DIFFICULTY")
+            .ok()
+            .and_then(|val| val.parse::<u8>().ok())
+            .unwrap_or(8);
+
+        let difficulty = match info.bot_level {
+            Some(BotLevel::Beginner) => Some(begginer_difficulity),
+            Some(BotLevel::Intermediate) => Some(intermediate_difficulity),
+            Some(BotLevel::Advanced) => Some(advanced_difficulity),
             None => None,
         };
         Self {
@@ -78,7 +88,6 @@ impl Room {
             info,
             game: Arc::new(Mutex::new(GameEngine::new(difficulty))),
             deletion_token: Mutex::new(None),
-            is_shutdown: AtomicBool::new(false),
         }
     }
 
@@ -94,12 +103,6 @@ impl Room {
     }
 
     pub async fn add_player(&self, player_id: Option<String>) -> Result<String, AppError> {
-        use rand::Rng;
-
-        if self.is_closed() {
-            return Err(AppError::room_closed());
-        }
-
         let marker = if self.get_player_count() == 0 {
             if rand::rng().random_bool(0.5) {
                 Marker::O
@@ -128,10 +131,6 @@ impl Room {
     }
 
     pub async fn get_player(&self, player_id: &String) -> Result<Player, AppError> {
-        if self.is_closed() {
-            return Err(AppError::room_closed());
-        }
-
         self.players
             .lock()
             .await
@@ -146,19 +145,11 @@ impl Room {
     where
         F: FnOnce(&mut Player) -> R,
     {
-        if self.is_closed() {
-            return None;
-        }
-
         let mut players = self.players.lock().await;
         players.iter_mut().find(|p| p.id == *player_id).map(f)
     }
 
-    pub async fn get_other_player(&self, current_player_id: &String) -> Result<Player, AppError> {
-        if self.is_closed() {
-            return Err(AppError::room_closed());
-        }
-
+    pub async fn get_opponent(&self, current_player_id: &String) -> Result<Player, AppError> {
         self.players
             .lock()
             .await
@@ -169,14 +160,10 @@ impl Room {
     }
 
     #[allow(dead_code)]
-    pub async fn get_other_player_mut<F, R>(&self, current_player_id: &String, f: F) -> Option<R>
+    pub async fn get_opponent_mut<F, R>(&self, current_player_id: &String, f: F) -> Option<R>
     where
         F: FnOnce(&mut Player) -> R,
     {
-        if self.is_closed() {
-            return None;
-        }
-
         let mut players = self.players.lock().await;
         players
             .iter_mut()
@@ -187,57 +174,6 @@ impl Room {
     pub async fn is_pending_cleanup(&self) -> bool {
         let guard = self.deletion_token.lock().await;
         guard.is_some()
-    }
-
-    pub async fn shutdown(&self) {
-        if self.is_shutdown.swap(true, Ordering::Relaxed) {
-            debug!("Room {} already shutting down", self.room_id());
-            return;
-        }
-
-        info!("Starting shutdown for room {}", self.room_id());
-
-        self.disconnect_all_players().await;
-
-        self.close_broadcast_channel().await;
-
-        info!("Room {} shutdown complete", self.room_id());
-    }
-
-    async fn disconnect_all_players(&self) {
-        let close_message = ServerMessage::Close;
-
-        if self.tx.send(close_message).await.is_err() {
-            debug!(
-                "Broadcast channel already closed or no receivers for room {}",
-                self.room_id()
-            );
-        }
-
-        tokio::time::sleep(Duration::from_millis(100)).await;
-    }
-
-    async fn close_broadcast_channel(&self) {
-        const CLOSE_TIMEOUT: Duration = Duration::from_secs(5);
-
-        match timeout(CLOSE_TIMEOUT, self.tx.closed()).await {
-            Ok(_) => {
-                debug!(
-                    "Broadcast channel closed successfully for room {}",
-                    self.room_id()
-                );
-            }
-            Err(_) => {
-                warn!(
-                    "Timeout waiting for broadcast channel to close for room {}",
-                    self.room_id()
-                );
-            }
-        }
-    }
-
-    fn room_id(&self) -> String {
-        self.info.id.clone()
     }
 
     pub fn spawn_message_broadcaster(room: Arc<Self>, mut rx: Receiver<ServerMessage>) {
@@ -255,31 +191,23 @@ impl Room {
                         debug!("Failed to send message to player {:?}", player.id);
                     }
                 }
-
-                if matches!(msg, ServerMessage::Close) {
-                    break;
-                }
             }
         });
     }
 
-    pub fn is_closed(&self) -> bool {
-        self.is_shutdown.load(Ordering::SeqCst)
-    }
-
-    pub async fn send_board(&self) {
-        if self.is_closed() {
-            return;
-        }
-
+    pub async fn get_board_message(&self) -> ServerMessage {
         let game = self.game.lock().await;
-        let msg = ServerMessage::GameUpdate {
+        ServerMessage::GameUpdate {
             board: game.get_board(),
             next_player: game.get_next_player(),
             next_board: game.get_next_board(),
             last_move: game.get_last_move(),
             score: game.get_score(),
-        };
+        }
+    }
+
+    pub async fn send_board(&self) {
+        let msg = self.get_board_message().await;
         let _ = self.tx.send(msg).await;
     }
 }

@@ -1,11 +1,13 @@
+use super::Sender;
 use crate::utils::MessageHandler;
 use anyhow::Result;
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::{SinkExt, StreamExt, stream::SplitStream};
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-};
+use std::sync::Arc;
+#[cfg(not(debug_assertions))]
+use tokio::sync::RwLock;
+#[cfg(not(debug_assertions))]
+use tokio::time::{Instant, interval};
 use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
     task::JoinHandle,
@@ -13,16 +15,11 @@ use tokio::{
 use tracing::{error, warn};
 use ultimatexo_core::{AppError, ClientMessage, Room, ServerMessage};
 
-#[cfg(not(debug_assertions))]
-use tokio::{sync::RwLock, time::Instant};
-
-use super::Sender;
 pub struct ConnectionContext {
     pub player_id: String,
     pub player_tx: UnboundedSender<ServerMessage>,
     #[cfg(not(debug_assertions))]
     pub last_pong: Arc<RwLock<Instant>>,
-    pub is_closing: Arc<AtomicBool>,
 }
 
 impl ConnectionContext {
@@ -32,25 +29,22 @@ impl ConnectionContext {
             player_tx,
             #[cfg(not(debug_assertions))]
             last_pong: Arc::new(RwLock::new(Instant::now())),
-            is_closing: Arc::new(AtomicBool::new(false)),
         }
     }
 }
 
 #[cfg(not(debug_assertions))]
 pub fn spawn_heartbeat_task(ctx: Arc<ConnectionContext>) -> JoinHandle<()> {
+    use std::env;
     use std::time::Duration;
-    use tokio::time::interval;
     use tracing::debug;
-    tokio::spawn(async move {
-        use std::env;
 
-        let mut interval = interval(Duration::from_secs(
-            env::var("WEBSOCKET_PING_INTERVAL_SECS")
-                .unwrap_or_else(|_| "3".to_string())
-                .parse()
-                .unwrap_or(3),
-        ));
+    tokio::spawn(async move {
+        let ping_interval_secs: u64 = env::var("WEBSOCKET_PING_INTERVAL_SECS")
+            .unwrap_or_else(|_| "3".to_string())
+            .parse()
+            .unwrap_or(3);
+        let mut interval = interval(Duration::from_secs(ping_interval_secs));
 
         loop {
             interval.tick().await;
@@ -64,11 +58,9 @@ pub fn spawn_heartbeat_task(ctx: Arc<ConnectionContext>) -> JoinHandle<()> {
                         .unwrap_or(10),
                 )
             {
-                let _ = ctx.player_tx.send(ServerMessage::Close);
                 warn!("Player {} timed out - no pong received", ctx.player_id);
                 break;
             }
-
             if ctx.player_tx.send(ServerMessage::Ping).is_err() {
                 debug!(
                     "Failed to send ping to player {} - channel closed",
@@ -87,11 +79,7 @@ pub fn spawn_send_task(
 ) -> JoinHandle<()> {
     tokio::spawn(async move {
         while let Some(server_message) = message_receiver.recv().await {
-            if ctx.is_closing.load(Ordering::Relaxed) {
-                break;
-            }
-
-            match handle_outgoing_message(server_message, sender.clone(), &ctx).await {
+            match handle_outgoing_message(server_message, sender.clone()).await {
                 Ok(should_continue) => {
                     if !should_continue {
                         break;
@@ -118,20 +106,17 @@ pub fn spawn_receive_task(
         while let Some(message) = receiver.next().await {
             match message {
                 Ok(msg) => {
-                    if let Err(e) =
-                        handle_incoming_message(msg, &mut message_handler, &room, &ctx).await
+                    if let Message::Close(_) = msg {
+                        break;
+                    } else if let Err(e) =
+                        handle_incoming_message(msg.clone(), &mut message_handler, &room, &ctx)
+                            .await
                     {
-                        warn!("Failed to handle message from {}: {}", ctx.player_id, e);
-
-                        if let Err(send_err) = send_error_to_player(&room, &ctx.player_id, e).await
-                        {
-                            error!(
-                                "Failed to send error to player {}: {}",
-                                ctx.player_id, send_err
-                            );
-                            let _ = ctx.player_tx.send(ServerMessage::Error(send_err));
-                            break;
-                        }
+                        warn!(
+                            "Failed to handle message {:?} from {}: {}",
+                            msg, ctx.player_id, e
+                        );
+                        let _ = ctx.player_tx.send(ServerMessage::Error(e));
                     }
                 }
                 Err(e) => {
@@ -148,32 +133,11 @@ pub fn spawn_receive_task(
     })
 }
 
-async fn handle_outgoing_message(
-    server_message: ServerMessage,
-    sender: Sender,
-    ctx: &ConnectionContext,
-) -> Result<bool> {
-    let message_to_send = match server_message {
-        ServerMessage::Close => {
-            ctx.is_closing
-                .store(true, std::sync::atomic::Ordering::Relaxed);
-            if sender
-                .lock()
-                .await
-                .send(Message::Close(None))
-                .await
-                .is_err()
-            {
-                return Err(
-                    AppError::internal_error("Failed to send close message".to_string()).into(),
-                );
-            }
-            return Ok(false);
-        }
-        other => other,
-    };
-
-    let json_message = message_to_send.to_json().map_err(|e| {
+async fn handle_outgoing_message(server_message: ServerMessage, sender: Sender) -> Result<bool> {
+    if let ServerMessage::WebsocketMessage(Message::Close(_)) = server_message {
+        return Ok(false);
+    }
+    let json_message = server_message.to_json().map_err(|e| {
         AppError::internal_error(format!("Failed to serialize server message: {}", e))
     })?;
     if let Err(e) = sender
@@ -197,44 +161,18 @@ async fn handle_incoming_message(
     room: &Arc<Room>,
     ctx: &ConnectionContext,
 ) -> Result<(), AppError> {
-    let client_message = parse_websocket_message(message)?;
+    let client_message: ClientMessage = match message {
+        Message::Text(text) => serde_json::from_str(&text)
+            .map_err(|e| AppError::internal_error(format!("Invalid JSON message: {}", e)))?,
+        _ => {
+            return Err(AppError::internal_error(
+                "This messages not supported".to_string(),
+            ));
+        }
+    };
 
     message_handler
         .handle_client_message(client_message, room.clone(), ctx)
         .await?;
-    Ok(())
-}
-
-fn parse_websocket_message(message: Message) -> Result<ClientMessage, AppError> {
-    match message {
-        Message::Text(text) => serde_json::from_str(&text)
-            .map_err(|e| AppError::internal_error(format!("Invalid JSON message: {}", e))),
-        Message::Close(_) => Ok(ClientMessage::Close),
-        _ => Err(AppError::internal_error(
-            "This messages not supported".to_string(),
-        )),
-    }
-}
-
-async fn send_error_to_player(
-    room: &Arc<Room>,
-    player_id: &String,
-    error: AppError,
-) -> Result<(), AppError> {
-    let player = room.get_player(player_id).await.map_err(|e| {
-        AppError::internal_error(format!("Player not found when sending error: {}", e))
-    })?;
-
-    let error_message = ServerMessage::Error(error);
-
-    if let Some(tx) = player.tx
-        && let Err(e) = tx.send(error_message)
-    {
-        error!("Failed to send error message to player: {}", e);
-        return Err(AppError::internal_error(
-            "Failed to send error message to player".to_string(),
-        ));
-    }
-
     Ok(())
 }
