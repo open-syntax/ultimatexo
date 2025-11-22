@@ -169,7 +169,7 @@ async fn handle_game_start(
                 if is_reconnecting {
                     GameAIService::make_ai_move(&mut game, current_player).await?;
                 } else {
-                    GameAIService::make_random_ai_move(&mut game, current_player).await?;
+                    GameAIService::make_random_ai_move(&mut game).await?;
                 }
             }
             room.send_board().await;
