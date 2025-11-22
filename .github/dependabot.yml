@@ -1,9 +1,5 @@
-# Dependabot configuration for automated dependency updates
-# https://docs.github.com/en/code-security/dependabot
-
 version: 2
 updates:
-  # Client (npm/pnpm) dependencies
   - package-ecosystem: "npm"
     directory: "/client"
     schedule:
@@ -12,9 +8,9 @@ updates:
       time: "03:00"
     open-pull-requests-limit: 10
     reviewers:
-      - "open-syntax"
+      - "omarisadev"
     assignees:
-      - "open-syntax"
+      - "omarisadev"
     commit-message:
       prefix: "chore(client)"
       include: "scope"
@@ -22,7 +18,6 @@ updates:
       - "dependencies"
       - "client"
     groups:
-      # Group all non-breaking dependency updates
       dev-dependencies:
         dependency-type: "development"
         update-types:
@@ -33,7 +28,6 @@ updates:
         update-types:
           - "patch"
 
-  # Server (Rust/Cargo) dependencies
   - package-ecosystem: "cargo"
     directory: "/server"
     schedule:
@@ -42,9 +36,9 @@ updates:
       time: "03:00"
     open-pull-requests-limit: 10
     reviewers:
-      - "open-syntax"
+      - "ahmed-mekky"
     assignees:
-      - "open-syntax"
+      - "ahmed-mekky"
     commit-message:
       prefix: "chore(server)"
       include: "scope"
@@ -52,12 +46,10 @@ updates:
       - "dependencies"
       - "server"
     groups:
-      # Group patch updates together
       patch-updates:
         update-types:
           - "patch"
 
-  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -66,7 +58,7 @@ updates:
       time: "03:00"
     open-pull-requests-limit: 5
     reviewers:
-      - "open-syntax"
+      - "ahmed-mekky"
     commit-message:
       prefix: "chore(ci)"
       include: "scope"
@@ -74,12 +66,10 @@ updates:
       - "dependencies"
       - "github-actions"
     groups:
-      # Group all GitHub Actions updates
       github-actions:
         patterns:
           - "*"
 
-  # Docker base images
   - package-ecosystem: "docker"
     directory: "/client"
     schedule:
@@ -95,6 +85,32 @@ updates:
 
   - package-ecosystem: "docker"
     directory: "/server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(docker)"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  - package-ecosystem: "docker"
+    directory: "/caddy"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(docker)"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  - package-ecosystem: "docker-compose"
+    directory: "/caddy"
     schedule:
       interval: "weekly"
       day: "monday"
