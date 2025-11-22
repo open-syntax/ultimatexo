@@ -1,0 +1,18 @@
+meta {
+  name: Websocket 2
+  type: ws
+  seq: 8
+}
+
+ws {
+  url: ws://localhost:6767/ws/{{room_id}}
+  body: ws
+  auth: inherit
+}
+
+body:ws {
+  name: message 1
+  content: '''
+    {}
+  '''
+}

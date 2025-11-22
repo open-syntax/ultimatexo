@@ -1,0 +1,19 @@
+meta {
+  name: Websocket 3
+  type: ws
+  seq: 9
+}
+
+ws {
+  url: ws://localhost:6767/ws/{{room_id}}?is_reconnecting=true&player_id=
+  body: ws
+  auth: inherit
+}
+
+body:ws {
+  name: message 1
+  type: json
+  content: '''
+    {}
+  '''
+}

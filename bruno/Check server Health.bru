@@ -1,0 +1,15 @@
+meta {
+  name: Check server Health
+  type: http
+  seq: 3
+}
+
+get {
+  url: http://localhost:6767/health
+  body: json
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

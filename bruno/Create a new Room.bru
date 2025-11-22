@@ -1,0 +1,28 @@
+meta {
+  name: Create a new Room
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://localhost:6767/rooms
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {}
+}
+
+script:post-response {
+
+  let roomId = res.getBody().room_id;
+
+  bru.setEnvVar("room_id", roomId);
+
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
