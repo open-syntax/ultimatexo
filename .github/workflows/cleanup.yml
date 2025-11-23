@@ -21,7 +21,7 @@ jobs:
           org-name: open-syntax
           keep-at-least: 5
           untagged-only: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT }}
 
   cleanup-caches:
     name: Cleanup Old Caches
