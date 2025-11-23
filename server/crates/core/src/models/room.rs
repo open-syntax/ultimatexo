@@ -65,15 +65,15 @@ impl Room {
         let begginer_difficulity = env::var("BOT_BEGINNER_DIFFICULTY")
             .ok()
             .and_then(|val| val.parse::<u8>().ok())
-            .unwrap_or(2);
+            .unwrap_or(1);
         let intermediate_difficulity = env::var("BOT_INTERMEDIATE_DIFFICULTY")
             .ok()
             .and_then(|val| val.parse::<u8>().ok())
-            .unwrap_or(5);
+            .unwrap_or(4);
         let advanced_difficulity = env::var("BOT_ADVANCED_DIFFICULTY")
             .ok()
             .and_then(|val| val.parse::<u8>().ok())
-            .unwrap_or(8);
+            .unwrap_or(7);
 
         let difficulty = match info.bot_level {
             Some(BotLevel::Beginner) => Some(begginer_difficulity),
