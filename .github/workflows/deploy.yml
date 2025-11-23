@@ -138,13 +138,18 @@ jobs:
               while [ $attempt -le $max_attempts ]; do
                 echo "Health check attempt $attempt/$max_attempts..."
 
-                if docker compose ps proxy --filter 'status=running' -q > /dev/null 2>&1; then
-                  echo "✅ Proxy container is running"
+                if docker inspect --format='{{.State.Health.Status}}' ultimatexo-server 2>/dev/null | grep -q "healthy"; then
+                  echo "✅ Server is healthy"
 
-                  if docker compose exec -T proxy wget -q -O- http://localhost:2019/metrics > /dev/null 2>&1; then
-                    echo "✅ Proxy is healthy"
+                  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost)
+                  if [ "$HTTP_CODE" = "308" ]; then
+                    echo "✅ Proxy is responding with redirect"
                     return 0
+                  else
+                    echo "⚠️ Proxy returned: $HTTP_CODE"
                   fi
+                else
+                  echo "⚠️ Waiting for server to be healthy..."
                 fi
 
                 sleep 10
