@@ -1,5 +1,6 @@
 use crate::handlers::ConnectionContext;
 use std::{borrow::Cow, sync::Arc};
+use tokio::task::yield_now;
 use ultimatexo_core::{
     Action, AppError, ClientMessage, Marker, Room, RoomType, ServerMessage, Status,
 };
@@ -73,15 +74,21 @@ impl MessageHandler {
         {
             return Err(AppError::not_player_turn());
         }
-
+        room.game.lock().await.make_move(mv)?;
+        if room.info.room_type == RoomType::BotRoom
+            && room
+                .game
+                .lock()
+                .await
+                .get_board_status()
+                .eq(&Status::InProgress)
         {
+            room.send_board().await;
+            yield_now().await;
             let mut game = room.game.lock().await;
-            game.make_move(mv)?;
-            if room.info.room_type == RoomType::BotRoom
-                && game.get_board_status().eq(&Status::InProgress)
-                && GameAIService::make_ai_move(&mut game, !current_player_marker)
-                    .await
-                    .is_err()
+            if GameAIService::make_ai_move(&mut game, !current_player_marker)
+                .await
+                .is_err()
             {
                 return Err(AppError::internal_error("Failed to make game move"));
             }
