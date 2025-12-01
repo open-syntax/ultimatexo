@@ -27,7 +27,7 @@ jobs:
       deleted_count: ${{ steps.cleanup.outputs.deleted_count }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Delete old workflow runs
         id: cleanup
@@ -102,7 +102,7 @@ jobs:
       freed_size: ${{ steps.cleanup.outputs.freed_size }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Delete old caches
         id: cleanup
@@ -166,7 +166,7 @@ jobs:
       contents: read
     steps:
       - name: Delete old container images
-        uses: snok/container-retention-policy@v3.0.0
+        uses: snok/container-retention-policy@v3.0.1
         with:
           account: open-syntax
           token: ${{ secrets.PAT }}
