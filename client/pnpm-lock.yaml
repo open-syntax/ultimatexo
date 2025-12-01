@@ -88,7 +88,7 @@ importers:
         version: 18.3.1(react@18.3.1)
       react-router-dom:
         specifier: '7'
-        version: 7.9.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 7.9.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       tailwind-variants:
         specifier: 3.1.1
         version: 3.1.1(tailwind-merge@3.3.1)(tailwindcss@3.4.18)
@@ -99,8 +99,8 @@ importers:
         specifier: ^8.18.1
         version: 8.18.3
       zustand:
-        specifier: ^5.0.6
-        version: 5.0.8(@types/react@18.3.3)(react@18.3.1)
+        specifier: ^5.0.9
+        version: 5.0.9(@types/react@18.3.3)(react@18.3.1)
     devDependencies:
       '@types/node':
         specifier: 24.10.0
@@ -1478,8 +1478,8 @@ packages:
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
-  cookie@1.0.2:
-    resolution: {integrity: sha512-9Kr/j4O16ISv8zBBhJoi4bXOYNTkFLOqSL3UDB0njXxCXNezjeyVrJyGOWtgfs/q2km1gwBcfH8q1yEGoMYunA==}
+  cookie@1.1.1:
+    resolution: {integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==}
     engines: {node: '>=18'}
 
   cross-spawn@7.0.6:
@@ -2440,15 +2440,15 @@ packages:
     resolution: {integrity: sha512-QgT5//D3jfjJb6Gsjxv0Slpj23ip+HtOpnNgnb2S5zU3CB26G/IDPGoy4RJB42wzFE46DRsstbW6tKHoKbhAxw==}
     engines: {node: '>=0.10.0'}
 
-  react-router-dom@7.9.5:
-    resolution: {integrity: sha512-mkEmq/K8tKN63Ae2M7Xgz3c9l9YNbY+NHH6NNeUmLA3kDkhKXRsNb/ZpxaEunvGo2/3YXdk5EJU3Hxp3ocaBPw==}
+  react-router-dom@7.9.6:
+    resolution: {integrity: sha512-2MkC2XSXq6HjGcihnx1s0DBWQETI4mlis4Ux7YTLvP67xnGxCvq+BcCQSO81qQHVUTM1V53tl4iVVaY5sReCOA==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       react: '>=18'
       react-dom: '>=18'
 
-  react-router@7.9.5:
-    resolution: {integrity: sha512-JmxqrnBZ6E9hWmf02jzNn9Jm3UqyeimyiwzD69NjxGySG6lIz/1LVPsoTCwN7NBX2XjCEa1LIX5EMz1j2b6u6A==}
+  react-router@7.9.6:
+    resolution: {integrity: sha512-Y1tUp8clYRXpfPITyuifmSoE2vncSME18uVLgaqyxh9H35JWpIfzHo+9y3Fzh5odk/jxPW29IgLgzcdwxGqyNA==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       react: '>=18'
@@ -2899,8 +2899,8 @@ packages:
   zod@4.1.12:
     resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
 
-  zustand@5.0.8:
-    resolution: {integrity: sha512-gyPKpIaxY9XcO2vSMrLbiER7QMAMGOQZVRdJ6Zi782jkbzZygq5GI9nG8g+sMgitRtndwaBSl7uiqC49o1SSiw==}
+  zustand@5.0.9:
+    resolution: {integrity: sha512-ALBtUj0AfjJt3uNRQoL1tL2tMvj6Gp/6e39dnfT6uzpelGru8v1tPOGBzayOWbPJvujM8JojDk3E1LxeFisBNg==}
     engines: {node: '>=12.20.0'}
     peerDependencies:
       '@types/react': '>=18.0.0'
@@ -4529,7 +4529,7 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  cookie@1.0.2: {}
+  cookie@1.1.1: {}
 
   cross-spawn@7.0.6:
     dependencies:
@@ -5552,15 +5552,15 @@ snapshots:
 
   react-refresh@0.18.0: {}
 
-  react-router-dom@7.9.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  react-router-dom@7.9.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-router: 7.9.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-router: 7.9.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  react-router@7.9.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  react-router@7.9.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
-      cookie: 1.0.2
+      cookie: 1.1.1
       react: 18.3.1
       set-cookie-parser: 2.7.2
     optionalDependencies:
@@ -6099,7 +6099,7 @@ snapshots:
 
   zod@4.1.12: {}
 
-  zustand@5.0.8(@types/react@18.3.3)(react@18.3.1):
+  zustand@5.0.9(@types/react@18.3.3)(react@18.3.1):
     optionalDependencies:
       '@types/react': 18.3.3
       react: 18.3.1
