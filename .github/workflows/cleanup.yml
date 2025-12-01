@@ -4,77 +4,220 @@ on:
   schedule:
     - cron: '0 2 * * 0'
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (preview only, no deletions)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  WORKFLOW_RUNS_RETENTION_DAYS: 7
+  CACHE_RETENTION_DAYS: 7
+  PACKAGES_RETENTION_DAYS: 30
 
 jobs:
-  cleanup-images:
-    name: Cleanup Old Images
+  cleanup-workflow-runs:
+    name: Cleanup Old Workflow Runs
     runs-on: ubuntu-latest
     permissions:
-      packages: write
+      actions: write
+      contents: read
+    outputs:
+      deleted_count: ${{ steps.cleanup.outputs.deleted_count }}
     steps:
-      - name: Delete old container images
-        uses: snok/container-retention-policy@v2
-        with:
-          image-names: ultimatexo-client,ultimatexo-server,ultimatexo-caddy
-          cut-off: 30 days ago UTC
-          account-type: org
-          org-name: open-syntax
-          keep-at-least: 5
-          untagged-only: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Delete old workflow runs
+        id: cleanup
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: |
+          set -euo pipefail
+
+          if date --version >/dev/null 2>&1; then
+            CUTOFF_DATE=$(date -d "$WORKFLOW_RUNS_RETENTION_DAYS days ago" -u +%Y-%m-%d)
+          else
+            CUTOFF_DATE=$(date -u -v-${WORKFLOW_RUNS_RETENTION_DAYS}d +%Y-%m-%d)
+          fi
+
+          echo "🔍 Searching for runs created before: $CUTOFF_DATE"
+
+          deleted=0
+
+          while true; do
+            runs=$(gh api \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "/repos/${{ github.repository }}/actions/runs?created=<$CUTOFF_DATE&per_page=50&page=1" \
+              --jq '.workflow_runs[]')
+
+            if [ -z "$runs" ]; then
+              echo "✅ No more old runs found."
+              break
+            fi
+
+            # Loop through the JSON lines
+            echo "$runs" | jq -c '.' | while read -r run; do
+              run_id=$(echo "$run" | jq -r '.id')
+              run_name=$(echo "$run" | jq -r '.name')
+
+              if [ "$DRY_RUN" = "true" ]; then
+                echo "   [DRY RUN] Would delete run #$run_id ($run_name)"
+                ((deleted++)) || true
+              else
+                echo "🗑️ Deleting run #$run_id ($run_name)..."
+                if gh api --method DELETE "/repos/${{ github.repository }}/actions/runs/$run_id" 2>/dev/null; then
+                  echo "   ✅ Deleted"
+                  ((deleted++)) || true
+                else
+                  echo "   ⚠️ Failed to delete"
+                fi
+              fi
+            done
+
+            if [ "$deleted" -gt 2000 ]; then
+               echo "⚠️ Safety limit reached (2000 deletions). Stopping to protect API quota."
+               break
+            fi
+
+            if [ "$DRY_RUN" = "true" ]; then
+               echo "⚠️ Dry run mode: stopping after first page scan to prevent infinite loop."
+               break
+            fi
+          done
+
+          echo "deleted_count=$deleted" >> $GITHUB_OUTPUT
 
   cleanup-caches:
     name: Cleanup Old Caches
     runs-on: ubuntu-latest
     permissions:
       actions: write
+      contents: read
+    outputs:
+      deleted_count: ${{ steps.cleanup.outputs.deleted_count }}
+      freed_size: ${{ steps.cleanup.outputs.freed_size }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - name: Cleanup old caches
-        run: |
-          echo "🧹 Cleaning up old GitHub Actions caches..."
-          gh extension install actions/gh-actions-cache || true
-
-          gh actions-cache list --limit 100 | \
-            grep -v "refs/heads/main" | \
-            awk '{print $1}' | \
-            xargs -I {} gh actions-cache delete {} --confirm || true
+      - name: Delete old caches
+        id: cleanup
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: |
+          set -euo pipefail
 
-  cleanup-workflow-runs:
-    name: Cleanup Old Workflow Runs
+          echo "🔍 Fetching caches..."
+
+          if date --version >/dev/null 2>&1; then
+            CUTOFF=$(date -d "$CACHE_RETENTION_DAYS days ago" +%s)
+          else
+            CUTOFF=$(date -u -v-${CACHE_RETENTION_DAYS}d +%s)
+          fi
+
+          response=$(gh api "/repos/${{ github.repository }}/actions/caches?per_page=100&sort=last_accessed_at&direction=asc")
+
+          deleted=0
+          freed_bytes=0
+
+          echo "$response" | jq -c '.actions_caches[]' | while read -r cache; do
+            cache_id=$(echo "$cache" | jq -r '.id')
+            cache_key=$(echo "$cache" | jq -r '.key')
+            cache_size=$(echo "$cache" | jq -r '.size_in_bytes')
+            last_accessed=$(echo "$cache" | jq -r '.last_accessed_at')
+
+            # Convert date to timestamp
+            if date --version >/dev/null 2>&1; then
+               ts=$(date -d "$last_accessed" +%s)
+            else
+               ts=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$last_accessed" +%s)
+            fi
+
+            if [ "$ts" -lt "$CUTOFF" ]; then
+               size_mb=$(echo "scale=2; $cache_size / 1048576" | bc)
+
+               if [ "$DRY_RUN" = "true" ]; then
+                 echo "   [DRY RUN] Would delete cache $cache_key (${size_mb}MB)"
+                 ((deleted++)) || true
+                 freed_bytes=$((freed_bytes + cache_size))
+               else
+                 echo "🗑️ Deleting cache $cache_key..."
+                 gh api --method DELETE "/repos/${{ github.repository }}/actions/caches/$cache_id" || true
+                 ((deleted++)) || true
+                 freed_bytes=$((freed_bytes + cache_size))
+               fi
+            fi
+          done
+
+          freed_gb=$(echo "scale=2; $freed_bytes / 1073741824" | bc)
+          echo "deleted_count=$deleted" >> $GITHUB_OUTPUT
+          echo "freed_size=${freed_gb}GB" >> $GITHUB_OUTPUT
+
+  cleanup-packages:
+    name: Cleanup Old Packages
     runs-on: ubuntu-latest
     permissions:
-      actions: write
+      packages: write
+      contents: read
     steps:
-      - name: Delete old workflow runs
-        uses: Mattraks/delete-workflow-runs@v2
+      - name: Delete old container images
+        uses: snok/container-retention-policy@v3.0.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ github.repository }}
-          retain_days: 90
-          keep_minimum_runs: 10
+          account: open-syntax
+          token: ${{ secrets.PAT }}
+          image-names: ultimatexo-client,ultimatexo-server,ultimatexo-caddy
+          cut-off: ${{ env.PACKAGES_RETENTION_DAYS }}d
+          keep-at-least: 5
+          skip-tags: latest,main,production
+          dry-run: ${{ inputs.dry_run || false }}
 
   report:
     name: Maintenance Report
     runs-on: ubuntu-latest
-    needs: [cleanup-images, cleanup-caches, cleanup-workflow-runs]
+    needs: [cleanup-workflow-runs, cleanup-caches, cleanup-packages]
     if: always()
     steps:
-      - name: Send report
+      - name: Generate detailed report
+        id: report
+        run: |
+          echo "## 🧹 Maintenance Report" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.cleanup-workflow-runs.result }}" = "success" ]; then
+             echo "- **Runs:** ✅ Success (${{ needs.cleanup-workflow-runs.outputs.deleted_count }} deleted)" >> $GITHUB_STEP_SUMMARY
+          else
+             echo "- **Runs:** ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.cleanup-caches.result }}" = "success" ]; then
+             echo "- **Caches:** ✅ Success (${{ needs.cleanup-caches.outputs.deleted_count }} deleted, ${{ needs.cleanup-caches.outputs.freed_size }} freed)" >> $GITHUB_STEP_SUMMARY
+          else
+             echo "- **Caches:** ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.cleanup-packages.result }}" = "success" ]; then
+             echo "- **Packages:** ✅ Success" >> $GITHUB_STEP_SUMMARY
+          else
+             echo "- **Packages:** ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.cleanup-workflow-runs.result }}" == "failure" ] || \
+             [ "${{ needs.cleanup-caches.result }}" == "failure" ] || \
+             [ "${{ needs.cleanup-packages.result }}" == "failure" ]; then
+            echo "overall_status=failure" >> $GITHUB_OUTPUT
+          else
+            echo "overall_status=success" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Discord notification
+        if: vars.DISCORD_WEBHOOK_ENABLED == 'true'
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          title: "🧹 Maintenance Complete"
-          description: |
-            **Cleanup Tasks:**
-            • Images: ${{ needs.cleanup-images.result == 'success' && '✅' || '❌' }}
-            • Caches: ${{ needs.cleanup-caches.result == 'success' && '✅' || '❌' }}
-            • Workflow Runs: ${{ needs.cleanup-workflow-runs.result == 'success' && '✅' || '❌' }}
-
-            [View Details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          color: 0x0366d6
-          username: "UltimateXO Maintenance Bot"
+          title: "Maintenance Complete"
+          color: ${{ steps.report.outputs.overall_status == 'success' && '0x00ff00' || '0xff0000' }}
+          username: "Maintenance Bot"
