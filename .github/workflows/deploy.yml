@@ -95,7 +95,7 @@ jobs:
       url: https://ultimatexo.com
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create deployment package
         run: |
@@ -110,7 +110,7 @@ jobs:
           EOF
 
       - name: Deploy to Production Server
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
@@ -120,7 +120,7 @@ jobs:
           strip_components: 1
 
       - name: Execute Deployment Script
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.4
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
@@ -240,7 +240,7 @@ jobs:
     if: github.event.inputs.skip_smoke_tests != 'true'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run smoke tests
         run: |
