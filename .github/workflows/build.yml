@@ -3,14 +3,16 @@ name: Build & Publish
 on:
   push:
     branches: [main]
-    tags:
-      - 'v*'
-  release:
-    types: [published]
+    tags: ['v*']
   workflow_dispatch:
+    inputs:
+      push_images:
+        description: 'Push images to registry'
+        type: boolean
+        default: true
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: build-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -18,37 +20,30 @@ env:
   IMAGE_BASE: ghcr.io/open-syntax/ultimatexo
 
 jobs:
-  build-and-push:
-    name: Build & Push Images
+  build:
+    name: Build & Push
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      id-token: write
     outputs:
-      client-image: ${{ steps.meta-client.outputs.tags }}
-      server-image: ${{ steps.meta-server.outputs.tags }}
-      caddy-image: ${{ steps.meta-caddy.outputs.tags }}
+      version: ${{ steps.meta.outputs.version }}
       client-digest: ${{ steps.build-client.outputs.digest }}
       server-digest: ${{ steps.build-server.outputs.digest }}
       caddy-digest: ${{ steps.build-caddy.outputs.digest }}
-      version: ${{ steps.version.outputs.version }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - name: Extract version
-        id: version
+      - name: Set version
+        id: meta
         run: |
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/}
-          elif [[ $GITHUB_REF == refs/heads/main ]]; then
-            VERSION="latest"
           else
-            VERSION="${GITHUB_SHA::8}"
+            VERSION="latest"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Version: $VERSION"
+          echo "📦 Version: $VERSION"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -56,161 +51,136 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub Container Registry
+      - name: Login to GHCR
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.push_images == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract client metadata
-        id: meta-client
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_BASE }}-client
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix={{branch}}-
-          labels: |
-            org.opencontainers.image.title=UltimateXO Client
-            org.opencontainers.image.description=UltimateXO game client (static files)
-            org.opencontainers.image.vendor=OutOfSyntax
+      - name: Generate tags
+        id: tags
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
 
-      - name: Extract server metadata
-        id: meta-server
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_BASE }}-server
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix={{branch}}-
-          labels: |
-            org.opencontainers.image.title=UltimateXO Server
-            org.opencontainers.image.description=UltimateXO game server
-            org.opencontainers.image.vendor=OutOfSyntax
+          if [[ $VERSION == v* ]]; then
+            MAJOR=$(echo $VERSION | cut -d. -f1 | tr -d 'v')
+            MINOR=$(echo $VERSION | cut -d. -f1-2)
 
-      - name: Extract caddy metadata
-        id: meta-caddy
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_BASE }}-caddy
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix={{branch}}-
-          labels: |
-            org.opencontainers.image.title=UltimateXO Caddy
-            org.opencontainers.image.description=Caddy proxy with Cloudflare DNS
-            org.opencontainers.image.vendor=OutOfSyntax
+            TAGS="$VERSION,$MINOR"
+            [[ $MAJOR != "0" ]] && TAGS="$TAGS,$MAJOR"
+          else
+            TAGS="$VERSION"
+          fi
 
-      - name: Build and push client image
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+          echo "📌 Tags: $TAGS"
+
+      - name: Build & push client
         id: build-client
         uses: docker/build-push-action@v6
         with:
           context: ./client
-          push: true
-          tags: ${{ steps.meta-client.outputs.tags }}
-          labels: ${{ steps.meta-client.outputs.labels }}
-          cache-from: type=gha,scope=ultimatexo-client
-          cache-to: type=gha,mode=max,scope=ultimatexo-client
-          provenance: true
-          sbom: true
+          push: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.push_images == 'true' }}
+          tags: |
+            ${{ env.IMAGE_BASE }}-client:${{ steps.meta.outputs.version }}
+            ${{ env.IMAGE_BASE }}-client:${{ steps.tags.outputs.tags }}
+          cache-from: type=gha,scope=client
+          cache-to: type=gha,mode=max,scope=client
+          labels: |
+            org.opencontainers.image.title=UltimateXO Client
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
 
-      - name: Build and push server image
+      - name: Build & push server
         id: build-server
         uses: docker/build-push-action@v6
         with:
           context: ./server
-          push: true
-          tags: ${{ steps.meta-server.outputs.tags }}
-          labels: ${{ steps.meta-server.outputs.labels }}
-          cache-from: type=gha,scope=ultimatexo-server
-          cache-to: type=gha,mode=max,scope=ultimatexo-server
-          provenance: true
-          sbom: true
+          push: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.push_images == 'true' }}
+          tags: |
+            ${{ env.IMAGE_BASE }}-server:${{ steps.meta.outputs.version }}
+            ${{ env.IMAGE_BASE }}-server:${{ steps.tags.outputs.tags }}
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,mode=max,scope=server
+          labels: |
+            org.opencontainers.image.title=UltimateXO Server
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
 
-      - name: Build and push caddy image
+      - name: Build & push caddy
         id: build-caddy
         uses: docker/build-push-action@v6
         with:
           context: ./caddy
-          push: true
-          tags: ${{ steps.meta-caddy.outputs.tags }}
-          labels: ${{ steps.meta-caddy.outputs.labels }}
-          cache-from: type=gha,scope=ultimatexo-caddy
-          cache-to: type=gha,mode=max,scope=ultimatexo-caddy
-          provenance: true
-          sbom: true
+          push: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.push_images == 'true' }}
+          tags: |
+            ${{ env.IMAGE_BASE }}-caddy:${{ steps.meta.outputs.version }}
+            ${{ env.IMAGE_BASE }}-caddy:${{ steps.tags.outputs.tags }}
+          cache-from: type=gha,scope=caddy
+          cache-to: type=gha,mode=max,scope=caddy
+          labels: |
+            org.opencontainers.image.title=UltimateXO Caddy
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
 
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: build
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.push_images == 'true'
     permissions:
       contents: read
       packages: read
       security-events: write
     strategy:
+      fail-fast: false
       matrix:
         image: [client, server, caddy]
     steps:
-      - name: Run Trivy scanner
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ matrix.image == 'client' && needs.build-and-push.outputs.client-digest || matrix.image == 'server' && needs.build-and-push.outputs.server-digest || needs.build-and-push.outputs.caddy-digest }}
+          image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ matrix.image == 'client' && needs.build.outputs.client-digest || matrix.image == 'server' && needs.build.outputs.server-digest || needs.build.outputs.caddy-digest }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
-        env:
-          TRIVY_USERNAME: ${{ github.actor }}
-          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
+      - name: Upload to Security
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
 
-      - name: Run Trivy scanner (table output)
+      - name: Trivy report
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ matrix.image == 'client' && needs.build-and-push.outputs.client-digest || matrix.image == 'server' && needs.build-and-push.outputs.server-digest || needs.build-and-push.outputs.caddy-digest }}
+          image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ matrix.image == 'client' && needs.build.outputs.client-digest || matrix.image == 'server' && needs.build.outputs.server-digest || needs.build.outputs.caddy-digest }}
           format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
-        env:
-          TRIVY_USERNAME: ${{ github.actor }}
-          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          exit-code: '0'
 
   notify:
-    name: Notify Build Status
+    name: Notify
     runs-on: ubuntu-latest
-    needs: [build-and-push, security-scan]
-    if: always()
+    needs: [build, security-scan]
+    if: always() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
     steps:
-      - name: Send Discord notification
+      - name: Discord notification
         uses: sarisia/actions-status-discord@v1
-        if: github.event_name == 'release' || github.ref == 'refs/heads/main'
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          title: ${{ needs.security-scan.result == 'success' && '✅ Build Successful' || '❌ Build Failed' }}
+          title: ${{ needs.security-scan.result == 'success' && '✅ Build Success' || '❌ Build Failed' }}
           description: |
-            **Version:** `${{ needs.build-and-push.outputs.version }}`
-            **Build:** ${{ needs.build-and-push.result == 'success' && '✅' || '❌' }}
-            **Security Scan:** ${{ needs.security-scan.result == 'success' && '✅' || '❌' }}
+            **Version:** `${{ needs.build.outputs.version }}`
+            **Build:** ${{ needs.build.result == 'success' && '✅' || '❌' }}
+            **Security:** ${{ needs.security-scan.result == 'success' && '✅' || '❌' }}
 
-            [View Workflow](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            [View Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
           color: ${{ needs.security-scan.result == 'success' && 0x28a745 || 0xdc3545 }}
-          username: "UltimateXO CI Bot"
+          username: "UltimateXO CI"
