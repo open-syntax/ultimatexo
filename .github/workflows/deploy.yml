@@ -86,7 +86,7 @@ jobs:
       name: production
       url: https://ultimatexo.com
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Prepare deployment
         run: |
@@ -172,7 +172,7 @@ jobs:
           chmod +x deploy/deploy.sh
 
       - name: Copy files to server
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ env.DEPLOY_USER }}
@@ -183,7 +183,7 @@ jobs:
           overwrite: true
 
       - name: Execute deployment
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
