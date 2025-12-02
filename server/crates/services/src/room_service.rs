@@ -172,7 +172,7 @@ impl RoomService {
         self.rooms
             .iter()
             .map(|entry| entry.value().info.clone())
-            .filter(|room| room.is_public && room.bot_level.is_none())
+            .filter(|room| room.is_public)
             .filter(|room| name_filter.is_none_or(|filter| room.name.starts_with(filter)))
             .collect()
     }

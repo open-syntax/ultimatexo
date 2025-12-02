@@ -75,13 +75,10 @@ impl AppState {
     }
 
     pub async fn get_public_rooms(&self, name_filter: Option<&str>) -> Vec<RoomInfo> {
-        let mut all_rooms = Vec::new();
-
-        for service in self.room_services.values() {
-            all_rooms.extend(service.get_public_rooms(name_filter));
-        }
-
-        all_rooms
+        self.room_services
+            .get(&RoomType::Standard)
+            .unwrap()
+            .get_public_rooms(name_filter)
     }
 
     pub async fn get_room_info(&self, room_id: &str) -> Option<RoomInfo> {

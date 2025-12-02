@@ -5,11 +5,12 @@ meta {
 }
 
 get {
-  url: http://localhost:6767/health
+  url: http://{{host}}:{{port}}/health
   body: json
   auth: inherit
 }
 
 settings {
   encodeUrl: true
+  timeout: 0
 }

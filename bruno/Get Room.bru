@@ -5,11 +5,12 @@ meta {
 }
 
 get {
-  url: http://127.0.0.1:6767/room/{{room_id}}
+  url: http://{{host}}:{{port}}/room/{{room_id}}
   body: json
   auth: inherit
 }
 
 settings {
   encodeUrl: true
+  timeout: 0
 }
