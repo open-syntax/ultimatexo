@@ -1,0 +1,10 @@
+{
+	"dependencies": {
+		"@tailwindcss/postcss": "^4.1.18",
+		"@tailwindcss/vite": "^4.1.18"
+	},
+	"devDependencies": {
+		"prettier": "^3.7.4",
+		"prettier-plugin-tailwindcss": "^0.7.2"
+	}
+}
