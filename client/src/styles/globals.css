@@ -1,6 +1,117 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@plugin "../hero.ts";
+
+@source "../../index.html";
+@source "../layouts/**/*.{js,ts,jsx,tsx,mdx}";
+@source "../pages/**/*.{js,ts,jsx,tsx,mdx}";
+@source "../components/**/*.{js,ts,jsx,tsx,mdx}";
+@source "../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
+
+@custom-variant dark (&:is(.dark *));
+
+/* HeroUI theme extensions for Tailwind v4 compatibility */
+@theme {
+  /* Border radius scale used by HeroUI components */
+  --radius-small: 8px;
+  --radius-medium: 12px;
+  --radius-large: 14px;
+
+  /* Box shadow scale used by HeroUI components */
+  --shadow-small:
+    0px 0px 5px 0px rgb(0 0 0 / 0.02), 0px 2px 10px 0px rgb(0 0 0 / 0.06),
+    0px 0px 1px 0px rgb(0 0 0 / 0.3);
+  --shadow-medium:
+    0px 0px 15px 0px rgb(0 0 0 / 0.03), 0px 2px 30px 0px rgb(0 0 0 / 0.08),
+    0px 0px 1px 0px rgb(0 0 0 / 0.3);
+  --shadow-large:
+    0px 0px 30px 0px rgb(0 0 0 / 0.04), 0px 30px 60px 0px rgb(0 0 0 / 0.12),
+    0px 0px 1px 0px rgb(0 0 0 / 0.3);
+
+  /* Border width scale used by HeroUI components */
+  --border-width-small: 1px;
+  --border-width-medium: 2px;
+  --border-width-large: 3px;
+}
+
+/* HeroUI custom utilities - these use the --heroui-* CSS variables set by the plugin */
+@utility rounded-small {
+  border-radius: var(--heroui-radius-small);
+}
+
+@utility rounded-medium {
+  border-radius: var(--heroui-radius-medium);
+}
+
+@utility rounded-large {
+  border-radius: var(--heroui-radius-large);
+}
+
+/* Directional rounded utilities for button groups */
+@utility rounded-s-small {
+  border-start-start-radius: var(--heroui-radius-small);
+  border-end-start-radius: var(--heroui-radius-small);
+}
+
+@utility rounded-e-small {
+  border-start-end-radius: var(--heroui-radius-small);
+  border-end-end-radius: var(--heroui-radius-small);
+}
+
+@utility rounded-s-medium {
+  border-start-start-radius: var(--heroui-radius-medium);
+  border-end-start-radius: var(--heroui-radius-medium);
+}
+
+@utility rounded-e-medium {
+  border-start-end-radius: var(--heroui-radius-medium);
+  border-end-end-radius: var(--heroui-radius-medium);
+}
+
+@utility rounded-s-large {
+  border-start-start-radius: var(--heroui-radius-large);
+  border-end-start-radius: var(--heroui-radius-large);
+}
+
+@utility rounded-e-large {
+  border-start-end-radius: var(--heroui-radius-large);
+  border-end-end-radius: var(--heroui-radius-large);
+}
+
+/* HeroUI shadow utilities */
+@utility shadow-small {
+  box-shadow: var(--heroui-box-shadow-small);
+}
+
+@utility shadow-medium {
+  box-shadow: var(--heroui-box-shadow-medium);
+}
+
+@utility shadow-large {
+  box-shadow: var(--heroui-box-shadow-large);
+}
+
+/* HeroUI border width utilities */
+@utility border-small {
+  border-width: var(--heroui-border-width-small);
+}
+
+@utility border-medium {
+  border-width: var(--heroui-border-width-medium);
+}
+
+@utility border-large {
+  border-width: var(--heroui-border-width-large);
+}
+
+/* HeroUI divider utilities */
+@utility h-divider {
+  height: var(--heroui-divider-weight);
+}
+
+@utility w-divider {
+  width: var(--heroui-divider-weight);
+}
 
 @layer base {
   input {
