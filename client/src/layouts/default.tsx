@@ -16,25 +16,33 @@ export default function DefaultLayout({
   useEffect(() => {
     if (!ws) return;
     ws.close();
-  }, [location.pathname]);
+  }, [location.pathname, ws]);
 
   return (
-    <div className="relative flex h-dvh flex-col">
+    <div className="relative flex h-dvh flex-col overflow-hidden selection:bg-blue-500 selection:text-white">
+      {/* Decorative background crosshairs */}
+      <div className="crosshair-v" />
+      <div className="crosshair-h" />
+
       <Navbar />
-      <main className="container mx-auto flex max-w-7xl grow flex-col items-stretch justify-stretch px-6 py-8">
+
+      <main className="relative z-10 container mx-auto flex max-w-7xl grow flex-col items-stretch justify-stretch px-4 py-8 sm:px-6">
         {children}
       </main>
-      <footer className="flex w-full items-center justify-center py-3">
-        <span className="text-default-600">
+
+      <footer className="z-10 w-full py-6 text-center">
+        <p className="text-sm text-slate-500">
           Made by{" "}
           <Link
-            className="text-primary"
+            className="text-blue-500 underline-offset-4 transition-colors hover:text-blue-400 hover:underline"
             title="Open Syntax Team"
             to="https://github.com/open-syntax"
+            target="_blank"
+            rel="noopener noreferrer"
           >
             Open Syntax
           </Link>
-        </span>
+        </p>
       </footer>
     </div>
   );
