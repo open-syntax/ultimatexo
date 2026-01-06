@@ -23,7 +23,7 @@ rand = "0.9.1"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.148"
 thiserror = "2.0.17"
-tokio = { version = "1.48.0", features = ["full"] }
+tokio = { version = "1.49.0", features = ["full"] }
 tokio-util = "0.7.18"
 tower_governor = { version = "0.8", features = ["axum", "tracing"] }
 tracing = "0.1.44"
