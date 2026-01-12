@@ -44,7 +44,7 @@
     "react-router-dom": "7",
     "tailwind-variants": "3.2.2",
     "tailwindcss": "4.1.18",
-    "ws": "^8.18.1",
+    "ws": "^8.19.0",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
