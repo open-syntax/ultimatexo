@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
+import { tv } from "tailwind-variants";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
@@ -9,23 +10,43 @@ import {
   CoffeeIcon,
   SettingsIcon,
 } from "@/components/icons";
+import { TooltipIcon } from "@/components/ui/tooltip-icon";
 
-// Tooltip wrapper component
-const IconWithTooltip = ({
-  children,
-  label,
-}: {
-  children: React.ReactNode;
-  label: string;
-}) => (
-  <div className="group relative">
-    {children}
-    <span className="pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 rounded bg-slate-800 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:bg-slate-700">
-      {label}
-      <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800 dark:bg-slate-700" />
-    </span>
-  </div>
-);
+const navbarStyles = tv({
+  slots: {
+    base: "relative z-10 flex w-full items-center justify-between p-4 md:p-6",
+    logoLink: "group text-xl font-bold tracking-tight md:text-2xl",
+    logoText:
+      "text-slate-900 transition group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-100",
+    nav: "hidden rounded-lg border border-slate-200 bg-white/90 p-1 shadow-lg backdrop-blur-sm md:flex dark:border-white/5 dark:bg-slate-900/90",
+    navLink: "rounded-md px-5 py-1.5 text-sm font-medium transition-all",
+    iconButton:
+      "flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-all duration-300 hover:border-blue-500/30 hover:bg-slate-100 hover:text-slate-700 dark:border-white/5 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white",
+    mobileIconButton:
+      "flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-all duration-300 dark:border-white/5 dark:bg-slate-800/60 dark:text-slate-400",
+    mobileMenu:
+      "absolute top-full right-0 left-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur-sm md:hidden dark:border-white/5 dark:bg-slate-900/95",
+    mobileNavLink: "rounded-lg px-4 py-3 text-sm font-medium transition-all",
+    mobileSocialLink:
+      "flex flex-1 items-center justify-center gap-2 rounded-lg bg-slate-100 px-4 py-3 text-slate-500 hover:text-slate-700 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:text-white",
+  },
+  variants: {
+    isActive: {
+      true: {
+        navLink:
+          "border border-slate-200 bg-slate-100 text-slate-900 shadow-inner dark:border-white/5 dark:bg-slate-800 dark:text-white",
+        mobileNavLink:
+          "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white",
+      },
+      false: {
+        navLink:
+          "text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white",
+        mobileNavLink:
+          "text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white",
+      },
+    },
+  },
+});
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -38,42 +59,35 @@ export const Navbar = () => {
     return location.pathname.startsWith(href);
   };
 
-  // Common icon button styles
-  const iconButtonStyles =
-    "flex h-10 w-10 items-center justify-center rounded-lg border transition-all duration-300 " +
-    "border-slate-200 bg-white text-slate-500 hover:border-blue-500/30 hover:bg-slate-100 hover:text-slate-700 " +
-    "dark:border-white/5 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white";
-
-  const mobileIconButtonStyles =
-    "flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-300 " +
-    "border-slate-200 bg-white text-slate-500 " +
-    "dark:border-white/5 dark:bg-slate-800/60 dark:text-slate-400";
+  const {
+    base,
+    logoLink,
+    logoText,
+    nav,
+    navLink,
+    iconButton,
+    mobileIconButton,
+    mobileMenu,
+    mobileNavLink,
+    mobileSocialLink,
+  } = navbarStyles();
 
   return (
-    <header className="relative z-10 flex w-full items-center justify-between p-4 md:p-6">
+    <header className={base()}>
       {/* Logo */}
       <div className="flex items-center">
-        <Link
-          className="group text-xl font-bold tracking-tight md:text-2xl"
-          to="/"
-        >
-          <span className="text-slate-900 transition group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-100">
-            Ultimate
-          </span>
+        <Link className={logoLink()} to="/">
+          <span className={logoText()}>Ultimate</span>
           <span className="text-glow text-blue-500">XO</span>
         </Link>
       </div>
 
       {/* Center Navigation Pills - Desktop */}
-      <nav className="hidden rounded-lg border border-slate-200 bg-white/90 p-1 shadow-lg backdrop-blur-sm md:flex dark:border-white/5 dark:bg-slate-900/90">
+      <nav className={nav()}>
         {siteConfig.navItems.map((item) => (
           <Link
             key={item.href}
-            className={`rounded-md px-5 py-1.5 text-sm font-medium transition-all ${
-              isActiveRoute(item.href)
-                ? "border border-slate-200 bg-slate-100 text-slate-900 shadow-inner dark:border-white/5 dark:bg-slate-800 dark:text-white"
-                : "text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
-            }`}
+            className={navLink({ isActive: isActiveRoute(item.href) })}
             to={item.href}
           >
             {item.label}
@@ -83,47 +97,47 @@ export const Navbar = () => {
 
       {/* Right Side Icons - Desktop */}
       <div className="hidden items-center gap-2 md:flex">
-        <IconWithTooltip label="Discord">
+        <TooltipIcon label="Discord">
           <Link
-            className={iconButtonStyles}
-            to={siteConfig.links.discord}
-            target="_blank"
-            rel="noopener noreferrer"
             aria-label="Discord"
+            className={iconButton()}
+            rel="noopener noreferrer"
+            target="_blank"
+            to={siteConfig.links.discord}
           >
             <DiscordIcon size={20} />
           </Link>
-        </IconWithTooltip>
+        </TooltipIcon>
 
-        <IconWithTooltip label="GitHub">
+        <TooltipIcon label="GitHub">
           <Link
-            className={iconButtonStyles}
-            to={siteConfig.links.github}
-            target="_blank"
-            rel="noopener noreferrer"
             aria-label="GitHub"
+            className={iconButton()}
+            rel="noopener noreferrer"
+            target="_blank"
+            to={siteConfig.links.github}
           >
             <GithubIcon size={20} />
           </Link>
-        </IconWithTooltip>
+        </TooltipIcon>
 
-        <IconWithTooltip label="Buy us a coffee">
+        <TooltipIcon label="Buy us a coffee">
           <Link
-            className={iconButtonStyles}
-            to={siteConfig.links.sponsor}
-            target="_blank"
-            rel="noopener noreferrer"
             aria-label="Buy us a coffee"
+            className={iconButton()}
+            rel="noopener noreferrer"
+            target="_blank"
+            to={siteConfig.links.sponsor}
           >
             <CoffeeIcon size={20} />
           </Link>
-        </IconWithTooltip>
+        </TooltipIcon>
 
-        <IconWithTooltip label="Settings">
-          <button className={iconButtonStyles} aria-label="Settings">
+        <TooltipIcon label="Settings">
+          <button aria-label="Settings" className={iconButton()}>
             <SettingsIcon size={20} />
           </button>
-        </IconWithTooltip>
+        </TooltipIcon>
 
         <ThemeSwitch />
       </div>
@@ -131,20 +145,20 @@ export const Navbar = () => {
       {/* Mobile Menu Toggle & Icons */}
       <div className="flex items-center gap-2 md:hidden">
         <Link
-          className={mobileIconButtonStyles}
-          to={siteConfig.links.github}
-          target="_blank"
-          rel="noopener noreferrer"
           aria-label="GitHub"
+          className={mobileIconButton()}
+          rel="noopener noreferrer"
+          target="_blank"
+          to={siteConfig.links.github}
         >
           <GithubIcon size={18} />
         </Link>
         <ThemeSwitch />
         <button
-          className={mobileIconButtonStyles}
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-label="Toggle menu"
           aria-expanded={isMenuOpen}
+          aria-label="Toggle menu"
+          className={mobileIconButton()}
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
           {isMenuOpen ? (
             <svg
@@ -154,10 +168,10 @@ export const Navbar = () => {
               viewBox="0 0 24 24"
             >
               <path
+                d="M6 18L18 6M6 6l12 12"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
               />
             </svg>
           ) : (
@@ -168,10 +182,10 @@ export const Navbar = () => {
               viewBox="0 0 24 24"
             >
               <path
+                d="M4 6h16M4 12h16M4 18h16"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
               />
             </svg>
           )}
@@ -180,16 +194,14 @@ export const Navbar = () => {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="absolute top-full right-0 left-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur-sm md:hidden dark:border-white/5 dark:bg-slate-900/95">
+        <div className={mobileMenu()}>
           <nav className="flex flex-col gap-2 p-4">
             {siteConfig.navMenuItems.map((item) => (
               <Link
                 key={item.href}
-                className={`rounded-lg px-4 py-3 text-sm font-medium transition-all ${
-                  isActiveRoute(item.href)
-                    ? "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white"
-                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white"
-                }`}
+                className={mobileNavLink({
+                  isActive: isActiveRoute(item.href),
+                })}
                 to={item.href}
                 onClick={() => setIsMenuOpen(false)}
               >
@@ -198,20 +210,20 @@ export const Navbar = () => {
             ))}
             <div className="mt-2 flex gap-2 border-t border-slate-200 pt-2 dark:border-white/5">
               <Link
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-slate-100 px-4 py-3 text-slate-500 hover:text-slate-700 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:text-white"
-                to={siteConfig.links.discord}
-                target="_blank"
+                className={mobileSocialLink()}
                 rel="noopener noreferrer"
+                target="_blank"
+                to={siteConfig.links.discord}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <DiscordIcon size={18} />
                 <span className="text-sm">Discord</span>
               </Link>
               <Link
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-slate-100 px-4 py-3 text-slate-500 hover:text-slate-700 dark:bg-slate-800/60 dark:text-slate-400 dark:hover:text-white"
-                to={siteConfig.links.sponsor}
-                target="_blank"
+                className={mobileSocialLink()}
                 rel="noopener noreferrer"
+                target="_blank"
+                to={siteConfig.links.sponsor}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <CoffeeIcon size={18} />
