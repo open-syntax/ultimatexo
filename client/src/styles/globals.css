@@ -32,6 +32,18 @@
   --border-width-small: 1px;
   --border-width-medium: 2px;
   --border-width-large: 3px;
+
+  /* Neon theme colors */
+  --color-neon-blue: #2563eb;
+  --color-neon-glow: #3b82f6;
+  --color-neon-dark: #020617;
+  --color-neon-surface: #0f172a;
+
+  /* Neon shadows */
+  --shadow-neon: 0 0 20px rgba(37, 99, 235, 0.4);
+  --shadow-neon-strong: 0 0 30px rgba(37, 99, 235, 0.6);
+  --shadow-neon-text:
+    0 0 10px rgba(59, 130, 246, 0.5), 0 0 20px rgba(59, 130, 246, 0.3);
 }
 
 /* HeroUI custom utilities - these use the --heroui-* CSS variables set by the plugin */
@@ -114,9 +126,158 @@
 }
 
 @layer base {
+  /* Theme-aware CSS custom properties for glow effects */
+  :root {
+    /* Light mode glow values - subtle but visible */
+    --text-glow-1: rgba(37, 99, 235, 0.4);
+    --text-glow-2: rgba(37, 99, 235, 0.25);
+    --text-glow-3: rgba(37, 99, 235, 0.1);
+    --text-glow-strong-1: rgba(37, 99, 235, 0.5);
+    --text-glow-strong-2: rgba(37, 99, 235, 0.3);
+    --text-glow-strong-3: rgba(37, 99, 235, 0.15);
+  }
+
+  .dark {
+    /* Dark mode glow values - more intense */
+    --text-glow-1: rgba(59, 130, 246, 0.8);
+    --text-glow-2: rgba(59, 130, 246, 0.5);
+    --text-glow-3: rgba(59, 130, 246, 0.3);
+    --text-glow-strong-1: rgba(37, 99, 235, 0.8);
+    --text-glow-strong-2: rgba(37, 99, 235, 0.5);
+    --text-glow-strong-3: rgba(37, 99, 235, 0.2);
+  }
+
+  /* Custom text selection - blue highlight with white text */
+  ::selection {
+    background-color: rgb(59 130 246);
+    color: white;
+  }
+
+  ::-moz-selection {
+    background-color: rgb(59 130 246);
+    color: white;
+  }
+
   input {
     outline: none;
   }
+
+  /* Dark mode neon background with visible grid pattern */
+  .dark body {
+    background-color: #050810;
+    background-image:
+      radial-gradient(
+        circle at center,
+        rgba(29, 78, 216, 0.08) 0%,
+        rgba(5, 8, 16, 0) 60%
+      ),
+      linear-gradient(rgba(59, 130, 246, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px);
+    background-size:
+      100% 100%,
+      50px 50px,
+      50px 50px;
+  }
+
+  /* Light mode background with visible grid */
+  .light body {
+    background-color: #f8fafc;
+    background-image:
+      radial-gradient(
+        circle at center,
+        rgba(59, 130, 246, 0.04) 0%,
+        rgba(248, 250, 252, 0) 60%
+      ),
+      linear-gradient(rgba(148, 163, 184, 0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
+    background-size:
+      100% 100%,
+      50px 50px,
+      50px 50px;
+  }
+}
+
+/* Crosshair background effects - blurry and subtle */
+.crosshair-v {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(59, 130, 246, 0.25),
+    transparent
+  );
+  transform: translateX(-50%);
+  z-index: 0;
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.crosshair-h {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(59, 130, 246, 0.25),
+    transparent
+  );
+  transform: translateY(-50%);
+  z-index: 0;
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+/* Light mode crosshairs - visible gray */
+.light .crosshair-v {
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(148, 163, 184, 0.3),
+    transparent
+  );
+}
+
+.light .crosshair-h {
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(148, 163, 184, 0.3),
+    transparent
+  );
+}
+
+/* Text glow utilities - theme-aware via CSS custom properties */
+@utility text-glow {
+  text-shadow:
+    0 0 15px var(--text-glow-1),
+    0 0 30px var(--text-glow-2);
+}
+
+@utility text-glow-strong {
+  text-shadow:
+    0 0 30px var(--text-glow-strong-1),
+    0 0 70px var(--text-glow-strong-2),
+    0 0 100px var(--text-glow-strong-3);
+}
+
+/* Neon shadow utilities */
+@utility shadow-neon {
+  box-shadow: 0 0 20px rgba(37, 99, 235, 0.4);
+}
+
+@utility shadow-neon-hover {
+  box-shadow: 0 0 30px rgba(37, 99, 235, 0.6);
+}
+
+@utility shadow-neon-input {
+  box-shadow: 0 0 25px rgba(37, 99, 235, 0.15);
 }
 
 .animate-chat-open {

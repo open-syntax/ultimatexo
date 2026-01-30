@@ -370,3 +370,73 @@ export const Dice = ({ size = 24, ...props }: IconSvgProps) => (
     <path d="M0 24q0 .832.576 1.44t1.44.576H4q2.048 0 3.904-.8t3.168-2.144 2.144-3.2.8-3.872q0-2.464 1.728-4.224T20 10.016h4V12q0 .672.384 1.152t.864.704 1.12.128 1.056-.544l4-4Q32.032 8.8 32 8t-.576-1.408l-4-4q-.48-.448-1.088-.544t-1.12.128-.864.704T24 4v2.016h-4q-2.016 0-3.872.8t-3.2 2.112-2.144 3.2T10.016 16q0 2.496-1.76 4.256T4 22.016H2.016q-.832 0-1.44.576T0 24zM0 8.032q0 .832.576 1.408t1.44.576H4q1.408 0 2.592.608t2.08 1.664q.672-2.048 1.984-3.68Q7.744 6.016 4 6.016H2.016q-.832 0-1.44.608T0 8.032zm13.376 15.424q2.848 2.56 6.624 2.56h4v2.016q0 .64.384 1.152t.864.704 1.12.096 1.056-.544l4-4q.608-.608.576-1.44t-.576-1.376l-4-4q-.48-.48-1.088-.576t-1.12.128-.864.736-.352 1.12v1.984h-4q-1.376 0-2.592-.576t-2.048-1.664q-.704 2.048-1.984 3.68z" />
   </svg>
 );
+
+export const SettingsIcon = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <circle cx={12} cy={12} r={3} />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
+export const KeyboardIcon = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <rect x={2} y={4} width={20} height={16} rx={2} ry={2} />
+    <path d="M6 8h.001M10 8h.001M14 8h.001M18 8h.001M8 12h.001M12 12h.001M16 12h.001M7 16h10" />
+  </svg>
+);
+
+export const CoffeeIcon = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
+    <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
+    <line x1={6} y1={2} x2={6} y2={4} />
+    <line x1={10} y1={2} x2={10} y2={4} />
+    <line x1={14} y1={2} x2={14} y2={4} />
+  </svg>
+);
+
+export const LightningIcon = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    {...props}
+  >
+    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+  </svg>
+);

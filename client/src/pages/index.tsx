@@ -1,75 +1,111 @@
-import { Button } from "@heroui/button";
+import { useState } from "react";
 import { Input } from "@heroui/input";
-import { button as buttonStyles } from "@heroui/theme";
 import { useNavigate, Link } from "react-router-dom";
 
-import { Controller, Dice, Group } from "@/components/icons";
-import { title } from "@/components/primitives";
+import {
+  Controller,
+  Group,
+  LightningIcon,
+  KeyboardIcon,
+} from "@/components/icons";
 import DefaultLayout from "@/layouts/default";
+import { HomeButton } from "@/components/home-button";
 
 export default function IndexPage() {
-  let navigate = useNavigate();
+  const navigate = useNavigate();
+  const [roomId, setRoomId] = useState("");
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const data = new FormData(e.currentTarget);
-    const roomId = data.get("roomId") as string;
+    if (roomId.trim()) {
+      navigate(`/room/${roomId}`);
+    }
+  };
 
-    navigate(`/room/${roomId}`);
+  const handleRoomIdInput = (value: string) => {
+    setRoomId(value.replace(/[^0-9]/g, ""));
   };
 
   return (
     <DefaultLayout>
-      <section className="flex h-full flex-col items-center justify-center gap-8 py-8 md:py-10">
-        <div className="inline-block max-w-lg justify-center text-center">
-          <span className={title({ color: "yellow" })}>Ultimate</span>
-          <span className={title()}>XO</span>
+      <section className="relative z-10 mx-auto flex h-full w-full max-w-4xl flex-col items-center justify-center gap-8 py-8 md:py-10">
+        {/* Main Title - Theme-aware glow effect */}
+        <h1 className="text-glow-strong text-center text-6xl font-black tracking-tight select-none sm:text-7xl md:text-8xl lg:text-9xl">
+          <span className="text-slate-900 dark:text-white">Ultimate</span>
+          <span className="text-blue-500">XO</span>
+        </h1>
+
+        {/* Primary Action Buttons */}
+        <div className="flex w-full max-w-2xl flex-col justify-center gap-4 sm:flex-row sm:gap-6">
+          {/* Play Button */}
+          <HomeButton as={Link} to="/create" variant="primary">
+            <Controller
+              size={24}
+              className="transition-transform group-hover:rotate-12"
+            />
+            Play
+          </HomeButton>
+
+          {/* Quick Play Button */}
+          <HomeButton as={Link} to="/quick" variant="secondary">
+            <LightningIcon
+              size={24}
+              className="text-slate-400 dark:text-slate-400"
+            />
+            Quick Play
+          </HomeButton>
+
+          {/* Rooms Button */}
+          <HomeButton as={Link} to="/rooms" variant="secondary">
+            <Group size={24} className="text-slate-400 dark:text-slate-400" />
+            Rooms
+          </HomeButton>
         </div>
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex gap-3">
-            <Link
-              className={buttonStyles({
-                color: "primary",
-                radius: "full",
-                variant: "shadow",
-              })}
-              to="/create"
-            >
-              <Controller />
-              Play
-            </Link>
-            <Link
-              className={buttonStyles({ variant: "bordered", radius: "full" })}
-              to="/rooms"
-            >
-              <Group />
-              Rooms
-            </Link>
-            <Link
-              className={`aspect-square !min-w-8 !p-1 ${buttonStyles({ variant: "bordered", radius: "full" })}`}
-              title="Random room"
-              to="/quick"
-            >
-              <Dice size={20} />
-            </Link>
-          </div>
 
-          <p className="relative w-full text-center before:absolute before:-left-4 before:top-1/2 before:h-px before:w-1/2 before:translate-y-1/2 before:bg-default-400 before:content-[''] after:absolute after:-right-4 after:top-1/2 after:h-px after:w-1/2 after:translate-y-1/2 after:bg-default-400 after:content-['']">
-            OR
-          </p>
+        {/* Divider with Text */}
+        <div className="flex w-full max-w-lg items-center gap-4 opacity-60">
+          <div className="h-px flex-grow bg-gradient-to-r from-transparent to-slate-300 dark:to-slate-700" />
+          <span className="text-xs font-bold tracking-widest whitespace-nowrap text-slate-500 uppercase">
+            Join an existing game
+          </span>
+          <div className="h-px flex-grow bg-gradient-to-l from-transparent to-slate-300 dark:to-slate-700" />
+        </div>
 
-          <form className="flex gap-3" onSubmit={(e) => handleSubmit(e)}>
-            <Input name="roomId" placeholder="Room ID" variant="bordered" />
-            <Button color="primary" type="submit">
+        {/* Room Entry Section */}
+        <form className="w-full max-w-lg" onSubmit={handleSubmit}>
+          <div className="dark:shadow-neon-input flex w-full items-center rounded-2xl border border-slate-300 bg-white p-2 pl-4 shadow-sm transition-all duration-300 hover:border-blue-500/60 hover:shadow-md dark:border-blue-500/30 dark:bg-[#020408]">
+            <Input
+              name="roomId"
+              value={roomId}
+              onValueChange={handleRoomIdInput}
+              placeholder="Enter Room ID"
+              variant="underlined"
+              inputMode="numeric"
+              maxLength={6}
+              startContent={
+                <KeyboardIcon
+                  size={20}
+                  className="shrink-0 text-slate-400 dark:text-slate-500"
+                />
+              }
+              classNames={{
+                base: "flex-grow",
+                input:
+                  "bg-transparent border-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-lg",
+                inputWrapper:
+                  "bg-transparent border-none shadow-none after:hidden p-0 h-auto min-h-0",
+                innerWrapper: "gap-3 items-center py-0",
+              }}
+            />
+            <button
+              type="submit"
+              className="ml-2 shrink-0 rounded-full bg-blue-600 px-6 py-2 font-bold whitespace-nowrap text-white shadow-lg shadow-blue-600/30 transition-all duration-200 hover:bg-blue-500"
+            >
               Join
-            </Button>
-          </form>
-        </div>
-
-        <Link className="text-primary" to="/instructions">
-          <span>Don&apos;t know how to play?</span>
-        </Link>
+            </button>
+          </div>
+        </form>
       </section>
     </DefaultLayout>
   );
