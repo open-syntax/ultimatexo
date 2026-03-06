@@ -18,7 +18,7 @@ export default function IndexPage() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (roomId.trim()) {
+    if (roomId.trim() && roomId.length === 6) {
       navigate(`/room/${roomId}`);
     }
   };
@@ -31,7 +31,7 @@ export default function IndexPage() {
     <DefaultLayout>
       <section className="relative z-10 mx-auto flex h-full w-full max-w-4xl flex-col items-center justify-center gap-8 py-8 md:py-10">
         {/* Main Title - Theme-aware glow effect */}
-        <h1 className="text-glow-strong text-center text-6xl font-black tracking-tight select-none sm:text-7xl md:text-8xl lg:text-9xl">
+        <h1 className="text-center text-6xl font-black tracking-tight select-none sm:text-7xl md:text-8xl lg:text-9xl">
           <span className="text-slate-900 dark:text-white">Ultimate</span>
           <span className="text-blue-500">XO</span>
         </h1>
@@ -100,7 +100,8 @@ export default function IndexPage() {
             />
             <button
               type="submit"
-              className="ml-2 shrink-0 rounded-full bg-blue-600 px-6 py-2 font-bold whitespace-nowrap text-white shadow-lg shadow-blue-600/30 transition-all duration-200 hover:bg-blue-500"
+              disabled={roomId.length !== 6}
+              className="ml-2 shrink-0 rounded-full bg-blue-600 px-6 py-2 font-bold whitespace-nowrap text-white shadow-lg shadow-blue-600/30 transition-all duration-200 hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Join
             </button>

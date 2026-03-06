@@ -78,7 +78,7 @@ export const Navbar = () => {
       <div className="flex items-center">
         <Link className={logoLink()} to="/">
           <span className={logoText()}>Ultimate</span>
-          <span className="text-glow text-blue-500">XO</span>
+          <span className="text-blue-500">XO</span>
         </Link>
       </div>
 
