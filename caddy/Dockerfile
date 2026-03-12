@@ -4,7 +4,7 @@ FROM caddy:builder AS builder
 RUN xcaddy build \
     --with github.com/caddy-dns/cloudflare \
     --with github.com/mholt/caddy-ratelimit \
-    --with github.com/quic-go/quic-go@v0.54.1
+    --with github.com/quic-go/quic-go@v0.59.0
 
 FROM caddy:latest
 
