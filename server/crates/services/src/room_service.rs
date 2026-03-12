@@ -192,7 +192,7 @@ impl RoomService {
     }
 
     fn generate_room_id(&self) -> String {
-        use rand::Rng;
+        use rand::RngExt;
         let mut rng = rand::rng();
         loop {
             let id = rng.random_range(10000..=99999).to_string();

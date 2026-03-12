@@ -3,7 +3,7 @@ use crate::{
     error::AppError,
     models::{Marker, Player, PlayerInfo, ServerMessage},
 };
-use rand::Rng;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use std::{
     env,
