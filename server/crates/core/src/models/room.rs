@@ -38,8 +38,9 @@ pub struct RoomInfo {
 #[derive(Debug, Clone, Deserialize)]
 pub enum BotLevel {
     Beginner,
-    Intermediate,
-    Advanced,
+    Medium,
+    Hard,
+    Expert,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq, Default, ToSchema)]
@@ -62,23 +63,28 @@ pub struct Room {
 
 impl Room {
     pub fn new(info: RoomInfo, tx: Sender<ServerMessage>) -> Self {
-        let begginer_difficulity = env::var("BOT_BEGINNER_DIFFICULTY")
+        let beginner_difficulty = env::var("BOT_BEGINNER_DIFFICULTY")
             .ok()
             .and_then(|val| val.parse::<u8>().ok())
             .unwrap_or(1);
-        let intermediate_difficulity = env::var("BOT_INTERMEDIATE_DIFFICULTY")
+        let medium_difficulity = env::var("BOT_MEDIUM_DIFFICULTY")
             .ok()
             .and_then(|val| val.parse::<u8>().ok())
             .unwrap_or(4);
-        let advanced_difficulity = env::var("BOT_ADVANCED_DIFFICULTY")
+        let hard_difficulity = env::var("BOT_HARD_DIFFICULTY")
             .ok()
             .and_then(|val| val.parse::<u8>().ok())
             .unwrap_or(7);
+        let expert_difficulity = env::var("BOT_EXPERT_DIFFICULTY")
+            .ok()
+            .and_then(|val| val.parse::<u8>().ok())
+            .unwrap_or(10);
 
         let difficulty = match info.bot_level {
-            Some(BotLevel::Beginner) => Some(begginer_difficulity),
-            Some(BotLevel::Intermediate) => Some(intermediate_difficulity),
-            Some(BotLevel::Advanced) => Some(advanced_difficulity),
+            Some(BotLevel::Beginner) => Some(beginner_difficulty),
+            Some(BotLevel::Medium) => Some(medium_difficulity),
+            Some(BotLevel::Hard) => Some(hard_difficulity),
+            Some(BotLevel::Expert) => Some(expert_difficulity),
             None => None,
         };
         Self {
