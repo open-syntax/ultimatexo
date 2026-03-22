@@ -31,6 +31,7 @@
     "@heroui/switch": "2.2.26",
     "@heroui/system": "2.4.25",
     "@heroui/theme": "2.4.25",
+    "@heroui/tooltip": "^2.2.29",
     "@heroui/use-disclosure": "^2.2.18",
     "@heroui/use-theme": "2.1.10",
     "@react-aria/visually-hidden": "3.8.29",
