@@ -47,6 +47,10 @@ function RoomPage() {
       password?: string;
       isReconnecting: boolean;
       mode: "Online" | "Local" | "Bot";
+      playerNames?: {
+        player1?: string;
+        player2?: string;
+      };
     } | null;
   };
 
@@ -182,6 +186,7 @@ function RoomPage() {
               boardStatus={board.status}
               drawStatus={drawStatus}
               player={player}
+              playerNames={state?.playerNames}
               rematchStatus={rematchStatus}
               score={score}
             />

@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
 
 import { Navbar } from "@/components/navbar";
 import { RoomStore } from "@/store";
@@ -10,13 +9,14 @@ export default function DefaultLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const location = useLocation();
-  const { ws } = RoomStore();
-
   useEffect(() => {
-    if (!ws) return;
-    ws.close();
-  }, [location.pathname, ws]);
+    return () => {
+      const { ws } = RoomStore.getState();
+
+      if (!ws) return;
+      ws.close();
+    };
+  }, []);
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden selection:bg-blue-500 selection:text-white">
@@ -26,7 +26,7 @@ export default function DefaultLayout({
 
       <Navbar />
 
-      <main className="relative z-10 container mx-auto flex max-w-7xl grow flex-col items-stretch justify-stretch px-4 py-8 sm:px-6">
+      <main className="relative z-10 container mx-auto flex min-h-0 max-w-7xl grow flex-col items-stretch justify-stretch px-4 py-8 sm:px-6">
         {children}
       </main>
 

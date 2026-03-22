@@ -13,11 +13,19 @@ interface GameStatusProps {
   player: Player;
   drawStatus: GameAction | null;
   score: [number, number];
+  playerNames?: {
+    player1?: string;
+    player2?: string;
+  };
 }
 
 interface ScoreBoardProps {
   score: [number, number];
   player: Player;
+  playerNames?: {
+    player1?: string;
+    player2?: string;
+  };
 }
 
 interface RematchModalProps {
@@ -46,6 +54,7 @@ const GameStatus = ({
   player,
   score,
   boardStatus,
+  playerNames,
 }: GameStatusProps) => {
   const { rematch } = GameStore();
 
@@ -53,7 +62,7 @@ const GameStatus = ({
 
   return (
     <>
-      <ScoreBoard player={player} score={score} />
+      <ScoreBoard player={player} playerNames={playerNames} score={score} />
       <RematchModal
         openModal={currentOpenModal}
         rematch={rematch}
@@ -76,13 +85,24 @@ const GameStatus = ({
   );
 };
 
-const ScoreBoard = ({ player, score }: ScoreBoardProps) => {
+const ScoreBoard = ({ player, score, playerNames }: ScoreBoardProps) => {
+  const youName = playerNames
+    ? player.marker === "X"
+      ? (playerNames.player1 ?? "You")
+      : (playerNames.player2 ?? "You")
+    : "You";
+  const oppName = playerNames
+    ? player.marker === "X"
+      ? (playerNames.player2 ?? "Opp")
+      : (playerNames.player1 ?? "Opp")
+    : "Opp";
+
   return (
     <div className="max-xs:scale-50 mx-auto grid w-fit scale-75 grid-cols-3 items-center justify-center gap-5 rounded-xl border text-2xl font-semibold">
       <div className="flex w-full flex-col justify-around gap-2 px-6 py-4 text-center">
-        <span className="text-4xl text-primary">{player.marker}</span>
+        <span className="text-primary text-4xl">{player.marker}</span>
         <div className="h-px w-full bg-white" />
-        You
+        {youName}
       </div>
       <div className="w-full border-x-1 text-center text-4xl">
         {score[player.marker === "X" ? 0 : 1]} :{" "}
@@ -91,7 +111,7 @@ const ScoreBoard = ({ player, score }: ScoreBoardProps) => {
       <div className="flex w-full flex-col justify-around gap-2 px-6 py-4 text-center">
         <span className="text-4xl">{player.marker === "X" ? "O" : "X"}</span>
         <div className="h-px w-full bg-white" />
-        Opp
+        {oppName}
       </div>
     </div>
   );
