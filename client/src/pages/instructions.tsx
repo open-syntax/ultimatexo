@@ -76,11 +76,11 @@ function Instructions() {
       <div className="h-full min-h-0">
         <div className="h-full overflow-y-auto pr-1">
           <div
-            className="mx-auto grid max-w-7xl gap-8 pb-12 lg:grid-cols-[270px_1fr]"
+            className="mx-auto grid max-w-7xl gap-6 pb-12 lg:grid-cols-[270px_1fr]"
             id="overview"
           >
             <aside className="lg:sticky lg:top-8 lg:h-fit">
-              <Card className="border-foreground-100/70 bg-content1/85 border p-4 shadow-lg backdrop-blur-sm">
+              <Card className="border-foreground-100/70 bg-content1/85 border p-5 shadow-lg backdrop-blur-sm">
                 <CardBody className="gap-6 p-0">
                   <div className="space-y-1">
                     <p className="text-primary text-xs font-black tracking-[0.14em] uppercase">
@@ -116,8 +116,8 @@ function Instructions() {
               </Card>
             </aside>
 
-            <div className="space-y-14">
-              <header className="border-foreground-100/70 bg-content1/85 relative overflow-hidden rounded-2xl border p-6 md:p-8">
+            <div className="space-y-12">
+              <header className="border-foreground-100/70 bg-content1/85 relative overflow-hidden rounded-2xl border p-5 md:p-7">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.14),transparent_60%)]" />
                 <div className="relative space-y-4">
                   <p className="text-primary text-xs font-black tracking-[0.14em] uppercase">
@@ -164,7 +164,7 @@ function Instructions() {
                 <SectionTitle title="The Basics" />
 
                 <div className="space-y-4">
-                  <Card className="border-foreground-100/70 bg-content1/80 border p-4">
+                  <Card className="border-foreground-100/70 bg-content1/80 border p-5">
                     <CardBody className="items-center gap-4 p-0">
                       <Board
                         className="mt-3 max-w-[min(100%,42rem)]"
@@ -184,7 +184,7 @@ function Instructions() {
                   </Card>
 
                   <div className="grid gap-4 md:grid-cols-2">
-                    <Card className="border-foreground-100/70 bg-content1/80 border p-4">
+                    <Card className="border-foreground-100/70 bg-content1/80 border p-5">
                       <CardBody className="gap-2 p-0">
                         <h3 className="text-foreground-900 dark:text-foreground text-xl font-bold">
                           Local Boards
@@ -195,7 +195,7 @@ function Instructions() {
                         </p>
                       </CardBody>
                     </Card>
-                    <Card className="border-foreground-100/70 bg-content1/80 border p-4">
+                    <Card className="border-foreground-100/70 bg-content1/80 border p-5">
                       <CardBody className="gap-2 p-0">
                         <h3 className="text-foreground-900 dark:text-foreground text-xl font-bold">
                           Global Win Condition
@@ -281,7 +281,7 @@ function Instructions() {
                 <SectionTitle title="Special Rules" />
 
                 <div className="space-y-4">
-                  <Card className="border-primary/40 bg-content1/80 border p-4">
+                  <Card className="border-primary/40 bg-content1/80 border p-5">
                     <CardBody className="gap-2 p-0">
                       <h3 className="text-foreground-900 dark:text-foreground text-lg font-bold">
                         Send to Full Rule
@@ -293,7 +293,7 @@ function Instructions() {
                     </CardBody>
                   </Card>
 
-                  <Card className="border-danger/40 bg-content1/80 border p-4">
+                  <Card className="border-danger/40 bg-content1/80 border p-5">
                     <CardBody className="gap-2 p-0">
                       <h3 className="text-foreground-900 dark:text-foreground text-lg font-bold">
                         Tied Local Boards
@@ -305,7 +305,7 @@ function Instructions() {
                     </CardBody>
                   </Card>
 
-                  <Card className="border-warning/40 bg-content1/80 border p-4">
+                  <Card className="border-warning/40 bg-content1/80 border p-5">
                     <CardBody className="gap-2 p-0">
                       <h3 className="text-foreground-900 dark:text-foreground text-lg font-bold">
                         Draw Condition
@@ -347,7 +347,7 @@ function Instructions() {
                   ].map((item) => (
                     <Card
                       key={item.label}
-                      className="border-foreground-100/70 bg-content1/80 border p-4"
+                      className="border-foreground-100/70 bg-content1/80 border p-5"
                     >
                       <CardBody className="p-0">
                         <p className="text-foreground-900 dark:text-foreground text-sm font-bold">
@@ -366,7 +366,7 @@ function Instructions() {
                 <SectionTitle title="Strategy Tips" />
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Card className="border-foreground-100/70 bg-content1/80 border p-4">
+                  <Card className="border-foreground-100/70 bg-content1/80 border p-5">
                     <CardBody className="gap-2 p-0">
                       <h3 className="text-foreground-900 dark:text-foreground text-lg font-bold">
                         Control the Center
@@ -377,7 +377,7 @@ function Instructions() {
                       </p>
                     </CardBody>
                   </Card>
-                  <Card className="border-foreground-100/70 bg-content1/80 border p-4">
+                  <Card className="border-foreground-100/70 bg-content1/80 border p-5">
                     <CardBody className="gap-2 p-0">
                       <h3 className="text-foreground-900 dark:text-foreground text-lg font-bold">
                         Avoid Free Turns
@@ -388,7 +388,7 @@ function Instructions() {
                       </p>
                     </CardBody>
                   </Card>
-                  <Card className="border-foreground-100/70 bg-content1/80 border p-4">
+                  <Card className="border-foreground-100/70 bg-content1/80 border p-5">
                     <CardBody className="gap-2 p-0">
                       <h3 className="text-foreground-900 dark:text-foreground text-lg font-bold">
                         Think Two Moves Ahead
@@ -400,7 +400,7 @@ function Instructions() {
                       </p>
                     </CardBody>
                   </Card>
-                  <Card className="border-foreground-100/70 bg-content1/80 border p-4">
+                  <Card className="border-foreground-100/70 bg-content1/80 border p-5">
                     <CardBody className="gap-2 p-0">
                       <h3 className="text-foreground-900 dark:text-foreground text-lg font-bold">
                         Build Double Threats
@@ -449,7 +449,7 @@ function Instructions() {
                   ].map((item) => (
                     <Card
                       key={item.q}
-                      className="border-foreground-100/70 bg-content1/80 border p-4"
+                      className="border-foreground-100/70 bg-content1/80 border p-5"
                     >
                       <CardBody className="gap-2 p-0">
                         <h3 className="text-foreground-900 dark:text-foreground text-sm font-bold md:text-base">
