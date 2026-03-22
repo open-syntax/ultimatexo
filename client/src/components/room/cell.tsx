@@ -28,7 +28,7 @@ function Cell({ boardStatus, mark, board, index }: CellProps) {
   };
 
   let defaultClasses =
-    "w-full h-full flex items-center justify-center border-default-400 rounded-lg text-3xl bg-background";
+    "w-full h-full flex items-center justify-center rounded-lg border border-foreground-100/70 bg-content1/70 text-3xl transition-all duration-200";
   let uxClasses = "";
 
   if (
@@ -49,17 +49,20 @@ function Cell({ boardStatus, mark, board, index }: CellProps) {
     move.lastMove[1] === index
   ) {
     defaultClasses =
-      defaultClasses + " bg-primary-50/50 shadow-inner shadow-primary-600/80";
+      nextPlayer === "X"
+        ? `${defaultClasses} bg-danger/10 shadow-inner shadow-danger/50`
+        : `${defaultClasses} bg-primary/10 shadow-inner shadow-primary/50`;
   }
 
   return (
     <button
-      className={cn(defaultClasses, "relative animate-appearance-in")}
+      className={cn(defaultClasses, "animate-appearance-in relative")}
+      type="button"
       onClick={() => handleClick()}
     >
       {mark ? (
         <div
-          className={`flex h-full w-full items-center justify-center rounded-xl text-8xl font-bold text-primary ${mark === ("X" as unknown as boardCell) ? "text-primary" : "text-primary-600"}`}
+          className={`flex h-full w-full items-center justify-center rounded-xl text-8xl font-bold ${mark === ("X" as unknown as boardCell) ? "text-primary" : "text-danger"}`}
         >
           {mark === ("X" as unknown as boardCell) ? (
             <X className="scale-[1.5] max-sm:scale-110" strokeWidth={3} />

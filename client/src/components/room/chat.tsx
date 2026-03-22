@@ -41,23 +41,45 @@ const ChatLayout = ({
   input,
   setInput,
 }: props) => {
+  const stableChat = React.useMemo(
+    () =>
+      chat.map((message, index) => ({
+        ...message,
+        key: `${message.player.marker ?? "_"}-${message.content}-${index}`,
+      })),
+    [chat],
+  );
+
   return (
     <div
       className={
-        "flex flex-col gap-4 rounded-3xl bg-default-50 p-4 " + className
+        "border-foreground-100/70 bg-content1/85 flex flex-col gap-4 rounded-2xl border p-4 " +
+        className
       }
       style={{ height: document.getElementById("board")?.offsetHeight }}
     >
-      <h1 className="text-center text-2xl font-bold">Chat</h1>
-      <div className="flex h-full w-full scroll-m-2 flex-col gap-2 overflow-y-auto pr-2">
-        {chat.map((message, i) => (
+      <div className="border-foreground-100/60 flex items-center justify-between border-b pb-3">
+        <h1 className="text-foreground-900 dark:text-foreground text-xl font-bold">
+          Match Chat
+        </h1>
+      </div>
+      <div className="flex h-full w-full scroll-m-2 flex-col gap-2.5 overflow-y-auto pr-2">
+        {stableChat.map((message, i) => (
           <div
-            key={i}
+            key={message.key}
             className={`flex h-fit w-full gap-2 text-pretty ${message.player.marker === marker ? "justify-end" : "justify-start"}`}
             id={`message-${i}`}
           >
+            {(message.player.marker === "X" ||
+              message.player.marker === "O") && (
+              <span
+                className={`inline-flex h-6 min-w-6 items-center justify-center self-end rounded-full px-2 text-[11px] font-black ${message.player.marker === "X" ? "bg-primary/25 text-primary-800 dark:text-primary-200" : "bg-danger/25 text-danger-800 dark:text-danger-200"}`}
+              >
+                {message.player.marker}
+              </span>
+            )}
             <p
-              className={`max-w-[80%] break-all rounded-3xl px-4 py-2 text-start ${message.player.marker === marker ? "bg-primary" : "bg-default-200"}`}
+              className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-start text-sm leading-relaxed break-words ${message.player.marker === "X" ? "bg-primary/25 text-primary-800 dark:text-primary-200" : message.player.marker === "O" ? "bg-danger/25 text-danger-800 dark:text-danger-200" : "bg-content2/80 text-foreground-800 dark:text-foreground-200"}`}
             >
               {message.content}
             </p>
@@ -66,7 +88,7 @@ const ChatLayout = ({
       </div>
       <form
         autoComplete="off"
-        className="flex h-fit w-full gap-2"
+        className="border-foreground-100/60 flex h-fit w-full gap-2 border-t pt-2.5"
         onSubmit={(e) => handleMessageSend(e)}
       >
         <Input
@@ -133,17 +155,17 @@ const DesktopChat = ({
     <div
       ref={chatRef}
       className={cn(
-        isOpen ? `w-1/3` : "w-0",
-        "relative mt-auto transition-width ease-in-out overflow-hidden h-full",
+        isOpen ? "w-[320px] lg:w-[340px]" : "w-0",
+        "relative mt-auto h-full overflow-hidden transition-all duration-300 ease-out",
       )}
     >
       <X
-        className="absolute right-5 top-5 cursor-pointer"
+        className="text-foreground-500 hover:text-foreground absolute top-5 right-5 z-10 cursor-pointer transition"
         onClick={() => onOpenChange()}
       />
       <ChatLayout
         chat={chat}
-        className="rounded-xl"
+        className="rounded-2xl"
         handleMessageSend={handleMessageSend}
         input={input}
         marker={player?.marker}
@@ -173,7 +195,7 @@ const Chat = () => {
     if (!isOpen) {
       setIsRead(false);
     }
-  }, [chat]);
+  }, [chat, isOpen]);
 
   useEffect(() => {
     if (isOpen && chat.length) {
@@ -181,7 +203,7 @@ const Chat = () => {
 
       element?.scrollIntoView({ behavior: "instant" });
     }
-  }, [isOpen]);
+  }, [isOpen, chat.length]);
 
   const handleMessageSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -203,14 +225,14 @@ const Chat = () => {
   return (
     <>
       <Button
-        className="fixed bottom-4 right-4 z-[5] size-12 min-w-12 overflow-visible rounded-full p-0"
+        className="fixed right-4 bottom-20 z-[100] size-12 min-w-12 overflow-visible rounded-full p-0 shadow-lg md:right-5 md:bottom-6"
         color="primary"
         variant="solid"
         onPress={() => handleOnOpen()}
       >
         <ChatIcon className="fill-background stroke-background" />
         {!isRead && (
-          <i className="absolute -right-1 -top-1 z-10 size-4 rounded-full bg-danger-400" />
+          <i className="bg-danger-400 absolute -top-1 -right-1 z-10 size-4 rounded-full" />
         )}
       </Button>
       {width! >= 720 ? (

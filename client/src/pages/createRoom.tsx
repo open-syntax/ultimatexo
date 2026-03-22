@@ -1,224 +1,512 @@
-import { Button } from "@heroui/button";
-import { button, card, cn } from "@heroui/theme";
-import { Form } from "@heroui/form";
-import { Input } from "@heroui/input";
-import { RadioGroup, Radio, RadioProps } from "@heroui/radio";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { button as buttonStyles, cn } from "@heroui/theme";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
-import RoomLayout from "@/layouts/room";
+import {
+  Bot,
+  Controller,
+  Group,
+  HashIcon,
+  Lock,
+  Person,
+} from "@/components/icons";
 import DefaultLayout from "@/layouts/default";
-import { Bot, Group, Network } from "@/components/icons";
 
-const { base, header, body } = card();
+type Mode = "Online" | "Local" | "Bot";
+type Difficulty = "Beginner" | "Medium" | "Hard" | "Expert";
 
-type mode = "Online" | "Local" | "Bot";
-type difficulty = "Beginner" | "Intermediate" | "Advanced";
-
-const CustomRadio = ({ children, classNames, ...props }: RadioProps) => {
-  return (
-    <Radio
-      classNames={{
-        base: cn(
-          "inline-flex m-0 bg-content1 hover:bg-content2 items-center justify-between group",
-          "flex-row-reverse max-w-[200px] cursor-pointer rounded-lg gap-4 p-4",
-          "data-[selected=true]:bg-primary data-[selected=true]:text-white",
-          "data-[selected=true]:shadow-[0_0_8px_1px] data-[selected=true]:shadow-primary",
-          "[&>span]:data-[selected=true]:!border-white [&>span>span]:data-[selected=true]:!bg-white",
-          classNames?.base,
-        ),
-        wrapper: cn(classNames?.wrapper),
-        label: cn("flex items-center gap-2", classNames?.label),
-      }}
-      color="default"
-      {...props}
-    >
-      {children}
-    </Radio>
-  );
+const modeQueryMap: Record<Mode, string> = {
+  Online: "online",
+  Local: "local",
+  Bot: "bot",
 };
 
-const RoomForm = () => {
-  const [isPublic, setIsPublic] = useState<boolean>(true);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [mode, setMode] = useState<mode>("Online");
-  const [difficulty, setDifficulty] = useState<difficulty>("Beginner");
-  const navgiate = useNavigate();
+const modeSections: Array<{
+  mode: Mode;
+  label: string;
+  subtitle: string;
+  icon: React.ReactNode;
+}> = [
+  {
+    mode: "Online",
+    label: "Online",
+    subtitle: "Create a public or private room",
+    icon: <Person size={18} />,
+  },
+  {
+    mode: "Local",
+    label: "Local",
+    subtitle: "Play with two players on one device",
+    icon: <Group size={18} />,
+  },
+  {
+    mode: "Bot",
+    label: "Bot",
+    subtitle: "Practice against computer AI",
+    icon: <Bot size={18} />,
+  },
+];
 
-  const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+const difficultyDescriptions: Record<Difficulty, string> = {
+  Beginner: "Plays randomly. Great for learning routes and tempo.",
+  Medium: "Makes reasonable tactical choices and basic blocks.",
+  Hard: "Punishes mistakes and pressures your weak locals.",
+  Expert: "Uses deep search and precise endgame strategy.",
+};
 
+const parseModeFromQuery = (value: string | null): Mode => {
+  if (value === "bot") return "Bot";
+  if (value === "local") return "Local";
+  return "Online";
+};
+
+const CreateRoom = () => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [mode, setMode] = useState<Mode>("Online");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [roomName, setRoomName] = useState("");
+  const [roomPassword, setRoomPassword] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
+
+  const [player1Name, setPlayer1Name] = useState("Player 1");
+  const [player2Name, setPlayer2Name] = useState("Player 2");
+
+  const [botPlayerName, setBotPlayerName] = useState("Player 1");
+  const [difficulty, setDifficulty] = useState<Difficulty>("Beginner");
+  const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    setMode(parseModeFromQuery(searchParams.get("mode")));
+  }, [searchParams]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+
+    params.set("mode", modeQueryMap[mode]);
+    setSearchParams(params, { replace: true });
+  }, [mode, searchParams, setSearchParams]);
+
+  const title = useMemo(() => {
+    if (mode === "Online") return "Create Online Room";
+    if (mode === "Local") return "Create Local Match";
+    return "Create Bot Match";
+  }, [mode]);
+
+  const helperCopy = useMemo(() => {
+    if (mode === "Online") {
+      return "Start a room and invite others. Choose public visibility or lock it with a password.";
+    }
+
+    if (mode === "Local") {
+      return "Set player names and play together on this device with alternating turns.";
+    }
+
+    return "Pick your preferred difficulty and train against an AI opponent.";
+  }, [mode]);
+
+  const handleCreate = async () => {
     setIsLoading(true);
 
-    const data = new FormData(e.currentTarget);
-    const password = (data.get("password") as string) || null;
-    const name = (data.get("name") as string) || "";
-
-    fetch(`/api/rooms`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body:
+    try {
+      const body =
         mode === "Online"
-          ? JSON.stringify({
+          ? {
               is_public: isPublic,
-              name,
-              password,
+              name: roomName,
+              password: roomPassword || null,
               room_type: "Standard",
-            })
+            }
           : mode === "Local"
-            ? JSON.stringify({ room_type: "LocalRoom" })
-            : JSON.stringify({
+            ? { room_type: "LocalRoom" }
+            : {
                 bot_level: difficulty,
                 room_type: "BotRoom",
-              }),
-    })
-      .then((response) => response.json())
-      .then((data: { room_id: number }) => {
-        navgiate(`/room/${data.room_id}`, {
-          state: {
-            roomId: data.room_id,
-            password,
-            isReconnecting: false,
-            mode,
-          },
-        });
-      })
-      .finally(() => {
-        setIsLoading(false);
+              };
+
+      const response = await fetch("/api/rooms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+
+        console.error("Failed to create room:", errorData);
+
+        return;
+      }
+
+      const data = await response.json();
+
+      navigate(`/room/${data.room_id}`, {
+        state: {
+          roomId: data.room_id,
+          password: roomPassword,
+          isReconnecting: false,
+          mode,
+          playerNames:
+            mode === "Local"
+              ? { player1: player1Name, player2: player2Name }
+              : mode === "Bot"
+                ? { player1: botPlayerName, player2: "Bot" }
+                : undefined,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to create room", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <DefaultLayout>
-      <RoomLayout>
-        <div
-          className={`${base()} ${body()} max-h-[calc(16rem+2rem)] min-w-[calc(200px+2rem)] max-w-xl px-4 py-4 max-sm:max-h-[calc(22rem+2rem)]`}
-        >
-          <h1
-            className={`${header()} mx-auto !w-fit !text-center font-bold leading-4`}
+      <div className="h-full min-h-0 overflow-y-auto pr-1">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 pb-12">
+          <motion.section
+            animate={{ opacity: 1, y: 0 }}
+            className="border-foreground-100/70 bg-content1/85 relative overflow-hidden rounded-2xl border p-5 shadow-lg md:p-7"
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 6 }}
+            transition={{
+              duration: prefersReducedMotion ? 0.01 : 0.2,
+              ease: "easeOut",
+            }}
           >
-            Create Room
-          </h1>
-          <div className="flex h-full flex-row items-center gap-4 max-sm:flex-col">
-            <RadioGroup
-              classNames={{ wrapper: "max-sm:flex-row justify-center" }}
-              defaultValue="Online"
-              value={mode}
-              onValueChange={(e) => setMode(e as mode)}
-            >
-              <CustomRadio
-                classNames={{ base: "max-sm:h-fit max-sm:p-2" }}
-                value="Online"
-              >
-                <Group /> Online
-              </CustomRadio>
-              <CustomRadio
-                classNames={{ base: "max-sm:h-fit max-sm:p-2" }}
-                value="Local"
-              >
-                <Network /> Local
-              </CustomRadio>
-              <CustomRadio
-                classNames={{ base: "max-sm:h-fit max-sm:p-2" }}
-                value="Bot"
-              >
-                <Bot /> Bot
-              </CustomRadio>
-            </RadioGroup>
-            <div className="h-px w-full overflow-y-auto bg-foreground-400 sm:h-full sm:w-px" />
-            <Form
-              autoComplete="off"
-              className="flexc-col flex h-full w-full"
-              onSubmit={(e) => handleCreate(e)}
-            >
-              {["Online", "Local"].includes(mode) && (
-                <div className="flex h-full w-full flex-col justify-center gap-2">
-                  <Input
-                    isDisabled={mode === "Local"}
-                    label="Room Name"
-                    name="name"
-                    size="sm"
-                  />
-                  <Input
-                    isDisabled={mode === "Local"}
-                    label="Room Password"
-                    name="password"
-                    size="sm"
-                    type="password"
-                  />
-                  <label
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.14),transparent_58%)]" />
+            <div className="relative flex flex-col gap-2">
+              <p className="text-primary text-xs font-black tracking-[0.14em] uppercase">
+                Match Setup
+              </p>
+              <h1 className="text-foreground-900 dark:text-foreground text-3xl font-black tracking-tight md:text-4xl">
+                {title}
+              </h1>
+              <p className="text-foreground-700 dark:text-foreground-300 max-w-3xl text-sm leading-relaxed md:text-base">
+                {helperCopy}
+              </p>
+            </div>
+          </motion.section>
+
+          <motion.section
+            animate={{ opacity: 1, y: 0 }}
+            className="grid gap-5 lg:grid-cols-[280px_1fr]"
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 6 }}
+            transition={{
+              duration: prefersReducedMotion ? 0.01 : 0.22,
+              ease: "easeOut",
+              delay: prefersReducedMotion ? 0 : 0.03,
+            }}
+          >
+            <aside className="border-foreground-100/70 bg-content1/80 rounded-2xl border p-5 md:p-6 lg:sticky lg:top-8 lg:h-fit">
+              <p className="text-foreground-700 dark:text-foreground-300 mb-3 text-xs font-black tracking-[0.12em] uppercase">
+                Game Mode
+              </p>
+              <div className="space-y-2">
+                {modeSections.map((item, index) => (
+                  <motion.button
+                    key={item.mode}
+                    animate={{ opacity: 1, y: 0 }}
                     className={cn(
-                      "relative flex cursor-pointer justify-around gap-2 rounded-full bg-content2 p-2",
-                      "before:absolute before:left-1 before:top-1 before:h-[calc(100%-8px)] before:w-[calc(50%-2px)] before:rounded-full before:bg-primary before:transition before:content-['']",
-                      !isPublic && "before:translate-x-[calc(100%-4px)]",
-                      "*:z-10 *:select-none",
-                      mode === "Local" && "cursor-default opacity-50",
+                      "w-full rounded-xl border px-3 py-3 text-left transition",
+                      mode === item.mode
+                        ? "border-primary/45 bg-primary/10"
+                        : "border-foreground-100/70 bg-content2/70 hover:border-primary/30 hover:bg-primary/8",
                     )}
-                    htmlFor="isPublic"
+                    initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 4 }}
+                    transition={{
+                      duration: prefersReducedMotion ? 0.01 : 0.16,
+                      ease: "easeOut",
+                      delay: prefersReducedMotion ? 0 : index * 0.03,
+                    }}
+                    type="button"
+                    onClick={() => setMode(item.mode)}
                   >
-                    <input
-                      checked={isPublic}
-                      className="hidden"
-                      id="isPublic"
-                      type="checkbox"
-                      onChange={(e) => setIsPublic(e.target.checked)}
-                    />
-                    <span>Public</span>
-                    <span>Private</span>
-                  </label>
-                </div>
-              )}
-              {mode === "Bot" && (
-                <div className="flex h-full w-full flex-col justify-center">
-                  <RadioGroup
-                    classNames={{ wrapper: "justify-center" }}
-                    defaultValue="Beginner"
-                    value={difficulty}
-                    onValueChange={(e) => setDifficulty(e as difficulty)}
-                  >
-                    <CustomRadio
-                      classNames={{ base: "!max-w-full h-10" }}
-                      value="Beginner"
-                    >
-                      Beginner
-                    </CustomRadio>
-                    <CustomRadio
-                      classNames={{ base: "!max-w-full h-10" }}
-                      value="Intermediate"
-                    >
-                      Intermediate
-                    </CustomRadio>
-                    <CustomRadio
-                      classNames={{ base: "!max-w-full h-10" }}
-                      value="Advanced"
-                    >
-                      Advanced
-                    </CustomRadio>
-                  </RadioGroup>
-                </div>
-              )}
-              <div className="mt-auto flex w-full gap-2 *:w-full">
-                <Link
-                  className={button({ color: "default" })}
-                  color="primary"
-                  to="/"
-                  type="submit"
+                    <div className="flex items-center gap-2">
+                      <span className="text-primary">{item.icon}</span>
+                      <p className="text-foreground-900 dark:text-foreground text-sm font-bold">
+                        {item.label}
+                      </p>
+                    </div>
+                    <p className="text-foreground-600 dark:text-foreground-400 mt-1 text-xs leading-relaxed">
+                      {item.subtitle}
+                    </p>
+                  </motion.button>
+                ))}
+              </div>
+            </aside>
+
+            <div className="border-foreground-100/70 bg-content1/80 rounded-2xl border p-5 md:p-7">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={mode}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-5"
+                  exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -3 }}
+                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 4 }}
+                  transition={{
+                    duration: prefersReducedMotion ? 0.01 : 0.18,
+                    ease: "easeOut",
+                  }}
+                >
+                  {mode === "Online" && (
+                    <>
+                      <section className="space-y-4">
+                        <h2 className="text-foreground-900 dark:text-foreground text-lg font-bold">
+                          Room Setup
+                        </h2>
+                        <InputGroup htmlFor="room-name" label="Room Name">
+                          <div className="group relative">
+                            <span className="text-foreground-400 pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                              <HashIcon size={18} />
+                            </span>
+                            <input
+                              id="room-name"
+                              className="border-foreground-100 bg-content2/70 text-foreground-900 dark:text-foreground focus:border-primary w-full rounded-xl border px-4 py-3 pl-10 text-sm transition outline-none"
+                              maxLength={50}
+                              minLength={3}
+                              placeholder="Room name"
+                              required
+                              value={roomName}
+                              onChange={(event) =>
+                                setRoomName(event.target.value)
+                              }
+                            />
+                          </div>
+                        </InputGroup>
+
+                        <InputGroup
+                          htmlFor="room-password"
+                          label="Room Password (optional)"
+                        >
+                          <div className="group relative">
+                            <span className="text-foreground-400 pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                              <Lock size={18} />
+                            </span>
+                            <input
+                              id="room-password"
+                              className="border-foreground-100 bg-content2/70 text-foreground-900 dark:text-foreground focus:border-primary w-full rounded-xl border px-4 py-3 pl-10 text-sm transition outline-none"
+                              placeholder="Add a password to lock this room"
+                              type="password"
+                              value={roomPassword}
+                              onChange={(event) =>
+                                setRoomPassword(event.target.value)
+                              }
+                            />
+                          </div>
+                        </InputGroup>
+                      </section>
+
+                      <section className="space-y-3">
+                        <h2 className="text-foreground-900 dark:text-foreground text-lg font-bold">
+                          Visibility
+                        </h2>
+                        <div className="border-foreground-100/70 bg-content2/70 flex rounded-xl border p-1.5">
+                          <button
+                            className={cn(
+                              "flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition",
+                              isPublic
+                                ? "bg-primary text-white"
+                                : "text-foreground-600 dark:text-foreground-400 hover:text-foreground-900 dark:hover:text-foreground",
+                            )}
+                            type="button"
+                            onClick={() => setIsPublic(true)}
+                          >
+                            Public
+                          </button>
+                          <button
+                            className={cn(
+                              "flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition",
+                              !isPublic
+                                ? "bg-primary text-white"
+                                : "text-foreground-600 dark:text-foreground-400 hover:text-foreground-900 dark:hover:text-foreground",
+                            )}
+                            type="button"
+                            onClick={() => setIsPublic(false)}
+                          >
+                            Private
+                          </button>
+                        </div>
+                      </section>
+                    </>
+                  )}
+
+                  {mode === "Local" && (
+                    <section className="space-y-4">
+                      <h2 className="text-foreground-900 dark:text-foreground text-lg font-bold">
+                        Players
+                      </h2>
+
+                      <InputGroup
+                        htmlFor="local-player-1"
+                        label="Player 1 Name"
+                      >
+                        <div className="group relative">
+                          <span className="text-foreground-400 pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <Person size={18} />
+                          </span>
+                          <input
+                            id="local-player-1"
+                            className="border-foreground-100 bg-content2/70 text-foreground-900 dark:text-foreground focus:border-primary w-full rounded-xl border px-4 py-3 pl-10 text-sm transition outline-none"
+                            placeholder="Player 1 name"
+                            value={player1Name}
+                            onChange={(event) =>
+                              setPlayer1Name(event.target.value)
+                            }
+                          />
+                        </div>
+                      </InputGroup>
+
+                      <InputGroup
+                        htmlFor="local-player-2"
+                        label="Player 2 Name"
+                      >
+                        <div className="group relative">
+                          <span className="text-foreground-400 pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <Person size={18} />
+                          </span>
+                          <input
+                            id="local-player-2"
+                            className="border-foreground-100 bg-content2/70 text-foreground-900 dark:text-foreground focus:border-primary w-full rounded-xl border px-4 py-3 pl-10 text-sm transition outline-none"
+                            placeholder="Player 2 name"
+                            value={player2Name}
+                            onChange={(event) =>
+                              setPlayer2Name(event.target.value)
+                            }
+                          />
+                        </div>
+                      </InputGroup>
+
+                      <div className="border-foreground-100/70 bg-content2/60 rounded-xl border p-4">
+                        <p className="text-foreground-700 dark:text-foreground-300 text-xs leading-relaxed">
+                          Local mode runs on one device. Players alternate turns
+                          and share the same board.
+                        </p>
+                      </div>
+                    </section>
+                  )}
+
+                  {mode === "Bot" && (
+                    <>
+                      <section className="space-y-4">
+                        <h2 className="text-foreground-900 dark:text-foreground text-lg font-bold">
+                          Player
+                        </h2>
+
+                        <InputGroup htmlFor="bot-player-name" label="Your Name">
+                          <div className="group relative">
+                            <span className="text-foreground-400 pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                              <Person size={18} />
+                            </span>
+                            <input
+                              id="bot-player-name"
+                              className="border-foreground-100 bg-content2/70 text-foreground-900 dark:text-foreground focus:border-primary w-full rounded-xl border px-4 py-3 pl-10 text-sm transition outline-none"
+                              placeholder="Enter your name"
+                              value={botPlayerName}
+                              onChange={(event) =>
+                                setBotPlayerName(event.target.value)
+                              }
+                            />
+                          </div>
+                        </InputGroup>
+                      </section>
+
+                      <section className="space-y-3">
+                        <InputGroup
+                          htmlFor="bot-difficulty"
+                          label="Bot Difficulty"
+                        >
+                          <div
+                            id="bot-difficulty"
+                            className="grid grid-cols-2 gap-2 md:grid-cols-4"
+                          >
+                            {(
+                              [
+                                "Beginner",
+                                "Medium",
+                                "Hard",
+                                "Expert",
+                              ] as Difficulty[]
+                            ).map((level) => (
+                              <button
+                                key={level}
+                                className={cn(
+                                  "rounded-xl border px-3 py-2 text-sm font-semibold transition",
+                                  difficulty === level
+                                    ? "border-primary/40 bg-primary/12 text-foreground-900 dark:text-foreground"
+                                    : "border-foreground-100 bg-content2/70 text-foreground-700 hover:border-primary/25 hover:bg-primary/8 dark:text-foreground-300",
+                                )}
+                                type="button"
+                                onClick={() => setDifficulty(level)}
+                              >
+                                {level}
+                              </button>
+                            ))}
+                          </div>
+                        </InputGroup>
+
+                        <div className="border-foreground-100/70 bg-content2/60 rounded-xl border p-4">
+                          <p className="text-foreground-700 dark:text-foreground-300 text-xs leading-relaxed">
+                            {difficultyDescriptions[difficulty]}
+                          </p>
+                        </div>
+                      </section>
+                    </>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+
+              <div className="border-foreground-100/70 mt-7 flex flex-col gap-3 border-t pt-5 sm:flex-row sm:justify-end">
+                <button
+                  className={buttonStyles({ variant: "flat", radius: "md" })}
+                  type="button"
+                  onClick={() => navigate("/")}
                 >
                   Back
-                </Link>
-                <Button color="primary" isLoading={isLoading} type="submit">
-                  Create
-                </Button>
+                </button>
+                <button
+                  className={buttonStyles({ color: "primary", radius: "md" })}
+                  disabled={isLoading}
+                  type="button"
+                  onClick={handleCreate}
+                >
+                  <Controller size={16} />
+                  {isLoading
+                    ? "Creating..."
+                    : mode === "Online"
+                      ? "Create Room"
+                      : "Start Game"}
+                </button>
               </div>
-            </Form>
-          </div>
+            </div>
+          </motion.section>
         </div>
-      </RoomLayout>
+      </div>
     </DefaultLayout>
   );
 };
 
-export default RoomForm;
+const InputGroup = ({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) => (
+  <div className="space-y-2">
+    <label
+      className="text-foreground-700 dark:text-foreground-300 ml-1 block text-sm font-semibold"
+      htmlFor={htmlFor}
+    >
+      {label}
+    </label>
+    {children}
+  </div>
+);
+
+export default CreateRoom;

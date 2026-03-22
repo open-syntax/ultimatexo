@@ -1,4 +1,5 @@
 import { cn } from "@heroui/theme";
+import { motion, useReducedMotion } from "framer-motion";
 
 import { O, X } from "../icons";
 
@@ -13,20 +14,39 @@ interface MiniBoardProps {
   status: BoardStatus | null;
 }
 
+const MINI_BOARD_POSITIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
+
 function MiniBoard({ board, status, index }: MiniBoardProps) {
   const {
     move: { nextMove },
     nextPlayer,
   } = GameStore();
   const { player } = PlayerStore();
+  const prefersReducedMotion = useReducedMotion();
 
   const isAvailable = status === null && [index, null].includes(nextMove);
+  const highlightClass =
+    nextPlayer === "O"
+      ? "border-danger/70 bg-danger/10 shadow-[0_0_20px_2px_rgba(239,68,68,0.22)]"
+      : "border-primary/70 bg-primary/10 shadow-[0_0_20px_2px_rgba(37,99,235,0.22)]";
+  const pulseShadow =
+    nextPlayer === "O"
+      ? [
+          "0 0 0px rgba(239,68,68,0)",
+          "0 0 18px rgba(239,68,68,0.28)",
+          "0 0 0px rgba(239,68,68,0)",
+        ]
+      : [
+          "0 0 0px rgba(37,99,235,0)",
+          "0 0 18px rgba(37,99,235,0.28)",
+          "0 0 0px rgba(37,99,235,0)",
+        ];
 
   if (board.status === "O" || board.status === "X") {
     return (
-      <div className="flex h-full w-full items-center justify-center rounded-xl bg-primary-100">
+      <div className="border-foreground-100/70 bg-content2/70 flex h-full w-full items-center justify-center rounded-2xl border">
         <div
-          className={`flex h-full w-full items-center justify-center rounded-xl text-8xl font-bold text-primary ${board.status === "X" ? "text-primary" : "text-primary-600"}`}
+          className={`flex h-full w-full items-center justify-center rounded-2xl text-8xl font-bold ${board.status === "X" ? "text-primary bg-primary/10" : "text-danger bg-danger/10"}`}
         >
           {board.status === "X" ? (
             <X className="scale-[4]" />
@@ -39,24 +59,32 @@ function MiniBoard({ board, status, index }: MiniBoardProps) {
   }
 
   return (
-    <div
+    <motion.div
+      animate={
+        !prefersReducedMotion && isAvailable && player?.marker === nextPlayer
+          ? {
+              boxShadow: pulseShadow,
+            }
+          : undefined
+      }
       className={cn(
-        `grid aspect-square h-full w-full grid-cols-3 grid-rows-3 place-items-center gap-2 rounded-xl bg-primary p-2 transition-shadow duration-500 max-sm:gap-1 max-sm:p-1`,
+        "grid aspect-square h-full w-full grid-cols-3 grid-rows-3 place-items-center gap-2 rounded-2xl border p-2 transition-all duration-300 max-sm:gap-1 max-sm:p-1",
         isAvailable && player?.marker === nextPlayer
-          ? "bg-primary shadow-[0_0_8px_1px] shadow-primary"
-          : "bg-primary-100",
+          ? highlightClass
+          : "border-foreground-100/70 bg-content2/70",
       )}
+      transition={{ duration: 1.7, ease: "easeInOut", repeat: Infinity }}
     >
-      {board.cells.map((cell: boardCell, i) => (
+      {MINI_BOARD_POSITIONS.map((position) => (
         <Cell
-          key={i}
+          key={position}
           board={index}
           boardStatus={status}
-          index={i}
-          mark={cell}
+          index={position}
+          mark={board.cells[position] as boardCell}
         />
       ))}
-    </div>
+    </motion.div>
   );
 }
 

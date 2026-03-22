@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@heroui/button";
+import { Tooltip } from "@heroui/tooltip";
 
 import { GameStore, RoomStore } from "@/store";
 import { GameAction } from "@/types/actions";
@@ -26,7 +27,7 @@ function Actions({ drawStatus, rematchStatus, boardStatus }: ActionsParams) {
   const { draw, resign, rematch } = GameStore();
 
   return (
-    <div className="flex w-full items-center justify-center gap-2">
+    <div className="mx-auto flex w-full max-w-[min(100%,40rem)] items-center justify-center gap-3">
       {!boardStatus ? (
         <DuringGameActions
           draw={draw}
@@ -46,6 +47,8 @@ const PostGameActions = ({ rematch, rematchStatus }: PostGameActions) => {
   return (
     <>
       <Button
+        className="w-full"
+        color="primary"
         isLoading={rematchSent}
         onPress={() => {
           rematchSent || rematch(GameAction.Requested);
@@ -79,14 +82,15 @@ const DuringGameActions = ({
     setTimeout(() => {
       draw(GameAction.Declined);
     }, 10000); // 10 seconds and send rejection
-  }, [drawStatus]);
+  }, [drawStatus, draw]);
 
   return (
     <>
-      {mode === "Online" && (
+      {mode === "Online" ? (
         <Button
-          className={drawStatus === GameAction.Requested ? "animate-pulse" : ""}
+          className={`w-1/2 ${drawStatus === GameAction.Requested ? "animate-pulse" : ""}`}
           isDisabled={drawStatus === GameAction.Sent}
+          variant="flat"
           onPress={() => {
             if (drawStatus === GameAction.Sent) return;
             if (drawStatus === GameAction.Requested)
@@ -100,13 +104,30 @@ const DuringGameActions = ({
               ? "Accept Draw"
               : "Request Draw"}
         </Button>
+      ) : (
+        <Tooltip content="Draw is available in online matches">
+          <span className="w-1/2">
+            <Button isDisabled className="w-full" variant="flat">
+              Request Draw
+            </Button>
+          </span>
+        </Tooltip>
       )}
 
       {/* Resign Button  */}
       {!isConfirm ? (
-        <Button onPress={() => setIsConfirm(true)}>Resign</Button>
+        <Button
+          className="w-1/2"
+          color="danger"
+          variant="flat"
+          onPress={() => setIsConfirm(true)}
+        >
+          Resign
+        </Button>
       ) : (
         <Button
+          className="w-1/2"
+          color="danger"
           onPress={() => {
             resign();
             setIsConfirm(false);

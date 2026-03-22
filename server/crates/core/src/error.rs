@@ -167,7 +167,7 @@ impl AppError {
     pub fn invalid_bot_level() -> Self {
         AppError::Validation(ValidationError::InvalidFormat {
             field: "bot_level".to_string(),
-            expected_format: "Beginner, Intermediate or Advanced".to_string(),
+            expected_format: "Beginner, Medium, Hard, or Expert".to_string(),
         })
     }
     pub fn local_room_cannot_be_public() -> Self {
