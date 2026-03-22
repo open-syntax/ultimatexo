@@ -18,7 +18,7 @@ function Board({ board, className }: params) {
   return (
     <div
       className={cn(
-        "grid aspect-square h-auto max-h-[calc(100svh-10rem)] w-full max-w-xl grid-cols-3 grid-rows-3 place-items-center gap-3",
+        "border-foreground-100/70 bg-content1/90 grid aspect-square h-auto max-h-[calc(100svh-10rem)] w-full max-w-2xl grid-cols-3 grid-rows-3 place-items-center gap-2.5 rounded-3xl border p-3.5 shadow-[0_18px_70px_rgba(15,23,42,0.4)] md:gap-3 md:p-4",
         className,
       )}
       id="board"

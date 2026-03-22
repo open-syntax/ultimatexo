@@ -1,5 +1,5 @@
 import { useLocation, useParams, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Spinner } from "@heroui/spinner";
 import { button as buttonStyles } from "@heroui/theme";
 import { Button } from "@heroui/button";
@@ -56,6 +56,34 @@ function RoomPage() {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const handleWebSocket = useCallback(
+    (password: string) => {
+      const room_id = sessionStorage.getItem("roomId");
+      const player_id = sessionStorage.getItem("playerId");
+
+      const params = [];
+
+      if (room_id && room_id === roomId) {
+        params.push(`is_reconnecting=true`);
+      }
+
+      if (password) {
+        params.push(`password=${password}`);
+      }
+
+      if (player_id) {
+        params.push(`player_id=${player_id}`);
+      }
+
+      setWs(
+        new WebSocket(
+          `/ws/${roomId}${params.length >= 1 ? `?${params.join("&")}` : ""}`,
+        ),
+      );
+    },
+    [roomId, setWs],
+  );
+
   useEffect(() => {
     if (!state) return;
 
@@ -65,33 +93,7 @@ function RoomPage() {
     }
 
     setMode(state.mode);
-  }, [state]);
-
-  const handleWebSocket = (password: string) => {
-    // if the room id is the same as the one in the session storage, we can reuse the websocket
-    const room_id = sessionStorage.getItem("roomId");
-    const player_id = sessionStorage.getItem("playerId");
-
-    const params = [];
-
-    if (room_id && room_id === roomId) {
-      params.push(`is_reconnecting=true`);
-    }
-
-    if (password) {
-      params.push(`password=${password}`);
-    }
-
-    if (player_id) {
-      params.push(`player_id=${player_id}`);
-    }
-
-    setWs(
-      new WebSocket(
-        `/ws/${roomId}${params.length >= 1 ? `?${params.join("&")}` : ""}`,
-      ),
-    );
-  };
+  }, [state, roomId, setMode, handleWebSocket]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -119,8 +121,8 @@ function RoomPage() {
         .finally(() => setIsLoading(false));
     };
 
-    return checkRoom();
-  }, [roomId]);
+    checkRoom();
+  }, [roomId, handleWebSocket, setStatus]);
 
   if (status.status === RoomStatus.connecting || isLoading) {
     return (
@@ -180,8 +182,9 @@ function RoomPage() {
           </form>
         </RoomLayout>
       ) : board && player ? (
-        <div className="container mx-auto my-auto flex h-[calc(100svh-64px-48px-64px)] max-w-7xl flex-grow flex-col justify-center gap-4 px-6">
-          <div className="flex flex-col gap-4">
+        <div className="relative flex h-full w-full flex-col overflow-hidden">
+          <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_18%_28%,rgba(59,130,246,0.16),transparent_45%),radial-gradient(circle_at_82%_72%,rgba(244,63,94,0.14),transparent_50%)]" />
+          <div className="relative container mx-auto flex h-full max-w-7xl flex-col gap-3 px-5 pb-1 lg:gap-4 lg:px-6">
             <GameStatus
               boardStatus={board.status}
               drawStatus={drawStatus}
@@ -190,16 +193,19 @@ function RoomPage() {
               rematchStatus={rematchStatus}
               score={score}
             />
-            <div className="flex grow items-center justify-center gap-4">
-              <Board board={board} />
+            <div className="flex min-h-0 flex-1 items-center justify-center gap-3 lg:gap-4">
+              <Board
+                board={board}
+                className="max-h-[56vh] max-w-[min(100%,38rem)] xl:max-h-[58vh] xl:max-w-[min(100%,40rem)]"
+              />
               <Chat />
             </div>
+            <Actions
+              boardStatus={board.status}
+              drawStatus={drawStatus}
+              rematchStatus={rematchStatus}
+            />
           </div>
-          <Actions
-            boardStatus={board.status}
-            drawStatus={drawStatus}
-            rematchStatus={rematchStatus}
-          />
         </div>
       ) : (
         <RoomLayout>

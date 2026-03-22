@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@heroui/button";
 import { Modal, ModalBody, ModalContent } from "@heroui/modal";
+import { cn } from "@heroui/theme";
 
 import { BoardStatus } from "@/types";
 import { GameAction } from "@/types/actions";
@@ -85,6 +86,23 @@ const GameStatus = ({
   );
 };
 
+const ModalFrame = ({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <ModalContent
+    className={cn(
+      "border-foreground-100/70 bg-content1/90 rounded-2xl border",
+      className,
+    )}
+  >
+    <ModalBody className="p-6 md:p-7">{children}</ModalBody>
+  </ModalContent>
+);
+
 const ScoreBoard = ({ player, score, playerNames }: ScoreBoardProps) => {
   const youName = playerNames
     ? player.marker === "X"
@@ -96,22 +114,36 @@ const ScoreBoard = ({ player, score, playerNames }: ScoreBoardProps) => {
       ? (playerNames.player2 ?? "Opp")
       : (playerNames.player1 ?? "Opp")
     : "Opp";
+  const round = score[0] + score[1] + 1;
 
   return (
-    <div className="max-xs:scale-50 mx-auto grid w-fit scale-75 grid-cols-3 items-center justify-center gap-5 rounded-xl border text-2xl font-semibold">
-      <div className="flex w-full flex-col justify-around gap-2 px-6 py-4 text-center">
-        <span className="text-primary text-4xl">{player.marker}</span>
-        <div className="h-px w-full bg-white" />
-        {youName}
+    <div className="border-foreground-100/70 bg-content1/85 mx-auto grid w-full max-w-2xl grid-cols-3 items-center rounded-2xl border shadow-lg">
+      <div className="border-foreground-100/60 flex h-full flex-col items-center justify-center gap-1 border-r px-4 py-3.5 text-center md:py-4">
+        <span className="text-primary text-4xl font-black">
+          {player.marker}
+        </span>
+        <p className="text-foreground-900 dark:text-foreground text-sm font-bold tracking-[0.08em] uppercase">
+          {youName}
+        </p>
       </div>
-      <div className="w-full border-x-1 text-center text-4xl">
-        {score[player.marker === "X" ? 0 : 1]} :{" "}
-        {score[player.marker === "X" ? 1 : 0]}
+
+      <div className="border-foreground-100/60 flex h-full flex-col items-center justify-center border-r px-4 py-3.5 text-center md:py-4">
+        <p className="text-foreground-900 dark:text-foreground text-4xl font-black tracking-tight">
+          {score[player.marker === "X" ? 0 : 1]} :
+          {score[player.marker === "X" ? 1 : 0]}
+        </p>
+        <p className="text-foreground-500 mt-1 text-xs font-bold tracking-[0.12em] uppercase">
+          Round {round}
+        </p>
       </div>
-      <div className="flex w-full flex-col justify-around gap-2 px-6 py-4 text-center">
-        <span className="text-4xl">{player.marker === "X" ? "O" : "X"}</span>
-        <div className="h-px w-full bg-white" />
-        {oppName}
+
+      <div className="flex h-full flex-col items-center justify-center gap-1 px-4 py-3.5 text-center md:py-4">
+        <span className="text-danger text-4xl font-black">
+          {player.marker === "X" ? "O" : "X"}
+        </span>
+        <p className="text-foreground-900 dark:text-foreground text-sm font-bold tracking-[0.08em] uppercase">
+          {oppName}
+        </p>
       </div>
     </div>
   );
@@ -127,7 +159,7 @@ const RematchModal = ({
     if (rematchStatus === GameAction.Requested) {
       setOpenModal("rematchModal");
     }
-  }, [rematchStatus]);
+  }, [rematchStatus, setOpenModal]);
 
   return (
     <Modal
@@ -135,10 +167,15 @@ const RematchModal = ({
       placement="center"
       onClose={() => setOpenModal("")}
     >
-      <ModalContent>
-        <ModalBody className="flex flex-col items-center gap-8 py-8">
-          <p className="text-2xl">Opponent wants to rematch.</p>
-          <div className="flex gap-4">
+      <ModalFrame>
+        <div className="flex flex-col items-center gap-6">
+          <p className="text-primary text-xs font-black tracking-[0.14em] uppercase">
+            Match Update
+          </p>
+          <p className="text-foreground-900 dark:text-foreground text-center text-2xl font-bold">
+            Opponent wants a rematch.
+          </p>
+          <div className="flex gap-3">
             <Button
               color="primary"
               onPress={() => {
@@ -149,6 +186,7 @@ const RematchModal = ({
               Accept
             </Button>
             <Button
+              variant="flat"
               onPress={() => {
                 rematch(GameAction.Declined);
                 setOpenModal("");
@@ -157,8 +195,8 @@ const RematchModal = ({
               Decline
             </Button>
           </div>
-        </ModalBody>
-      </ModalContent>
+        </div>
+      </ModalFrame>
     </Modal>
   );
 };
@@ -186,7 +224,7 @@ const GameStatusModal = ({
       return;
 
     setOpenModal("gameStatusModal");
-  }, [boardStatus]);
+  }, [boardStatus, setOpenModal]);
 
   const handleRematch = () => {
     rematch(GameAction.Requested);
@@ -199,17 +237,24 @@ const GameStatusModal = ({
       placement="center"
       onClose={() => setOpenModal("")}
     >
-      <ModalContent>
-        <ModalBody className="flex items-center gap-8 py-8">
-          <p className="text-2xl">{message}</p>
-          <div className="flex gap-4">
+      <ModalFrame>
+        <div className="flex flex-col items-center gap-6">
+          <p className="text-primary text-xs font-black tracking-[0.14em] uppercase">
+            Match Result
+          </p>
+          <p className="text-foreground-900 dark:text-foreground text-center text-2xl font-bold">
+            {message}
+          </p>
+          <div className="flex gap-3">
             <Button color="primary" onPress={handleRematch}>
               Rematch?
             </Button>
-            <Button onPress={() => setOpenModal("")}>Close</Button>
+            <Button variant="flat" onPress={() => setOpenModal("")}>
+              Close
+            </Button>
           </div>
-        </ModalBody>
-      </ModalContent>
+        </div>
+      </ModalFrame>
     </Modal>
   );
 };
@@ -239,7 +284,7 @@ const RematchStatusModal = ({
     }
 
     setOpenModal("rematchStatusModal");
-  }, [rematchStatus]);
+  }, [rematchStatus, setOpenModal]);
 
   return (
     <Modal
@@ -247,16 +292,21 @@ const RematchStatusModal = ({
       placement="center"
       onClose={() => setOpenModal("")}
     >
-      <ModalContent>
-        <ModalBody className="flex items-center gap-8 py-8">
-          <p className="text-2xl">
+      <ModalFrame>
+        <div className="flex flex-col items-center gap-6">
+          <p className="text-primary text-xs font-black tracking-[0.14em] uppercase">
+            Rematch Status
+          </p>
+          <p className="text-foreground-900 dark:text-foreground text-center text-2xl font-bold">
             {rematchStatus === GameAction.Sent
               ? "Rematch Sent..."
               : rematchStatus === GameAction.Declined && "Opponent Declined."}
           </p>
-          <Button onPress={() => setOpenModal("")}>Close</Button>
-        </ModalBody>
-      </ModalContent>
+          <Button variant="flat" onPress={() => setOpenModal("")}>
+            Close
+          </Button>
+        </div>
+      </ModalFrame>
     </Modal>
   );
 };
