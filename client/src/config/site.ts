@@ -33,7 +33,8 @@ export const siteConfig = {
   ],
   links: {
     github: "https://github.com/open-syntax/UltimateXO",
-    discord: "https://discord.gg/qvcc5Z2Ksu",
-    sponsor: "https://ko-fi.com/opensyntax",
+    discord: "https://opensyntax.dev/discord",
+    sponsor: "https://opensyntax.dev/coffee",
+    website: "https://opensyntax.dev",
   },
 };

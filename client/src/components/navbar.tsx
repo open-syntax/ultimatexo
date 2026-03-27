@@ -8,7 +8,7 @@ import {
   DiscordIcon,
   GithubIcon,
   CoffeeIcon,
-  SettingsIcon,
+  OpenSyntaxIcon,
 } from "@/components/icons";
 import { TooltipIcon } from "@/components/ui/tooltip-icon";
 
@@ -133,10 +133,16 @@ export const Navbar = () => {
           </Link>
         </TooltipIcon>
 
-        <TooltipIcon label="Settings">
-          <button aria-label="Settings" className={iconButton()}>
-            <SettingsIcon size={20} />
-          </button>
+        <TooltipIcon label="Website">
+          <Link
+            aria-label="Website"
+            className={iconButton()}
+            rel="noopener noreferrer"
+            target="_blank"
+            to={siteConfig.links.website}
+          >
+            <OpenSyntaxIcon size={20} />
+          </Link>
         </TooltipIcon>
 
         <ThemeSwitch />
