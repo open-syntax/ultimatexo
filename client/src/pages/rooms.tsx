@@ -8,6 +8,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Controller, SearchIcon } from "@/components/icons";
 import RoomCard from "@/components/roomCard";
 import DefaultLayout from "@/layouts/default";
+import { Footer } from "@/components/footer";
 
 export type room = {
   id: string;
@@ -309,6 +310,8 @@ export default function RoomsPage() {
             </div>
           )}
         </div>
+
+        <Footer />
       </div>
     </DefaultLayout>
   );

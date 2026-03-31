@@ -3,6 +3,7 @@ import { Link } from "@heroui/link";
 import { button as buttonStyles } from "@heroui/theme";
 
 import DefaultLayout from "@/layouts/default";
+import { Footer } from "@/components/footer";
 import Board from "@/components/room/board";
 import { Board as BoardType, BoardStatus } from "@/types";
 
@@ -74,7 +75,7 @@ function Instructions() {
   return (
     <DefaultLayout>
       <div className="h-full min-h-0">
-        <div className="h-full overflow-y-auto pr-1">
+        <div className="scrollbar-hide h-full overflow-y-auto pr-1">
           <div
             className="mx-auto grid max-w-7xl gap-6 pb-12 lg:grid-cols-[270px_1fr]"
             id="overview"
@@ -167,7 +168,7 @@ function Instructions() {
                   <Card className="border-foreground-100/70 bg-content1/80 border p-5">
                     <CardBody className="items-center gap-4 p-0">
                       <Board
-                        className="mt-3 max-w-[min(100%,42rem)]"
+                        className="pointer-events-none mt-3 max-w-[min(100%,42rem)]"
                         board={
                           boardPreviewData as unknown as {
                             boards: BoardType;
@@ -485,6 +486,8 @@ function Instructions() {
               </section>
             </div>
           </div>
+
+          <Footer />
         </div>
       </div>
     </DefaultLayout>

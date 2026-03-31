@@ -3,6 +3,89 @@ import * as React from "react";
 
 import { IconSvgProps } from "@/types";
 
+export const LogoIcon: React.FC<IconSvgProps> = ({
+  size = 36,
+  height,
+  ...props
+}) => (
+  <svg
+    fill="none"
+    height={size || height}
+    viewBox="0 0 40 40"
+    width={size || height}
+    {...props}
+  >
+    <rect
+      x="2"
+      y="2"
+      width="36"
+      height="36"
+      rx="8"
+      fill="currentColor"
+      opacity="0.1"
+    />
+    <rect
+      x="2"
+      y="2"
+      width="36"
+      height="36"
+      rx="8"
+      stroke="currentColor"
+      strokeWidth="2"
+    />
+    <line
+      x1="14"
+      y1="2"
+      x2="14"
+      y2="38"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      opacity="0.3"
+    />
+    <line
+      x1="26"
+      y1="2"
+      x2="26"
+      y2="38"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      opacity="0.3"
+    />
+    <line
+      x1="2"
+      y1="14"
+      x2="38"
+      y2="14"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      opacity="0.3"
+    />
+    <line
+      x1="2"
+      y1="26"
+      x2="38"
+      y2="26"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      opacity="0.3"
+    />
+    <path
+      d="M7 7l6 6M13 7l-6 6"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+    <circle
+      cx="30"
+      cy="30"
+      r="4"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      fill="none"
+    />
+  </svg>
+);
+
 export const Logo: React.FC<IconSvgProps> = ({
   size = 36,
   height,

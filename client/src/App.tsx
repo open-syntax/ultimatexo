@@ -6,17 +6,21 @@ import RoomPage from "@/pages/room";
 import CreateRoom from "@/pages/createRoom";
 import Instructions from "@/pages/instructions";
 import Quick from "@/pages/quick";
+import { BackgroundEffects } from "@/components/background-effects";
 
 function App() {
   return (
-    <Routes>
-      <Route element={<IndexPage />} path="/" />
-      <Route element={<CreateRoom />} path="/create" />
-      <Route element={<RoomPage />} path="/room/:roomId" />
-      <Route element={<RoomsPage />} path="/rooms" />
-      <Route element={<Instructions />} path="/instructions" />
-      <Route element={<Quick />} path="/quick" />
-    </Routes>
+    <>
+      <BackgroundEffects />
+      <Routes>
+        <Route element={<IndexPage />} path="/" />
+        <Route element={<CreateRoom />} path="/create" />
+        <Route element={<RoomPage />} path="/room/:roomId" />
+        <Route element={<RoomsPage />} path="/rooms" />
+        <Route element={<Instructions />} path="/instructions" />
+        <Route element={<Quick />} path="/quick" />
+      </Routes>
+    </>
   );
 }
 

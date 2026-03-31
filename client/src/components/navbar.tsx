@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { tv } from "tailwind-variants";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
@@ -15,9 +16,10 @@ import { TooltipIcon } from "@/components/ui/tooltip-icon";
 const navbarStyles = tv({
   slots: {
     base: "relative z-30 flex w-full items-center justify-between p-4 md:p-6",
-    logoLink: "group text-xl font-bold tracking-tight md:text-2xl",
-    logoText:
-      "text-slate-900 transition group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-100",
+    logoLink:
+      "flex items-center gap-2 text-xl font-bold tracking-tight md:text-2xl",
+    logoText: "text-slate-900 dark:text-white",
+    logoXO: "text-blue-500",
     nav: "hidden rounded-lg border border-slate-200 bg-white/90 p-1 shadow-lg backdrop-blur-sm md:flex dark:border-white/5 dark:bg-slate-900/90",
     navLink: "rounded-md px-5 py-1.5 text-sm font-medium transition-all",
     iconButton:
@@ -63,6 +65,7 @@ export const Navbar = () => {
     base,
     logoLink,
     logoText,
+    logoXO,
     nav,
     navLink,
     iconButton,
@@ -77,8 +80,15 @@ export const Navbar = () => {
       {/* Logo */}
       <div className="flex items-center">
         <Link className={logoLink()} to="/">
-          <span className={logoText()}>Ultimate</span>
-          <span className="text-blue-500">XO</span>
+          <img
+            src="/favicon.svg"
+            alt="UltimateXO"
+            className="h-7 w-7 brightness-0 filter dark:filter-none"
+          />
+          <span>
+            <span className={logoText()}>Ultimate</span>
+            <span className={logoXO()}>XO</span>
+          </span>
         </Link>
       </div>
 
@@ -199,46 +209,54 @@ export const Navbar = () => {
       </div>
 
       {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className={mobileMenu()}>
-          <nav className="flex flex-col gap-2 p-4">
-            {siteConfig.navMenuItems.map((item) => (
-              <Link
-                key={item.href}
-                className={mobileNavLink({
-                  isActive: isActiveRoute(item.href),
-                })}
-                to={item.href}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {item.label}
-              </Link>
-            ))}
-            <div className="mt-2 flex gap-2 border-t border-slate-200 pt-2 dark:border-white/5">
-              <Link
-                className={mobileSocialLink()}
-                rel="noopener noreferrer"
-                target="_blank"
-                to={siteConfig.links.discord}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <DiscordIcon size={18} />
-                <span className="text-sm">Discord</span>
-              </Link>
-              <Link
-                className={mobileSocialLink()}
-                rel="noopener noreferrer"
-                target="_blank"
-                to={siteConfig.links.sponsor}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <CoffeeIcon size={18} />
-                <span className="text-sm">Support</span>
-              </Link>
-            </div>
-          </nav>
-        </div>
-      )}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            className={mobileMenu()}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            <nav className="flex flex-col gap-2 p-4">
+              {siteConfig.navMenuItems.map((item) => (
+                <Link
+                  key={item.href}
+                  className={mobileNavLink({
+                    isActive: isActiveRoute(item.href),
+                  })}
+                  to={item.href}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <div className="mt-2 flex gap-2 border-t border-slate-200 pt-2 dark:border-white/5">
+                <Link
+                  className={mobileSocialLink()}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  to={siteConfig.links.discord}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <DiscordIcon size={18} />
+                  <span className="text-sm">Discord</span>
+                </Link>
+                <Link
+                  className={mobileSocialLink()}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  to={siteConfig.links.sponsor}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <CoffeeIcon size={18} />
+                  <span className="text-sm">Support</span>
+                </Link>
+              </div>
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 };
