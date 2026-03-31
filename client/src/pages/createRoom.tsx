@@ -10,6 +10,8 @@ import {
   HashIcon,
   Lock,
   Person,
+  AlertCircle,
+  X,
 } from "@/components/icons";
 import DefaultLayout from "@/layouts/default";
 
@@ -67,6 +69,7 @@ const CreateRoom = () => {
 
   const [mode, setMode] = useState<Mode>("Online");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [roomName, setRoomName] = useState("");
   const [roomPassword, setRoomPassword] = useState("");
@@ -110,6 +113,7 @@ const CreateRoom = () => {
 
   const handleCreate = async () => {
     setIsLoading(true);
+    setError(null);
 
     try {
       const body =
@@ -135,9 +139,11 @@ const CreateRoom = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-
-        console.error("Failed to create room:", errorData);
-
+        const errorMessage =
+          (errorData as { message?: string })?.message ??
+          "Failed to create room. Please try again.";
+        setError(errorMessage);
+        setIsLoading(false);
         return;
       }
 
@@ -157,9 +163,8 @@ const CreateRoom = () => {
                 : undefined,
         },
       });
-    } catch (error) {
-      console.error("Failed to create room", error);
-    } finally {
+    } catch {
+      setError("Network error. Please check your connection and try again.");
       setIsLoading(false);
     }
   };
@@ -168,6 +173,29 @@ const CreateRoom = () => {
     <DefaultLayout>
       <div className="h-full min-h-0 overflow-y-auto pr-1">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 pb-12">
+          {error && (
+            <motion.div
+              animate={{ opacity: 1, y: 0 }}
+              className="border-danger/40 bg-danger/10 flex items-center gap-3 rounded-2xl border p-4"
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 4 }}
+              transition={{
+                duration: prefersReducedMotion ? 0.01 : 0.16,
+                ease: "easeOut" as const,
+              }}
+            >
+              <div className="bg-danger/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                <AlertCircle className="text-danger" size={20} />
+              </div>
+              <p className="text-danger flex-1 text-sm font-medium">{error}</p>
+              <button
+                className="text-foreground-500 hover:text-foreground shrink-0 transition"
+                type="button"
+                onClick={() => setError(null)}
+              >
+                <X size={18} />
+              </button>
+            </motion.div>
+          )}
           <motion.section
             animate={{ opacity: 1, y: 0 }}
             className="border-foreground-100/70 bg-content1/85 relative overflow-hidden rounded-2xl border p-5 shadow-lg md:p-7"

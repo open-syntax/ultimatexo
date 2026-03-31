@@ -8,6 +8,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Controller, SearchIcon } from "@/components/icons";
 import RoomCard from "@/components/roomCard";
 import DefaultLayout from "@/layouts/default";
+import { Footer } from "@/components/footer";
 
 export type room = {
   id: string;
@@ -289,7 +290,7 @@ export default function RoomsPage() {
               </div>
             </motion.section>
           ) : (
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4">
               {rooms.map((roomData, index) => (
                 <motion.div
                   key={roomData.id}
@@ -297,7 +298,7 @@ export default function RoomsPage() {
                   initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 4 }}
                   transition={{
                     duration: prefersReducedMotion ? 0.01 : 0.16,
-                    ease: "easeOut",
+                    ease: "easeOut" as const,
                     delay: prefersReducedMotion
                       ? 0
                       : Math.min(index * 0.02, 0.16),
@@ -306,9 +307,11 @@ export default function RoomsPage() {
                   <RoomCard room={roomData} />
                 </motion.div>
               ))}
-            </section>
+            </div>
           )}
         </div>
+
+        <Footer />
       </div>
     </DefaultLayout>
   );

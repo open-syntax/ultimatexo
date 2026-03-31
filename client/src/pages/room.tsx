@@ -4,8 +4,16 @@ import { Spinner } from "@heroui/spinner";
 import { button as buttonStyles } from "@heroui/theme";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
+import { motion, useReducedMotion } from "framer-motion";
 
-import { Link as LinkIcon } from "@/components/icons";
+import {
+  Link as LinkIcon,
+  Check,
+  Copy,
+  AlertCircle,
+  WifiOff,
+  RefreshCw,
+} from "@/components/icons";
 import Board from "@/components/room/board";
 import DefaultLayout from "@/layouts/default";
 import RoomLayout from "@/layouts/room";
@@ -14,6 +22,7 @@ import GameStatus from "@/components/room/status";
 import useGame from "@/hooks/useGame";
 import { RoomStore } from "@/store";
 import Actions from "@/components/room/actions";
+import { RoomStatus } from "@/types";
 
 interface roomResponse {
   id: string;
@@ -21,19 +30,6 @@ interface roomResponse {
   bot_level: null | "Beginner" | "Intermediate" | "Advanced";
   is_public: boolean;
   is_protected: boolean;
-}
-
-enum RoomStatus {
-  loading = "loading",
-  connected = "connected",
-  disconnected = "disconnected",
-  opponentLeft = "opponent left",
-  connecting = "connecting",
-  internal = "internal",
-  error = "error",
-  auth = "auth required",
-  authFailed = "auth failed",
-  notFound = "room not found",
 }
 
 function RoomPage() {
@@ -55,9 +51,27 @@ function RoomPage() {
   };
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [copiedField, setCopiedField] = useState<"id" | "link" | null>(null);
+  const [password, setPassword] = useState("");
+  const prefersReducedMotion = useReducedMotion();
+
+  const handleCopy = async (text: string, field: "id" | "link") => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch {
+      setCopiedField(null);
+    }
+  };
 
   const handleWebSocket = useCallback(
     (password: string) => {
+      const existingWs = RoomStore.getState().ws;
+      if (existingWs) {
+        existingWs.close();
+      }
+
       const room_id = sessionStorage.getItem("roomId");
       const player_id = sessionStorage.getItem("playerId");
 
@@ -124,62 +138,149 @@ function RoomPage() {
     checkRoom();
   }, [roomId, handleWebSocket, setStatus]);
 
+  const motionProps = {
+    initial: { opacity: 0, y: prefersReducedMotion ? 0 : 8 },
+    animate: { opacity: 1, y: 0 },
+    transition: {
+      duration: prefersReducedMotion ? 0.01 : 0.25,
+      ease: "easeOut" as const,
+    },
+  };
+
   if (status.status === RoomStatus.connecting || isLoading) {
     return (
       <DefaultLayout>
-        <div className="difficultyflex-grow container mx-auto flex h-full max-w-7xl flex-col items-center justify-center gap-2 px-6">
-          <Spinner />
-          <p>Connecting...</p>
+        <div className="flex h-full flex-col items-center justify-center gap-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="flex flex-col items-center gap-4"
+          >
+            <div className="relative">
+              <div className="animate-ping-slow bg-primary/20 absolute inset-0 rounded-full" />
+              <Spinner size="lg" />
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-foreground-900 dark:text-foreground text-lg font-semibold">
+                {isLoading ? "Verifying room..." : "Establishing connection..."}
+              </p>
+              <p className="text-foreground-500 text-sm">
+                {isLoading
+                  ? "Checking if the room exists"
+                  : "Connecting to game server"}
+              </p>
+            </div>
+          </motion.div>
         </div>
       </DefaultLayout>
     );
   }
 
+  const isErrorState = [
+    RoomStatus.disconnected,
+    RoomStatus.opponentLeft,
+    RoomStatus.error,
+  ].includes(status.status);
+
+  const isDisconnected = status.status === RoomStatus.disconnected;
+  const isOpponentLeft = status.status === RoomStatus.opponentLeft;
+
   return (
     <DefaultLayout>
-      {[
-        RoomStatus.disconnected,
-        RoomStatus.opponentLeft,
-        RoomStatus.error,
-      ].includes(status.status) ? (
+      {isErrorState ? (
         <RoomLayout>
-          {status.message}
-          <div className="flex gap-3">
-            <Link className={buttonStyles({ variant: "bordered" })} to="/">
-              Home
-            </Link>
-            <Link className={buttonStyles({ color: "primary" })} to="/rooms">
-              Rooms
-            </Link>
-          </div>
+          <motion.div
+            {...motionProps}
+            className="border-danger/40 bg-danger/10 flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border p-6 text-center"
+          >
+            <div className="bg-danger/20 flex h-14 w-14 items-center justify-center rounded-full">
+              {isDisconnected ? (
+                <WifiOff className="text-danger" size={28} />
+              ) : (
+                <AlertCircle className="text-danger" size={28} />
+              )}
+            </div>
+            <div className="flex flex-col gap-1">
+              <h2 className="text-foreground-900 dark:text-foreground text-xl font-bold">
+                {isDisconnected
+                  ? "Connection Lost"
+                  : isOpponentLeft
+                    ? "Opponent Left"
+                    : "Something went wrong"}
+              </h2>
+              <p className="text-foreground-600 dark:text-foreground-400 text-sm">
+                {status.message}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              {isDisconnected && (
+                <Button
+                  color="primary"
+                  startContent={<RefreshCw size={16} />}
+                  onPress={() => {
+                    setStatus({ status: RoomStatus.connecting, message: "" });
+                    handleWebSocket("");
+                  }}
+                >
+                  Reconnect
+                </Button>
+              )}
+              <Link className={buttonStyles({ variant: "bordered" })} to="/">
+                Home
+              </Link>
+              <Link className={buttonStyles({ color: "primary" })} to="/rooms">
+                Rooms
+              </Link>
+            </div>
+          </motion.div>
         </RoomLayout>
       ) : (status.status === RoomStatus.auth &&
           !(state?.password && roomId === state?.roomId)) ||
         status.status === RoomStatus.authFailed ? (
         <RoomLayout>
-          <form
+          <motion.div
+            {...motionProps}
             className="flex w-full max-w-80 flex-col gap-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleWebSocket(e.currentTarget.password.value);
-            }}
           >
-            Room is protected
-            <Input
-              isRequired
-              errorMessage={status.message}
-              isInvalid={status.status === RoomStatus.authFailed}
-              name="password"
-              placeholder="password"
-              type="password"
-              onChange={() =>
-                setStatus({ status: RoomStatus.auth, message: "" })
-              }
-            />
-            <Button className="w-full" color="primary" type="submit">
-              Verify
-            </Button>
-          </form>
+            <div className="flex flex-col gap-1">
+              <h2 className="text-foreground-900 dark:text-foreground text-xl font-bold">
+                Protected Room
+              </h2>
+              <p className="text-foreground-500 text-sm">
+                This room requires a password to join.
+              </p>
+            </div>
+            <form
+              className={`flex w-full flex-col gap-4 ${status.status === RoomStatus.authFailed ? "animate-shake" : ""}`}
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleWebSocket(password);
+              }}
+            >
+              <Input
+                isRequired
+                autoFocus
+                errorMessage={
+                  status.status === RoomStatus.authFailed ? status.message : ""
+                }
+                isInvalid={status.status === RoomStatus.authFailed}
+                name="password"
+                placeholder="Enter password"
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (status.status === RoomStatus.authFailed) {
+                    setStatus({ status: RoomStatus.auth, message: "" });
+                  }
+                }}
+              />
+              <Button className="w-full" color="primary" type="submit">
+                Verify & Join
+              </Button>
+            </form>
+          </motion.div>
         </RoomLayout>
       ) : board && player ? (
         <div className="relative flex h-full w-full flex-col overflow-hidden">
@@ -209,25 +310,64 @@ function RoomPage() {
         </div>
       ) : (
         <RoomLayout>
-          <h3>Waiting for player to join.</h3>
-          <div className="flex gap-3">
-            <Button
-              variant="bordered"
-              onPress={() => {
-                navigator.clipboard.writeText(roomId as string);
-              }}
-            >
-              Room ID: <b>{roomId}</b>
-            </Button>
-            <Button
-              color="primary"
-              onPress={() => {
-                navigator.clipboard.writeText(window.location.href);
-              }}
-            >
-              Copy Link <LinkIcon size={20} />
-            </Button>
-          </div>
+          <motion.div
+            {...motionProps}
+            className="flex w-full max-w-md flex-col items-center gap-6 text-center"
+          >
+            <div className="flex flex-col items-center gap-2">
+              <div className="relative mb-2">
+                <div className="animate-ping-slow bg-primary/20 absolute inset-0 rounded-full" />
+                <div className="bg-primary/15 flex h-16 w-16 items-center justify-center rounded-full">
+                  <span className="text-primary text-2xl font-black">
+                    {player?.marker ?? "?"}
+                  </span>
+                </div>
+              </div>
+              <h2 className="text-foreground-900 dark:text-foreground text-2xl font-bold">
+                Waiting for opponent
+              </h2>
+              <p className="text-foreground-500 text-sm">
+                Share the room ID or link to invite someone to play.
+              </p>
+            </div>
+
+            <div className="flex w-full flex-col gap-3">
+              <Button
+                fullWidth
+                variant="bordered"
+                onPress={() => handleCopy(roomId as string, "id")}
+                startContent={
+                  copiedField === "id" ? (
+                    <Check className="text-success" size={18} />
+                  ) : (
+                    <Copy size={18} />
+                  )
+                }
+              >
+                {copiedField === "id" ? (
+                  <span className="text-success">Copied!</span>
+                ) : (
+                  <>
+                    Room ID: <b>{roomId}</b>
+                  </>
+                )}
+              </Button>
+              <Button
+                fullWidth
+                color="primary"
+                onPress={() => handleCopy(window.location.href, "link")}
+                startContent={
+                  copiedField === "link" ? (
+                    <Check className="text-white" size={18} />
+                  ) : (
+                    <LinkIcon size={18} />
+                  )
+                }
+              >
+                {copiedField === "link" ? "Copied!" : "Copy Invite Link"}
+              </Button>
+            </div>
+          </motion.div>
         </RoomLayout>
       )}
     </DefaultLayout>

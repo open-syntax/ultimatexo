@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Input } from "@heroui/input";
 import { useNavigate, Link } from "react-router-dom";
+import { motion, useReducedMotion } from "framer-motion";
 
 import {
   Controller,
@@ -10,10 +11,12 @@ import {
 } from "@/components/icons";
 import DefaultLayout from "@/layouts/default";
 import { HomeButton } from "@/components/home-button";
+import { Footer } from "@/components/footer";
 
 export default function IndexPage() {
   const navigate = useNavigate();
   const [roomId, setRoomId] = useState("");
+  const prefersReducedMotion = useReducedMotion();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -27,17 +30,38 @@ export default function IndexPage() {
     setRoomId(value.replace(/[^0-9]/g, ""));
   };
 
+  const fadeInUp = {
+    initial: { opacity: 0, y: prefersReducedMotion ? 0 : 16 },
+    animate: { opacity: 1, y: 0 },
+    transition: {
+      duration: prefersReducedMotion ? 0 : 0.5,
+      ease: "easeOut" as const,
+    },
+  };
+
   return (
     <DefaultLayout>
       <section className="relative z-10 mx-auto flex h-full w-full max-w-4xl flex-col items-center justify-center gap-8 py-8 md:py-10">
-        {/* Main Title - Theme-aware glow effect */}
-        <h1 className="text-center text-6xl font-black tracking-tight select-none sm:text-7xl md:text-8xl lg:text-9xl">
+        {/* Main Title */}
+        <motion.h1
+          {...fadeInUp}
+          className="text-center text-6xl font-black tracking-tight select-none sm:text-7xl md:text-8xl lg:text-9xl"
+        >
           <span className="text-slate-900 dark:text-white">Ultimate</span>
           <span className="text-blue-500">XO</span>
-        </h1>
+        </motion.h1>
 
         {/* Primary Action Buttons */}
-        <div className="flex w-full max-w-2xl flex-col justify-center gap-4 sm:flex-row sm:gap-6">
+        <motion.div
+          className="flex w-full max-w-2xl flex-col justify-center gap-4 sm:flex-row sm:gap-6"
+          initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: prefersReducedMotion ? 0 : 0.5,
+            delay: prefersReducedMotion ? 0 : 0.15,
+            ease: "easeOut" as const,
+          }}
+        >
           {/* Play Button */}
           <HomeButton as={Link} to="/create" variant="primary">
             <Controller
@@ -61,19 +85,38 @@ export default function IndexPage() {
             <Group size={24} className="text-slate-400 dark:text-slate-400" />
             Rooms
           </HomeButton>
-        </div>
+        </motion.div>
 
         {/* Divider with Text */}
-        <div className="flex w-full max-w-lg items-center gap-4 opacity-60">
+        <motion.div
+          className="flex w-full max-w-lg items-center gap-4 opacity-60"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.6 }}
+          transition={{
+            duration: prefersReducedMotion ? 0 : 0.6,
+            delay: prefersReducedMotion ? 0 : 0.3,
+            ease: "easeOut" as const,
+          }}
+        >
           <div className="h-px flex-grow bg-gradient-to-r from-transparent to-slate-300 dark:to-slate-700" />
           <span className="text-xs font-bold tracking-widest whitespace-nowrap text-slate-500 uppercase">
             Join an existing game
           </span>
           <div className="h-px flex-grow bg-gradient-to-l from-transparent to-slate-300 dark:to-slate-700" />
-        </div>
+        </motion.div>
 
         {/* Room Entry Section */}
-        <form className="w-full max-w-lg" onSubmit={handleSubmit}>
+        <motion.form
+          className="w-full max-w-lg"
+          onSubmit={handleSubmit}
+          initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: prefersReducedMotion ? 0 : 0.5,
+            delay: prefersReducedMotion ? 0 : 0.4,
+            ease: "easeOut" as const,
+          }}
+        >
           <div className="dark:shadow-neon-input flex w-full items-center rounded-2xl border border-slate-300 bg-white p-2 pl-4 shadow-sm transition-all duration-300 hover:border-blue-500/60 hover:shadow-md dark:border-blue-500/30 dark:bg-[#020408]">
             <Input
               name="roomId"
@@ -106,8 +149,10 @@ export default function IndexPage() {
               Join
             </button>
           </div>
-        </form>
+        </motion.form>
       </section>
+
+      <Footer />
     </DefaultLayout>
   );
 }

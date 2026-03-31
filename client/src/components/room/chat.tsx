@@ -6,7 +6,7 @@ import { Input } from "@heroui/input";
 import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@heroui/theme";
 
-import { Chat as ChatIcon, X } from "../icons";
+import { Chat as ChatIcon, X, MessageCircle } from "../icons";
 
 import { Message } from "@/types/messages";
 import { marker, Player } from "@/types/player";
@@ -41,6 +41,19 @@ const ChatLayout = ({
   input,
   setInput,
 }: props) => {
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [boardHeight, setBoardHeight] = useState<number | undefined>();
+
+  useEffect(() => {
+    boardRef.current = document.getElementById(
+      "board",
+    ) as HTMLDivElement | null;
+    if (boardRef.current) {
+      setBoardHeight(boardRef.current.offsetHeight);
+    }
+  }, []);
+
   const stableChat = React.useMemo(
     () =>
       chat.map((message, index) => ({
@@ -50,41 +63,59 @@ const ChatLayout = ({
     [chat],
   );
 
+  useEffect(() => {
+    if (chatContainerRef.current && chat.length) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
+  }, [chat]);
+
   return (
     <div
       className={
         "border-foreground-100/70 bg-content1/85 flex flex-col gap-4 rounded-2xl border p-4 " +
         className
       }
-      style={{ height: document.getElementById("board")?.offsetHeight }}
+      style={{ height: boardHeight }}
     >
       <div className="border-foreground-100/60 flex items-center justify-between border-b pb-3">
         <h1 className="text-foreground-900 dark:text-foreground text-xl font-bold">
           Match Chat
         </h1>
       </div>
-      <div className="flex h-full w-full scroll-m-2 flex-col gap-2.5 overflow-y-auto pr-2">
-        {stableChat.map((message, i) => (
-          <div
-            key={message.key}
-            className={`flex h-fit w-full gap-2 text-pretty ${message.player.marker === marker ? "justify-end" : "justify-start"}`}
-            id={`message-${i}`}
-          >
-            {(message.player.marker === "X" ||
-              message.player.marker === "O") && (
-              <span
-                className={`inline-flex h-6 min-w-6 items-center justify-center self-end rounded-full px-2 text-[11px] font-black ${message.player.marker === "X" ? "bg-primary/25 text-primary-800 dark:text-primary-200" : "bg-danger/25 text-danger-800 dark:text-danger-200"}`}
-              >
-                {message.player.marker}
-              </span>
-            )}
-            <p
-              className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-start text-sm leading-relaxed break-words ${message.player.marker === "X" ? "bg-primary/25 text-primary-800 dark:text-primary-200" : message.player.marker === "O" ? "bg-danger/25 text-danger-800 dark:text-danger-200" : "bg-content2/80 text-foreground-800 dark:text-foreground-200"}`}
-            >
-              {message.content}
+      <div
+        ref={chatContainerRef}
+        className="flex h-full w-full scroll-m-2 flex-col gap-2.5 overflow-y-auto pr-2"
+      >
+        {stableChat.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-center opacity-60">
+            <MessageCircle className="text-foreground-400" size={32} />
+            <p className="text-foreground-500 text-sm">
+              No messages yet — say hello!
             </p>
           </div>
-        ))}
+        ) : (
+          stableChat.map((message) => (
+            <div
+              key={message.key}
+              className={`flex h-fit w-full gap-2 text-pretty ${message.player.marker === marker ? "justify-end" : "justify-start"}`}
+            >
+              {(message.player.marker === "X" ||
+                message.player.marker === "O") && (
+                <span
+                  className={`inline-flex h-6 min-w-6 items-center justify-center self-end rounded-full px-2 text-[11px] font-black ${message.player.marker === "X" ? "bg-primary/25 text-primary-800 dark:text-primary-200" : "bg-danger/25 text-danger-800 dark:text-danger-200"}`}
+                >
+                  {message.player.marker}
+                </span>
+              )}
+              <p
+                className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-start text-sm leading-relaxed break-words ${message.player.marker === "X" ? "bg-primary/25 text-primary-800 dark:text-primary-200" : message.player.marker === "O" ? "bg-danger/25 text-danger-800 dark:text-danger-200" : "bg-content2/80 text-foreground-800 dark:text-foreground-200"}`}
+              >
+                {message.content}
+              </p>
+            </div>
+          ))
+        )}
       </div>
       <form
         autoComplete="off"
@@ -186,11 +217,12 @@ const Chat = () => {
   const [input, setInput] = useState<string>("");
   const [isRead, setIsRead] = useState<boolean>(true);
 
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!chat.length) return;
-    const element = document.getElementById(`message-${chat.length - 1}`);
 
-    element?.scrollIntoView({ behavior: "smooth" });
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
     if (!isOpen) {
       setIsRead(false);
@@ -199,9 +231,7 @@ const Chat = () => {
 
   useEffect(() => {
     if (isOpen && chat.length) {
-      const element = document.getElementById(`message-${chat.length - 1}`);
-
-      element?.scrollIntoView({ behavior: "instant" });
+      chatEndRef.current?.scrollIntoView({ behavior: "instant" });
     }
   }, [isOpen, chat.length]);
 
@@ -214,7 +244,7 @@ const Chat = () => {
 
     sendMessage(message);
 
-    setInput(""); // for some reason form reset doesn't work on the input :/
+    setInput("");
   };
 
   const handleOnOpen = () => {
