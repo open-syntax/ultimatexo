@@ -10,6 +10,7 @@ import {
   GithubIcon,
   CoffeeIcon,
   OpenSyntaxIcon,
+  Logo,
 } from "@/components/icons";
 import { TooltipIcon } from "@/components/ui/tooltip-icon";
 
@@ -80,11 +81,7 @@ export const Navbar = () => {
       {/* Logo */}
       <div className="flex items-center">
         <Link className={logoLink()} to="/">
-          <img
-            src="/favicon.svg"
-            alt="UltimateXO"
-            className="h-7 w-7 brightness-0 filter dark:filter-none"
-          />
+          <Logo size={28} className="text-slate-900 dark:text-white" />
           <span>
             <span className={logoText()}>Ultimate</span>
             <span className={logoXO()}>XO</span>

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-import { DiscordIcon, GithubIcon, CoffeeIcon } from "@/components/icons";
+import { DiscordIcon, GithubIcon, CoffeeIcon, Logo } from "@/components/icons";
 import { siteConfig } from "@/config/site";
 
 export function Footer() {
@@ -15,11 +15,7 @@ export function Footer() {
                 className="inline-flex items-center gap-2 text-xl font-bold tracking-tight"
                 to="/"
               >
-                <img
-                  src="/favicon.svg"
-                  alt="UltimateXO"
-                  className="h-7 w-7 brightness-0 filter dark:filter-none"
-                />
+                <Logo size={28} className="text-slate-900 dark:text-white" />
                 <span>
                   <span className="text-slate-900 dark:text-white">
                     Ultimate
