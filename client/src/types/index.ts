@@ -19,6 +19,19 @@ export enum BoardStatus {
   Draw = "Draw",
 }
 
+export enum RoomStatus {
+  loading = "loading",
+  connected = "connected",
+  disconnected = "disconnected",
+  opponentLeft = "opponent left",
+  connecting = "connecting",
+  internal = "internal",
+  error = "error",
+  auth = "auth required",
+  authFailed = "auth failed",
+  notFound = "room not found",
+}
+
 export type Board = [
   miniBoard,
   miniBoard,

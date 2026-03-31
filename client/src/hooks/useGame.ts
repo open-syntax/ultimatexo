@@ -1,22 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { Board, BoardStatus, socketEvent } from "@/types";
+import { Board, BoardStatus, socketEvent, RoomStatus } from "@/types";
 import { playerActions, GameAction } from "@/types/actions";
 import { GameStore, PlayerStore, RoomStore } from "@/store";
 import { marker } from "@/types/player";
-
-enum RoomStatus {
-  loading = "loading",
-  connected = "connected",
-  disconnected = "disconnected",
-  opponentLeft = "opponent left",
-  connecting = "connecting",
-  internal = "internal",
-  error = "error",
-  auth = "auth required",
-  authFailed = "auth failed",
-  notFound = "room not found",
-}
 
 interface room {
   status: RoomStatus;
@@ -42,6 +29,8 @@ const useGame = () => {
     message: "",
   });
 
+  const statusRef = useRef<RoomStatus>(RoomStatus.connecting);
+
   useEffect(() => {
     if (!ws) return;
 
@@ -54,7 +43,22 @@ const useGame = () => {
 
     // handle on message arrival
     ws.onmessage = (event) => {
-      const e: socketEvent = JSON.parse(event.data);
+      let e: socketEvent;
+      try {
+        e = JSON.parse(event.data);
+      } catch {
+        if (
+          typeof event.data === "string" &&
+          event.data.includes("Invalid room password")
+        ) {
+          setStatus({
+            status: RoomStatus.authFailed,
+            message: "Invalid password",
+          });
+          statusRef.current = RoomStatus.authFailed;
+        }
+        return;
+      }
       const eventName = e.event;
 
       switch (eventName) {
@@ -124,6 +128,7 @@ const useGame = () => {
             status,
             message,
           });
+          statusRef.current = status;
           break;
 
         case "RematchRequest":
@@ -170,6 +175,7 @@ const useGame = () => {
               status: RoomStatus.authFailed,
               message: "Invalid password",
             });
+            statusRef.current = RoomStatus.authFailed;
 
             break;
           }
@@ -177,17 +183,18 @@ const useGame = () => {
             status: RoomStatus.internal,
             message: e.data.error,
           });
+          statusRef.current = RoomStatus.internal;
           break;
       }
     };
 
     // handle on disconnection
     ws.onclose = () => {
-      setStatus((state) => ({
-        ...state,
+      if (statusRef.current === RoomStatus.authFailed) return;
+      setStatus({
         status: RoomStatus.disconnected,
         message: "Cannot connect",
-      }));
+      });
     };
   }, [ws]);
 

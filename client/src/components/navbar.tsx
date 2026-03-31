@@ -14,7 +14,7 @@ import { TooltipIcon } from "@/components/ui/tooltip-icon";
 
 const navbarStyles = tv({
   slots: {
-    base: "relative z-10 flex w-full items-center justify-between p-4 md:p-6",
+    base: "relative z-30 flex w-full items-center justify-between p-4 md:p-6",
     logoLink: "group text-xl font-bold tracking-tight md:text-2xl",
     logoText:
       "text-slate-900 transition group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-100",
@@ -133,15 +133,15 @@ export const Navbar = () => {
           </Link>
         </TooltipIcon>
 
-        <TooltipIcon label="Website">
+        <TooltipIcon label="Open Syntax">
           <Link
-            aria-label="Website"
+            aria-label="Open Syntax"
             className={iconButton()}
             rel="noopener noreferrer"
             target="_blank"
             to={siteConfig.links.website}
           >
-            <OpenSyntaxIcon size={20} />
+            <OpenSyntaxIcon size={28} />
           </Link>
         </TooltipIcon>
 

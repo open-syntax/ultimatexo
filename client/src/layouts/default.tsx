@@ -30,7 +30,7 @@ export default function DefaultLayout({
 
       <Navbar />
 
-      <main className="relative z-20 container mx-auto flex min-h-0 max-w-7xl grow flex-col items-stretch justify-stretch px-4 py-8 sm:px-6">
+      <main className="container mx-auto flex min-h-0 max-w-7xl grow flex-col items-stretch justify-stretch px-4 py-8 sm:px-6">
         {children}
       </main>
 
@@ -39,8 +39,7 @@ export default function DefaultLayout({
           Made by{" "}
           <Link
             className="text-blue-500 underline-offset-4 transition-colors hover:text-blue-400 hover:underline"
-            title="Open Syntax Team"
-            to="https://github.com/open-syntax"
+            to="https://opensyntax.dev"
             target="_blank"
             rel="noopener noreferrer"
           >

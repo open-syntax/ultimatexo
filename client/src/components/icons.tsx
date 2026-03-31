@@ -399,19 +399,19 @@ export const OpenSyntaxIcon = ({ size = 24, ...props }: IconSvgProps) => (
     {...props}
   >
     <path
-      fill="#2594a6"
+      fill="currentColor"
       d="m 669.67396,466.17808 c 17.40766,-12.236 70.7828,1.95262 89.80893,11.459 33.68002,46.94067 57.32497,89.71935 44.90444,150.49391 -48.35422,236.61545 -391.10466,279.92789 -522.11822,88.18225 -27.28732,-39.88352 -30.68978,-62.7576 -43.42792,-105.66465 27.7029,21.55319 55.04766,31.33658 88.78852,39.1099 32.98061,7.02675 58.62244,1.96277 89.05205,-10.4016 31.83859,36.47149 58.41635,61.07186 101.31041,78.50359 98.01944,39.83622 193.87982,-30.62039 185.31115,-135.79181 -4.2607,-52.30194 -13.39363,-70.09852 -33.62936,-115.89059 z"
     />
     <path
-      fill="#34d0b6"
+      fill="currentColor"
       d="M 268.59166,539.49606 C 249.82909,517.77735 233.18842,493.12294 227.75867,465.47541 182.91503,237.15017 486.27185,118.97251 656.86149,227.9546 c 75.86793,48.46762 110.44334,97.32377 131.31429,181.11767 -23.2699,-18.23912 -64.65364,-32.85677 -94.41087,-36.40731 -19.62753,-6.80716 -61.08222,0.43917 -80.87194,9.84082 -27.62182,-27.22525 -48.82051,-50.38986 -83.47365,-67.93644 -53.86507,-27.27255 -121.50559,-33.21487 -166.32219,14.04334 -62.35605,65.76087 -38.0894,155.21333 -4.01403,226.8726 -18.45509,12.9015 -71.94513,-5.67882 -90.49144,-15.98922 z"
     />
     <path
-      fill="#0d6e6c"
+      fill="currentColor"
       d="m 612.89297,382.50578 c 19.78972,-9.40165 61.24441,-16.64798 80.87194,-9.84082 1.29071,4.41875 24.87485,30.57985 30.91955,39.99501 14.65391,22.82003 25.34111,38.94775 34.79843,64.97711 -19.02613,-9.50638 -72.40127,-23.695 -89.80893,-11.459 -2.30774,-2.43572 -15.29252,-24.999 -18.37738,-30.20824 -12.91721,-21.8302 -21.47913,-34.89048 -38.40361,-53.46406 z"
     />
     <path
-      fill="#0d6e6c"
+      fill="currentColor"
       d="m 268.59166,539.49606 c 18.54631,10.3104 72.03635,28.89072 90.49144,15.98922 5.73723,5.17884 19.32007,33.22501 25.19583,41.95776 10.50473,15.60073 19.72552,27.82658 32.40283,41.91385 -30.42961,12.36437 -56.07144,17.42835 -89.05205,10.4016 l 3.47342,-1.90531 c -1.16232,-5.53019 -19.48564,-26.3503 -25.00999,-34.27903 -17.63067,-25.30979 -27.93269,-44.86305 -37.50148,-74.07809 z"
     />
   </svg>
@@ -518,5 +518,118 @@ export const HashIcon = ({ size = 24, ...props }: IconSvgProps) => (
     <line x1="4" y1="15" x2="20" y2="15" />
     <line x1="10" y1="3" x2="8" y2="21" />
     <line x1="16" y1="3" x2="14" y2="21" />
+  </svg>
+);
+
+export const Check = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M20 6L9 17l-5-5" />
+  </svg>
+);
+
+export const AlertCircle = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <circle cx={12} cy={12} r={10} />
+    <line x1={12} y1={8} x2={12} y2={12} />
+    <line x1={12} y1={16} x2={12.01} y2={16} />
+  </svg>
+);
+
+export const WifiOff = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <line x1={1} y1={1} x2={23} y2={23} />
+    <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
+    <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
+    <path d="M10.71 5.05A16 16 0 0 1 22.56 9" />
+    <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" />
+    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+    <line x1={12} y1={20} x2={12.01} y2={20} />
+  </svg>
+);
+
+export const Copy = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <rect x={9} y={9} width={13} height={13} rx={2} ry={2} />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+);
+
+export const RefreshCw = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M23 4v6h-6" />
+    <path d="M1 20v-6h6" />
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+  </svg>
+);
+
+export const MessageCircle = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
   </svg>
 );
