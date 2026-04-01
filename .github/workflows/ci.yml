@@ -92,7 +92,7 @@ jobs:
 
       - name: Format check
         if: needs.changes.outputs.server == 'true'
-        run: cargo fmt --manifest-path server/Cargo.toml --check
+        run: cargo fmt --manifest-path server/Cargo.toml --all --check
 
       - name: Clippy
         if: needs.changes.outputs.server == 'true'
