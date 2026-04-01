@@ -1,7 +1,7 @@
 name: PR Labeler
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
 
 permissions:
@@ -18,36 +18,28 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           configuration-path: .github/labeler.yml
 
-  size-label:
-    name: Add Size Label
-    runs-on: ubuntu-latest
-    steps:
       - uses: codelytv/pr-size-labeler@v1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          xs_label: 'size/xs'
+          xs_label: "size/xs"
           xs_max_size: 10
-          s_label: 'size/s'
+          s_label: "size/s"
           s_max_size: 100
-          m_label: 'size/m'
+          m_label: "size/m"
           m_max_size: 500
-          l_label: 'size/l'
+          l_label: "size/l"
           l_max_size: 1000
-          xl_label: 'size/xl'
+          xl_label: "size/xl"
           fail_if_xl: false
-          message_if_xl: >
-            This PR is very large. Consider breaking it into smaller PRs for easier review.
-          files_to_ignore: 'pnpm-lock.yaml Cargo.lock'
+          message_if_xl: "This PR is very large. Consider breaking it into smaller PRs for easier review."
+          files_to_ignore: "pnpm-lock.yaml Cargo.lock"
 
-  auto-label-dependencies:
-    name: Label Dependency Updates
-    runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]' || github.actor == 'renovate[bot]'
-    steps:
-      - uses: actions/github-script@v8
+      - name: Label dependency updates
+        if: github.actor == 'dependabot[bot]' || github.actor == 'renovate[bot]'
+        uses: actions/github-script@v8
         with:
           script: |
-            github.rest.issues.addLabels({
+            await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,

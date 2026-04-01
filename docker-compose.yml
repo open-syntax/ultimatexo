@@ -23,10 +23,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2'
+          cpus: "2"
           memory: 1G
         reservations:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 256M
 
     security_opt:
@@ -64,6 +64,8 @@ services:
     depends_on:
       server:
         condition: service_healthy
+      client-builder:
+        condition: service_completed_successfully
 
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost"]
@@ -77,10 +79,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
+          cpus: "1"
           memory: 512M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
   client-builder:
