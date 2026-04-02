@@ -12,8 +12,16 @@ import {
 import DefaultLayout from "@/layouts/default";
 import { HomeButton } from "@/components/home-button";
 import { Footer } from "@/components/footer";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 export default function IndexPage() {
+  usePageMeta({
+    title: "Play Ultimate Tic-Tac-Toe Online",
+    description:
+      "Play Ultimate Tic-Tac-Toe online for free. Challenge friends, join public rooms, or practice against AI. Nine boards, one champion.",
+    path: "/",
+  });
+
   const navigate = useNavigate();
   const [roomId, setRoomId] = useState("");
   const prefersReducedMotion = useReducedMotion();
@@ -150,6 +158,42 @@ export default function IndexPage() {
             </button>
           </div>
         </motion.form>
+      </section>
+
+      <section className="relative z-10 mx-auto w-full max-w-4xl px-4 py-12 md:py-16">
+        <div className="space-y-6 text-center">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            <span className="text-slate-900 dark:text-white">What is </span>
+            <span className="text-blue-500">Ultimate Tic-Tac-Toe</span>
+            <span className="text-slate-900 dark:text-white">?</span>
+          </h2>
+          <p className="mx-auto max-w-2xl text-lg leading-relaxed text-slate-600 dark:text-slate-300">
+            Ultimate Tic-Tac-Toe is a strategic board game played on a 3x3 grid
+            of 3x3 boards. Each move you make sends your opponent to a specific
+            local board. Win local boards to claim squares on the global grid,
+            and get three in a row to win the game.
+          </p>
+          <div className="grid grid-cols-1 gap-6 pt-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-slate-200 bg-white/50 p-6 backdrop-blur-sm dark:border-white/5 dark:bg-slate-900/50">
+              <p className="text-4xl font-black text-blue-500">9</p>
+              <p className="mt-1 text-sm tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                Local Boards
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white/50 p-6 backdrop-blur-sm dark:border-white/5 dark:bg-slate-900/50">
+              <p className="text-4xl font-black text-blue-500">3</p>
+              <p className="mt-1 text-sm tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                Modes of Play
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white/50 p-6 backdrop-blur-sm dark:border-white/5 dark:bg-slate-900/50">
+              <p className="text-4xl font-black text-blue-500">0</p>
+              <p className="mt-1 text-sm tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                Cost to Play
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
 
       <Footer />

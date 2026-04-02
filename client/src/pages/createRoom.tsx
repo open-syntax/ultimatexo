@@ -14,6 +14,7 @@ import {
   X,
 } from "@/components/icons";
 import DefaultLayout from "@/layouts/default";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 type Mode = "Online" | "Local" | "Bot";
 type Difficulty = "Beginner" | "Medium" | "Hard" | "Expert";
@@ -66,6 +67,13 @@ const parseModeFromQuery = (value: string | null): Mode => {
 const CreateRoom = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  usePageMeta({
+    title: "Create a Game Room",
+    description:
+      "Create an Ultimate Tic-Tac-Toe room. Play online with friends, locally on one device, or practice against AI with adjustable difficulty.",
+    path: "/create",
+  });
 
   const [mode, setMode] = useState<Mode>("Online");
   const [isLoading, setIsLoading] = useState(false);

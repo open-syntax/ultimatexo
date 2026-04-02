@@ -5,6 +5,7 @@ import { Button } from "@heroui/button";
 import { motion, useReducedMotion } from "framer-motion";
 
 import DefaultLayout from "@/layouts/default";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 interface Status {
   state: "loading" | "notfound" | "completed" | "error";
@@ -14,6 +15,13 @@ interface Status {
 function Quick() {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
+
+  usePageMeta({
+    title: "Quick Play - Instant Game Match",
+    description:
+      "Jump into a random Ultimate Tic-Tac-Toe game instantly. No setup required - we'll match you with an active room or AI opponent.",
+    path: "/quick",
+  });
 
   const [status, setStatus] = useState<Status>({
     state: "loading",

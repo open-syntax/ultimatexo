@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
       tsconfigPaths(),
       sitemap({
         base: "https://ultimatexo.com/",
-        urls: ["instructions", "rooms", "create"],
+        urls: ["instructions", "rooms", "create", "quick"],
       }),
     ],
 

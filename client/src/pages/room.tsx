@@ -23,6 +23,7 @@ import useGame from "@/hooks/useGame";
 import { RoomStore } from "@/store";
 import Actions from "@/components/room/actions";
 import { RoomStatus } from "@/types";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 interface roomResponse {
   id: string;
@@ -49,6 +50,12 @@ function RoomPage() {
       };
     } | null;
   };
+
+  usePageMeta({
+    title: `Room ${roomId} - Live Game`,
+    description: `Join Ultimate Tic-Tac-Toe room ${roomId}. Play a live multiplayer game online.`,
+    path: `/room/${roomId}`,
+  });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [copiedField, setCopiedField] = useState<"id" | "link" | null>(null);

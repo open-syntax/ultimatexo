@@ -9,6 +9,7 @@ import { Controller, SearchIcon } from "@/components/icons";
 import RoomCard from "@/components/roomCard";
 import DefaultLayout from "@/layouts/default";
 import { Footer } from "@/components/footer";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 export type room = {
   id: string;
@@ -19,6 +20,13 @@ export type room = {
 const AUTO_REFRESH_MS = 15000;
 
 export default function RoomsPage() {
+  usePageMeta({
+    title: "Find a Game Room",
+    description:
+      "Browse active Ultimate Tic-Tac-Toe rooms, filter by privacy, and jump straight into a live multiplayer game.",
+    path: "/rooms",
+  });
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState<string>(() => searchParams.get("q") ?? "");
   const [protectedOnly, setProtectedOnly] = useState<boolean>(
