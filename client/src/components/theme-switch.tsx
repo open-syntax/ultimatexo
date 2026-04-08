@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "@heroui/use-theme";
 
 import { SunFilledIcon, MoonFilledIcon } from "@/components/icons";
@@ -8,7 +8,7 @@ export interface ThemeSwitchProps {
   className?: string;
 }
 
-export const ThemeSwitch: FC<ThemeSwitchProps> = ({ className }) => {
+export const ThemeSwitch = ({ className }: ThemeSwitchProps) => {
   const [isMounted, setIsMounted] = useState(false);
 
   const { setTheme: setCurrentTheme } = PlayerStore();

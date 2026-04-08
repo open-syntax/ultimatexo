@@ -6,7 +6,7 @@ import { O, X } from "../icons";
 import Cell from "./cell";
 
 import { GameStore, PlayerStore } from "@/store";
-import { boardCell, BoardStatus, miniBoard } from "@/types/index";
+import { BoardStatus, miniBoard } from "@/types";
 
 interface MiniBoardProps {
   board: miniBoard;
@@ -81,7 +81,7 @@ function MiniBoard({ board, status, index }: MiniBoardProps) {
           board={index}
           boardStatus={status}
           index={position}
-          mark={board.cells[position] as boardCell}
+          mark={board.cells[position]}
         />
       ))}
     </motion.div>

@@ -2,7 +2,7 @@ import { SVGProps } from "react";
 
 import { playerActions, GameAction } from "./actions";
 
-import { marker, Player } from "@/types/player";
+import { Marker, Player } from "@/types/player";
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
@@ -45,20 +45,18 @@ export type Board = [
 ];
 
 export type miniBoard = {
-  cells: boardCell[];
+  cells: Marker[];
   status: "InProgress" | "Draw" | "X" | "O";
 };
 
-export type boardCell = {
-  cells: marker;
-};
+export type boardCell = Marker;
 
 export type socketEvent =
   | {
       event: "GameUpdate";
       data: {
         board: { boards: Board; status: BoardStatus | null };
-        next_player: { marker: marker };
+        next_player: { marker: Marker };
         next_board: number | null;
         last_move: [number, number] | null;
         score: [number, number];
@@ -75,21 +73,21 @@ export type socketEvent =
       event: "RematchRequest";
       data: {
         action: GameAction;
-        player: marker;
+        player: Marker;
       };
     }
   | {
       event: "DrawRequest";
       data: {
         action: GameAction;
-        player: marker;
+        player: Marker;
       };
     }
   | {
       event: "TextMessage";
       data: {
         content: string;
-        player: { marker: marker };
+        player: { marker: Marker };
       };
     }
   | {

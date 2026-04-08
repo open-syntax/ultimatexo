@@ -3,7 +3,7 @@ import { cn } from "@heroui/theme";
 import { O, X } from "../icons";
 
 import { boardCell, BoardStatus } from "@/types";
-import { GameStore, PlayerStore } from "@/store";
+import { GameStore, PlayerStore, RoomStore } from "@/store";
 
 interface CellProps {
   mark: boardCell;
@@ -15,6 +15,7 @@ interface CellProps {
 function Cell({ boardStatus, mark, board, index }: CellProps) {
   const { player } = PlayerStore();
   const { playMove, move, nextPlayer } = GameStore();
+  const { ws } = RoomStore();
 
   const isAvailable =
     boardStatus === null &&
@@ -24,17 +25,14 @@ function Cell({ boardStatus, mark, board, index }: CellProps) {
 
   const handleClick = () => {
     if (!isAvailable) return;
-    playMove([board, index]);
+    playMove([board, index], ws);
   };
 
   let defaultClasses =
     "w-full h-full flex items-center justify-center rounded-lg border border-foreground-100/70 bg-content1/70 text-3xl transition-all duration-200";
   let uxClasses = "";
 
-  if (
-    mark === ("X" as unknown as boardCell) ||
-    mark === ("O" as unknown as boardCell)
-  ) {
+  if (mark === "X" || mark === "O") {
     uxClasses = "text-default-800 pointer-events-none";
   }
 
@@ -62,9 +60,9 @@ function Cell({ boardStatus, mark, board, index }: CellProps) {
     >
       {mark ? (
         <div
-          className={`flex h-full w-full items-center justify-center rounded-xl text-8xl font-bold ${mark === ("X" as unknown as boardCell) ? "text-primary" : "text-danger"}`}
+          className={`flex h-full w-full items-center justify-center rounded-xl text-8xl font-bold ${mark === "X" ? "text-primary" : "text-danger"}`}
         >
-          {mark === ("X" as unknown as boardCell) ? (
+          {mark === "X" ? (
             <X className="scale-[1.5] max-sm:scale-110" strokeWidth={3} />
           ) : (
             <O className="scale-[1.5] max-sm:scale-110" strokeWidth={3} />

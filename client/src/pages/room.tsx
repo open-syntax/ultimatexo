@@ -1,5 +1,5 @@
 import { useLocation, useParams, Link } from "react-router-dom";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Spinner } from "@heroui/spinner";
 import { button as buttonStyles } from "@heroui/theme";
 import { Button } from "@heroui/button";
@@ -12,7 +12,6 @@ import {
   Copy,
   AlertCircle,
   WifiOff,
-  RefreshCw,
 } from "@/components/icons";
 import Board from "@/components/room/board";
 import DefaultLayout from "@/layouts/default";
@@ -60,13 +59,21 @@ function RoomPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [copiedField, setCopiedField] = useState<"id" | "link" | null>(null);
   const [password, setPassword] = useState("");
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   const handleCopy = async (text: string, field: "id" | "link") => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedField(field);
-      setTimeout(() => setCopiedField(null), 2000);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopiedField(null), 2000);
     } catch {
       setCopiedField(null);
     }
@@ -119,30 +126,43 @@ function RoomPage() {
   useEffect(() => {
     if (!roomId) return;
 
-    const checkRoom = () => {
-      fetch(`/api/room/${roomId}`)
-        .then((response) => {
-          if (response.ok) {
-            const res = response.json();
+    const controller = new AbortController();
 
-            res.then((data: roomResponse) => {
-              if (!data.is_protected) {
-                handleWebSocket("");
-              } else {
-                setStatus({ status: RoomStatus.auth, message: "" });
-              }
-            });
-          } else if (response.status === 404) {
-            return setStatus({
-              status: RoomStatus.notFound,
-              message: "Room Not Found",
-            });
+    const checkRoom = async () => {
+      try {
+        const response = await fetch(`/api/room/${roomId}`, {
+          signal: controller.signal,
+        });
+
+        if (response.ok) {
+          const data = (await response.json()) as roomResponse;
+          if (!data.is_protected) {
+            handleWebSocket("");
+          } else {
+            setStatus({ status: RoomStatus.auth, message: "" });
           }
-        })
-        .finally(() => setIsLoading(false));
+        } else if (response.status === 404) {
+          setStatus({
+            status: RoomStatus.notFound,
+            message: "Room Not Found",
+          });
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          // silently ignore aborted requests
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
     };
 
     checkRoom();
+
+    return () => {
+      controller.abort();
+    };
   }, [roomId, handleWebSocket, setStatus]);
 
   const motionProps = {
@@ -221,18 +241,6 @@ function RoomPage() {
               </p>
             </div>
             <div className="flex gap-3">
-              {isDisconnected && (
-                <Button
-                  color="primary"
-                  startContent={<RefreshCw size={16} />}
-                  onPress={() => {
-                    setStatus({ status: RoomStatus.connecting, message: "" });
-                    handleWebSocket("");
-                  }}
-                >
-                  Reconnect
-                </Button>
-              )}
               <Link className={buttonStyles({ variant: "bordered" })} to="/">
                 Home
               </Link>

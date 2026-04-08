@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spinner } from "@heroui/spinner";
 import { Button } from "@heroui/button";
@@ -29,6 +29,8 @@ function Quick() {
   });
   const [isCreatingBot, setIsCreatingBot] = useState(false);
   const attempts = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const controllerRef = useRef<AbortController | null>(null);
 
   const motionProps = {
     initial: { opacity: 0, y: prefersReducedMotion ? 0 : 8 },
@@ -39,11 +41,22 @@ function Quick() {
     },
   };
 
-  const fetchRooms = async () => {
+  const fetchRooms = useCallback(async () => {
+    if (controllerRef.current) {
+      controllerRef.current.abort();
+    }
+    controllerRef.current = new AbortController();
+    const controller = controllerRef.current;
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
     attempts.current++;
 
     try {
-      const res = await fetch("/api/rooms");
+      const res = await fetch("/api/rooms", { signal: controller.signal });
 
       if (!res.ok) {
         throw new Error("Failed to fetch rooms");
@@ -62,7 +75,7 @@ function Quick() {
             message: `Attempt ${attempts.current} of 3 — retrying in 5s...`,
           });
 
-          setTimeout(() => fetchRooms(), 5000);
+          timerRef.current = setTimeout(() => fetchRooms(), 5000);
         } else {
           setStatus({
             state: "notfound",
@@ -76,17 +89,36 @@ function Quick() {
         navigate(`/room/${room.id}`);
       }
     } catch {
+      if (controller.signal.aborted) return;
       setStatus({
         state: "error",
         message:
           "Unable to connect. Please check your connection and try again.",
       });
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     fetchRooms();
+
+    return () => {
+      if (controllerRef.current) {
+        controllerRef.current.abort();
+      }
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
   }, []);
+
+  const handleRetry = useCallback(() => {
+    attempts.current = 0;
+    setStatus({
+      state: "loading",
+      message: "Searching for available rooms",
+    });
+    fetchRooms();
+  }, [fetchRooms]);
 
   const createBotRoom = async () => {
     setIsCreatingBot(true);
@@ -171,17 +203,7 @@ function Quick() {
                 {status.message}
               </p>
             </div>
-            <Button
-              color="primary"
-              onPress={() => {
-                attempts.current = 0;
-                setStatus({
-                  state: "loading",
-                  message: "Searching for available rooms",
-                });
-                fetchRooms();
-              }}
-            >
+            <Button color="primary" onPress={handleRetry}>
               Try Again
             </Button>
           </motion.div>
@@ -204,17 +226,7 @@ function Quick() {
               >
                 Yes, play vs AI
               </Button>
-              <Button
-                variant="bordered"
-                onPress={() => {
-                  attempts.current = 0;
-                  setStatus({
-                    state: "loading",
-                    message: "Searching for available rooms",
-                  });
-                  fetchRooms();
-                }}
-              >
+              <Button variant="bordered" onPress={handleRetry}>
                 Retry
               </Button>
             </div>

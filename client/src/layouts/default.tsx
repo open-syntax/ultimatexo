@@ -1,7 +1,4 @@
-import { useEffect } from "react";
-
 import { Navbar } from "@/components/navbar";
-import { RoomStore } from "@/store";
 
 export default function DefaultLayout({
   children,
@@ -10,15 +7,6 @@ export default function DefaultLayout({
   children: React.ReactNode;
   pageScrollable?: boolean;
 }) {
-  useEffect(() => {
-    return () => {
-      const { ws } = RoomStore.getState();
-
-      if (!ws) return;
-      ws.close();
-    };
-  }, []);
-
   return (
     <div
       className={`relative flex h-dvh flex-col selection:bg-blue-500 selection:text-white ${pageScrollable ? "overflow-y-auto" : "overflow-hidden"}`}

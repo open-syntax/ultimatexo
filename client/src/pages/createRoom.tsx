@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { button as buttonStyles, cn } from "@heroui/theme";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -91,33 +91,36 @@ const CreateRoom = () => {
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
-    setMode(parseModeFromQuery(searchParams.get("mode")));
-  }, [searchParams]);
+    const urlMode = parseModeFromQuery(searchParams.get("mode"));
+    if (urlMode !== mode) {
+      setMode(urlMode);
+    }
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
+    const currentMode = params.get("mode");
+    const expectedMode = modeQueryMap[mode];
 
-    params.set("mode", modeQueryMap[mode]);
-    setSearchParams(params, { replace: true });
+    if (currentMode !== expectedMode) {
+      params.set("mode", expectedMode);
+      setSearchParams(params, { replace: true });
+    }
   }, [mode, searchParams, setSearchParams]);
 
-  const title = useMemo(() => {
-    if (mode === "Online") return "Create Online Room";
-    if (mode === "Local") return "Create Local Match";
-    return "Create Bot Match";
-  }, [mode]);
+  const title =
+    mode === "Online"
+      ? "Create Online Room"
+      : mode === "Local"
+        ? "Create Local Match"
+        : "Create Bot Match";
 
-  const helperCopy = useMemo(() => {
-    if (mode === "Online") {
-      return "Start a room and invite others. Choose public visibility or lock it with a password.";
-    }
-
-    if (mode === "Local") {
-      return "Set player names and play together on this device with alternating turns.";
-    }
-
-    return "Pick your preferred difficulty and train against an AI opponent.";
-  }, [mode]);
+  const helperCopy =
+    mode === "Online"
+      ? "Start a room and invite others. Choose public visibility or lock it with a password."
+      : mode === "Local"
+        ? "Set player names and play together on this device with alternating turns."
+        : "Pick your preferred difficulty and train against an AI opponent.";
 
   const handleCreate = async () => {
     setIsLoading(true);

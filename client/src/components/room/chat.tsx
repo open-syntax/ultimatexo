@@ -9,13 +9,13 @@ import { cn } from "@heroui/theme";
 import { Chat as ChatIcon, X, MessageCircle } from "../icons";
 
 import { Message } from "@/types/messages";
-import { marker, Player } from "@/types/player";
+import { Marker, Player } from "@/types/player";
 import { PlayerStore, RoomStore } from "@/store";
 import useWindowSize from "@/hooks/useWindowSize";
 
 interface props {
   chat: Message[];
-  marker?: marker;
+  marker?: Marker;
   className?: string;
   handleMessageSend: (e: React.FormEvent<HTMLFormElement>) => void;
 
@@ -42,15 +42,12 @@ const ChatLayout = ({
   setInput,
 }: props) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const boardRef = useRef<HTMLDivElement>(null);
   const [boardHeight, setBoardHeight] = useState<number | undefined>();
 
   useEffect(() => {
-    boardRef.current = document.getElementById(
-      "board",
-    ) as HTMLDivElement | null;
-    if (boardRef.current) {
-      setBoardHeight(boardRef.current.offsetHeight);
+    const board = document.getElementById("board") as HTMLDivElement | null;
+    if (board) {
+      setBoardHeight(board.offsetHeight);
     }
   }, []);
 
@@ -217,23 +214,13 @@ const Chat = () => {
   const [input, setInput] = useState<string>("");
   const [isRead, setIsRead] = useState<boolean>(true);
 
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (!chat.length) return;
-
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
     if (!isOpen) {
       setIsRead(false);
     }
   }, [chat, isOpen]);
-
-  useEffect(() => {
-    if (isOpen && chat.length) {
-      chatEndRef.current?.scrollIntoView({ behavior: "instant" });
-    }
-  }, [isOpen, chat.length]);
 
   const handleMessageSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

@@ -25,17 +25,25 @@ interface DuringGameActionsProps {
 
 function Actions({ drawStatus, rematchStatus, boardStatus }: ActionsParams) {
   const { draw, resign, rematch } = GameStore();
+  const { ws } = RoomStore();
+
+  const handleDraw = (action: GameAction) => draw(action, ws);
+  const handleResign = () => resign(ws);
+  const handleRematch = (action: GameAction) => rematch(action, ws);
 
   return (
     <div className="mx-auto flex w-full max-w-[min(100%,40rem)] items-center justify-center gap-3">
       {!boardStatus ? (
         <DuringGameActions
-          draw={draw}
+          draw={handleDraw}
           drawStatus={drawStatus}
-          resign={resign}
+          resign={handleResign}
         />
       ) : (
-        <PostGameActions rematch={rematch} rematchStatus={rematchStatus} />
+        <PostGameActions
+          rematch={handleRematch}
+          rematchStatus={rematchStatus}
+        />
       )}
     </div>
   );

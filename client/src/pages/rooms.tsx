@@ -40,7 +40,10 @@ export default function RoomsPage() {
   const prefersReducedMotion = useReducedMotion();
 
   const fetchRooms = useCallback(
-    async (name: string, options?: { silent?: boolean }) => {
+    async (
+      name: string,
+      options?: { silent?: boolean; signal?: AbortSignal },
+    ) => {
       const searchName = name.trim();
       const silent = options?.silent ?? false;
 
@@ -58,7 +61,7 @@ export default function RoomsPage() {
         }
 
         const endpoint = params.size ? `/api/rooms?${params}` : "/api/rooms";
-        const response = await fetch(endpoint);
+        const response = await fetch(endpoint, { signal: options?.signal });
 
         if (!response.ok) {
           throw new Error("Could not load rooms. Please try again.");
@@ -70,6 +73,7 @@ export default function RoomsPage() {
         setError(null);
         setLastUpdated(Date.now());
       } catch {
+        if (options?.signal?.aborted) return;
         setError("Unable to fetch rooms right now.");
       } finally {
         setIsLoading(false);

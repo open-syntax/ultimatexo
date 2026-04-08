@@ -5,7 +5,7 @@ import { cn } from "@heroui/theme";
 
 import { BoardStatus } from "@/types";
 import { GameAction } from "@/types/actions";
-import { GameStore } from "@/store";
+import { GameStore, RoomStore } from "@/store";
 import { Player } from "@/types/player";
 
 interface GameStatusProps {
@@ -58,15 +58,18 @@ const GameStatus = ({
   playerNames,
 }: GameStatusProps) => {
   const { rematch } = GameStore();
+  const { ws } = RoomStore();
 
   const [currentOpenModal, setCurrentOpenModal] = useState<string>("");
+
+  const handleRematch = (action: GameAction) => rematch(action, ws);
 
   return (
     <>
       <ScoreBoard player={player} playerNames={playerNames} score={score} />
       <RematchModal
         openModal={currentOpenModal}
-        rematch={rematch}
+        rematch={handleRematch}
         rematchStatus={rematchStatus}
         setOpenModal={setCurrentOpenModal}
       />
@@ -74,7 +77,7 @@ const GameStatus = ({
         boardStatus={boardStatus}
         openModal={currentOpenModal}
         player={player}
-        rematch={rematch}
+        rematch={handleRematch}
         setOpenModal={setCurrentOpenModal}
       />
       <RematchStatusModal
@@ -129,7 +132,7 @@ const ScoreBoard = ({ player, score, playerNames }: ScoreBoardProps) => {
 
       <div className="border-foreground-100/60 flex h-full flex-col items-center justify-center border-r px-4 py-3.5 text-center md:py-4">
         <p className="text-foreground-900 dark:text-foreground text-4xl font-black tracking-tight">
-          {score[player.marker === "X" ? 0 : 1]} :
+          {score[player.marker === "X" ? 0 : 1]} :{" "}
           {score[player.marker === "X" ? 1 : 0]}
         </p>
         <p className="text-foreground-500 mt-1 text-xs font-bold tracking-[0.12em] uppercase">
