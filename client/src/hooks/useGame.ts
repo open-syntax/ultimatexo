@@ -188,7 +188,7 @@ const useGame = () => {
           break;
 
         case "Ping":
-          ws.send(JSON.stringify({ Ping: "Pong" }));
+          ws.send(JSON.stringify("Pong"));
           break;
 
         case "Error":
