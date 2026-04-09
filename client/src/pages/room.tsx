@@ -12,6 +12,7 @@ import {
   Copy,
   AlertCircle,
   WifiOff,
+  RefreshCw,
 } from "@/components/icons";
 import Board from "@/components/room/board";
 import DefaultLayout from "@/layouts/default";
@@ -34,8 +35,17 @@ interface roomResponse {
 
 function RoomPage() {
   let { roomId } = useParams();
-  const { player, board, status, score, rematchStatus, drawStatus, setStatus } =
-    useGame();
+  const {
+    player,
+    board,
+    status,
+    score,
+    rematchStatus,
+    drawStatus,
+    setStatus,
+    disconnectOwner,
+    opponentReconnectSeconds,
+  } = useGame();
   const { setWs, setMode } = RoomStore();
   let { state } = useLocation() as unknown as {
     state: {
@@ -212,43 +222,129 @@ function RoomPage() {
 
   const isDisconnected = status.status === RoomStatus.disconnected;
   const isOpponentLeft = status.status === RoomStatus.opponentLeft;
+  const isSelfDisconnected = isDisconnected && disconnectOwner === "self";
+  const isOpponentDisconnected =
+    isDisconnected && disconnectOwner === "opponent";
+  const isUrgentCountdown =
+    opponentReconnectSeconds !== null && opponentReconnectSeconds <= 10;
 
   return (
     <DefaultLayout>
       {isErrorState ? (
         <RoomLayout>
-          <motion.div
-            {...motionProps}
-            className="border-danger/40 bg-danger/10 flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border p-6 text-center"
-          >
-            <div className="bg-danger/20 flex h-14 w-14 items-center justify-center rounded-full">
-              {isDisconnected ? (
-                <WifiOff className="text-danger" size={28} />
-              ) : (
-                <AlertCircle className="text-danger" size={28} />
-              )}
-            </div>
-            <div className="flex flex-col gap-1">
-              <h2 className="text-foreground-900 dark:text-foreground text-xl font-bold">
-                {isDisconnected
-                  ? "Connection Lost"
-                  : isOpponentLeft
-                    ? "Opponent Left"
-                    : "Something went wrong"}
-              </h2>
-              <p className="text-foreground-600 dark:text-foreground-400 text-sm">
-                {status.message}
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Link className={buttonStyles({ variant: "bordered" })} to="/">
-                Home
-              </Link>
-              <Link className={buttonStyles({ color: "primary" })} to="/rooms">
-                Rooms
-              </Link>
-            </div>
-          </motion.div>
+          {isOpponentDisconnected && opponentReconnectSeconds !== null ? (
+            <motion.div
+              {...motionProps}
+              className="border-warning/40 bg-warning/10 flex w-full max-w-md flex-col items-center gap-5 rounded-2xl border p-6 text-center"
+            >
+              <div className="relative">
+                <svg className="size-20 -rotate-90" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="6"
+                    className="text-warning/20"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeDasharray={283}
+                    strokeDashoffset={
+                      283 - (283 * opponentReconnectSeconds) / 60
+                    }
+                    className={`text-warning transition-all duration-1000 ${isUrgentCountdown ? "text-danger" : ""}`}
+                    style={{
+                      transformOrigin: "center",
+                      transition:
+                        "stroke-dashoffset 1s linear, stroke 0.3s ease",
+                    }}
+                  />
+                </svg>
+                <div
+                  className={`absolute inset-0 flex items-center justify-center text-2xl font-black ${isUrgentCountdown ? "text-danger animate-pulse" : "text-warning"}`}
+                >
+                  {opponentReconnectSeconds}
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <h2 className="text-foreground-900 dark:text-foreground text-xl font-bold">
+                  Waiting for opponent
+                </h2>
+                <p className="text-foreground-600 dark:text-foreground-400 text-sm">
+                  {isUrgentCountdown
+                    ? "Opponent is taking too long..."
+                    : "Opponent disconnected. Waiting for reconnection..."}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Link className={buttonStyles({ variant: "bordered" })} to="/">
+                  Home
+                </Link>
+                <Link
+                  className={buttonStyles({ color: "primary" })}
+                  to="/rooms"
+                >
+                  Rooms
+                </Link>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              {...motionProps}
+              className="border-danger/40 bg-danger/10 flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border p-6 text-center"
+            >
+              <div className="bg-danger/20 flex h-14 w-14 items-center justify-center rounded-full">
+                {isSelfDisconnected ? (
+                  <WifiOff className="text-danger" size={28} />
+                ) : (
+                  <AlertCircle className="text-danger" size={28} />
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                <h2 className="text-foreground-900 dark:text-foreground text-xl font-bold">
+                  {isSelfDisconnected
+                    ? "You're disconnected"
+                    : isOpponentLeft
+                      ? "Opponent Left"
+                      : "Something went wrong"}
+                </h2>
+                <p className="text-foreground-600 dark:text-foreground-400 text-sm">
+                  {status.message}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                {isSelfDisconnected && (
+                  <Button
+                    color="primary"
+                    startContent={<RefreshCw size={16} />}
+                    onPress={() => {
+                      setStatus({ status: RoomStatus.connecting, message: "" });
+                      handleWebSocket("");
+                    }}
+                  >
+                    Reconnect
+                  </Button>
+                )}
+                <Link className={buttonStyles({ variant: "bordered" })} to="/">
+                  Home
+                </Link>
+                <Link
+                  className={buttonStyles({ color: "primary" })}
+                  to="/rooms"
+                >
+                  Rooms
+                </Link>
+              </div>
+            </motion.div>
+          )}
         </RoomLayout>
       ) : (status.status === RoomStatus.auth &&
           !(state?.password && roomId === state?.roomId)) ||

@@ -1,6 +1,6 @@
 import { SVGProps } from "react";
 
-import { playerActions, GameAction } from "./actions";
+import { GameAction } from "./actions";
 
 import { Marker, Player } from "@/types/player";
 
@@ -51,6 +51,12 @@ export type miniBoard = {
 
 export type boardCell = Marker;
 
+export type PlayerAction =
+  | "Joined"
+  | "Left"
+  | "Reconnected"
+  | { Disconnected: number };
+
 export type socketEvent =
   | {
       event: "GameUpdate";
@@ -65,7 +71,7 @@ export type socketEvent =
   | {
       event: "PlayerUpdate";
       data: {
-        action: playerActions;
+        action: PlayerAction;
         player: Player;
       };
     }
