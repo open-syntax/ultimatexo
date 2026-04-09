@@ -195,7 +195,7 @@ impl RoomService {
         use rand::RngExt;
         let mut rng = rand::rng();
         loop {
-            let id = rng.random_range(10000..=99999).to_string();
+            let id = rng.random_range(100000..=999999).to_string();
             if !self.rooms.contains_key(&id) {
                 return id;
             }
