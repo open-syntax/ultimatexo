@@ -1,5 +1,4 @@
 import { cn } from "@heroui/theme";
-import { motion, useReducedMotion } from "framer-motion";
 
 import { O, X } from "../icons";
 
@@ -22,25 +21,13 @@ function MiniBoard({ board, status, index }: MiniBoardProps) {
     nextPlayer,
   } = GameStore();
   const { player } = PlayerStore();
-  const prefersReducedMotion = useReducedMotion();
 
   const isAvailable = status === null && [index, null].includes(nextMove);
-  const highlightClass =
+  const isActiveTurnBoard = isAvailable && player?.marker === nextPlayer;
+  const nextPlayerShadowClass =
     nextPlayer === "O"
-      ? "border-danger/70 bg-danger/10 shadow-[0_0_20px_2px_rgba(239,68,68,0.22)]"
-      : "border-primary/70 bg-primary/10 shadow-[0_0_20px_2px_rgba(37,99,235,0.22)]";
-  const pulseShadow =
-    nextPlayer === "O"
-      ? [
-          "0 0 0px rgba(239,68,68,0)",
-          "0 0 18px rgba(239,68,68,0.28)",
-          "0 0 0px rgba(239,68,68,0)",
-        ]
-      : [
-          "0 0 0px rgba(37,99,235,0)",
-          "0 0 18px rgba(37,99,235,0.28)",
-          "0 0 0px rgba(37,99,235,0)",
-        ];
+      ? "shadow-[0_0_30px_rgba(239,68,68,0.45)]"
+      : "shadow-[0_0_30px_rgba(37,99,235,0.45)]";
 
   if (board.status === "O" || board.status === "X") {
     return (
@@ -59,21 +46,11 @@ function MiniBoard({ board, status, index }: MiniBoardProps) {
   }
 
   return (
-    <motion.div
-      animate={
-        !prefersReducedMotion && isAvailable && player?.marker === nextPlayer
-          ? {
-              boxShadow: pulseShadow,
-            }
-          : undefined
-      }
+    <div
       className={cn(
-        "grid aspect-square h-full w-full grid-cols-3 grid-rows-3 place-items-center gap-2 rounded-2xl border p-2 transition-all duration-300 max-sm:gap-1 max-sm:p-1",
-        isAvailable && player?.marker === nextPlayer
-          ? highlightClass
-          : "border-foreground-100/70 bg-content2/70",
+        "border-foreground-100/70 bg-content2/70 grid aspect-square h-full w-full grid-cols-3 grid-rows-3 place-items-center gap-2 rounded-2xl border p-2 transition-all duration-300 max-sm:gap-1 max-sm:p-1",
+        isActiveTurnBoard ? nextPlayerShadowClass : "",
       )}
-      transition={{ duration: 1.7, ease: "easeInOut", repeat: Infinity }}
     >
       {MINI_BOARD_POSITIONS.map((position) => (
         <Cell
@@ -84,7 +61,7 @@ function MiniBoard({ board, status, index }: MiniBoardProps) {
           mark={board.cells[position]}
         />
       ))}
-    </motion.div>
+    </div>
   );
 }
 

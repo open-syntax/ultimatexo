@@ -25,9 +25,8 @@ function Quick() {
 
   const [status, setStatus] = useState<Status>({
     state: "loading",
-    message: "Searching for available rooms",
+    message: "Looking for games...",
   });
-  const [isCreatingBot, setIsCreatingBot] = useState(false);
   const attempts = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
@@ -72,7 +71,7 @@ function Quick() {
         if (attempts.current < 3) {
           setStatus({
             state: "loading",
-            message: `Attempt ${attempts.current} of 3 — retrying in 5s...`,
+            message: "Looking for games...",
           });
 
           timerRef.current = setTimeout(() => fetchRooms(), 5000);
@@ -115,41 +114,10 @@ function Quick() {
     attempts.current = 0;
     setStatus({
       state: "loading",
-      message: "Searching for available rooms",
+      message: "Looking for games...",
     });
     fetchRooms();
   }, [fetchRooms]);
-
-  const createBotRoom = async () => {
-    setIsCreatingBot(true);
-
-    try {
-      const res = await fetch(`/api/rooms`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          bot_level: "Beginner",
-          room_type: "BotRoom",
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to create bot room");
-      }
-
-      const data = (await res.json()) as { room_id: number };
-
-      navigate(`/room/${data.room_id}`);
-    } catch {
-      setStatus({
-        state: "error",
-        message: "Failed to create bot room. Please try again.",
-      });
-      setIsCreatingBot(false);
-    }
-  };
 
   return (
     <DefaultLayout>
@@ -168,7 +136,7 @@ function Quick() {
                 {status.message}
               </p>
               <p className="text-foreground-500 text-sm">
-                Looking for an active room to join
+                Finding an active room to join
               </p>
             </div>
           </motion.div>
@@ -221,8 +189,7 @@ function Quick() {
             <div className="flex gap-3">
               <Button
                 color="primary"
-                isLoading={isCreatingBot}
-                onPress={createBotRoom}
+                onPress={() => navigate("/create?mode=bot")}
               >
                 Yes, play vs AI
               </Button>

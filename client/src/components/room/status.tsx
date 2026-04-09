@@ -106,34 +106,23 @@ const ModalFrame = ({
   </ModalContent>
 );
 
-const ScoreBoard = ({ player, score, playerNames }: ScoreBoardProps) => {
-  const youName = playerNames
-    ? player.marker === "X"
-      ? (playerNames.player1 ?? "You")
-      : (playerNames.player2 ?? "You")
-    : "You";
-  const oppName = playerNames
-    ? player.marker === "X"
-      ? (playerNames.player2 ?? "Opp")
-      : (playerNames.player1 ?? "Opp")
-    : "Opp";
+const ScoreBoard = ({ player, score }: ScoreBoardProps) => {
+  const leftLabel = player.marker === "X" ? "You" : "Opp";
+  const rightLabel = player.marker === "O" ? "You" : "Opp";
   const round = score[0] + score[1] + 1;
 
   return (
     <div className="border-foreground-100/70 bg-content1/85 mx-auto grid w-full max-w-2xl grid-cols-3 items-center rounded-2xl border shadow-lg">
       <div className="border-foreground-100/60 flex h-full flex-col items-center justify-center gap-1 border-r px-4 py-3.5 text-center md:py-4">
-        <span className="text-primary text-4xl font-black">
-          {player.marker}
-        </span>
+        <span className="text-primary text-4xl font-black">X</span>
         <p className="text-foreground-900 dark:text-foreground text-sm font-bold tracking-[0.08em] uppercase">
-          {youName}
+          {leftLabel}
         </p>
       </div>
 
       <div className="border-foreground-100/60 flex h-full flex-col items-center justify-center border-r px-4 py-3.5 text-center md:py-4">
         <p className="text-foreground-900 dark:text-foreground text-4xl font-black tracking-tight">
-          {score[player.marker === "X" ? 0 : 1]} :{" "}
-          {score[player.marker === "X" ? 1 : 0]}
+          {score[0]} : {score[1]}
         </p>
         <p className="text-foreground-500 mt-1 text-xs font-bold tracking-[0.12em] uppercase">
           Round {round}
@@ -141,11 +130,9 @@ const ScoreBoard = ({ player, score, playerNames }: ScoreBoardProps) => {
       </div>
 
       <div className="flex h-full flex-col items-center justify-center gap-1 px-4 py-3.5 text-center md:py-4">
-        <span className="text-danger text-4xl font-black">
-          {player.marker === "X" ? "O" : "X"}
-        </span>
+        <span className="text-danger text-4xl font-black">O</span>
         <p className="text-foreground-900 dark:text-foreground text-sm font-bold tracking-[0.08em] uppercase">
-          {oppName}
+          {rightLabel}
         </p>
       </div>
     </div>

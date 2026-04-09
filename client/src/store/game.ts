@@ -51,7 +51,7 @@ const GameStore = create<Store>((set) => ({
   },
 
   resign: (ws) => {
-    ws?.send(JSON.stringify({ Resign: true }));
+    ws?.send(JSON.stringify("Resign"));
   },
   draw: (action, ws) => {
     ws?.send(
