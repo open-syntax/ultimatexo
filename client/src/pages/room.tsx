@@ -70,6 +70,7 @@ function RoomPage() {
   const [copiedField, setCopiedField] = useState<"id" | "link" | null>(null);
   const [password, setPassword] = useState("");
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const attemptedPasswordRef = useRef("");
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -91,6 +92,8 @@ function RoomPage() {
 
   const handleWebSocket = useCallback(
     (password: string) => {
+      attemptedPasswordRef.current = password;
+
       const existingWs = RoomStore.getState().ws;
       if (existingWs) {
         existingWs.close();
@@ -127,6 +130,7 @@ function RoomPage() {
 
     if (state.password && roomId === state.roomId) {
       setIsLoading(false);
+      setPassword(state.password);
       handleWebSocket(state.password);
     }
 
@@ -135,8 +139,15 @@ function RoomPage() {
 
   useEffect(() => {
     if (!roomId) return;
+    if (state?.password && roomId === state.roomId) return;
 
     const controller = new AbortController();
+    const currentWs = RoomStore.getState().ws;
+
+    if (currentWs) {
+      currentWs.close();
+      setWs(undefined);
+    }
 
     const checkRoom = async () => {
       try {
@@ -149,9 +160,19 @@ function RoomPage() {
           if (!data.is_protected) {
             handleWebSocket("");
           } else {
-            setStatus({ status: RoomStatus.auth, message: "" });
+            const storedPassword = sessionStorage.getItem(
+              `roomPassword:${roomId}`,
+            );
+            if (storedPassword) {
+              setPassword(storedPassword);
+              handleWebSocket(storedPassword);
+            } else {
+              setStatus({ status: RoomStatus.auth, message: "" });
+            }
           }
         } else if (response.status === 404) {
+          setWs(undefined);
+          sessionStorage.removeItem(`roomPassword:${roomId}`);
           setStatus({
             status: RoomStatus.notFound,
             message: "Room Not Found",
@@ -173,7 +194,25 @@ function RoomPage() {
     return () => {
       controller.abort();
     };
-  }, [roomId, handleWebSocket, setStatus]);
+  }, [roomId, state, handleWebSocket, setStatus, setWs]);
+
+  useEffect(() => {
+    if (!roomId) return;
+
+    if (
+      status.status === RoomStatus.connected &&
+      attemptedPasswordRef.current
+    ) {
+      sessionStorage.setItem(
+        `roomPassword:${roomId}`,
+        attemptedPasswordRef.current,
+      );
+    }
+
+    if (status.status === RoomStatus.authFailed) {
+      sessionStorage.removeItem(`roomPassword:${roomId}`);
+    }
+  }, [roomId, status.status]);
 
   const motionProps = {
     initial: { opacity: 0, y: prefersReducedMotion ? 0 : 8 },
@@ -218,10 +257,12 @@ function RoomPage() {
     RoomStatus.disconnected,
     RoomStatus.opponentLeft,
     RoomStatus.error,
+    RoomStatus.notFound,
   ].includes(status.status);
 
   const isDisconnected = status.status === RoomStatus.disconnected;
   const isOpponentLeft = status.status === RoomStatus.opponentLeft;
+  const isNotFound = status.status === RoomStatus.notFound;
   const isSelfDisconnected = isDisconnected && disconnectOwner === "self";
   const isOpponentDisconnected =
     isDisconnected && disconnectOwner === "opponent";
@@ -310,11 +351,13 @@ function RoomPage() {
               </div>
               <div className="flex flex-col gap-1">
                 <h2 className="text-foreground-900 dark:text-foreground text-xl font-bold">
-                  {isSelfDisconnected
-                    ? "You're disconnected"
-                    : isOpponentLeft
-                      ? "Opponent Left"
-                      : "Something went wrong"}
+                  {isNotFound
+                    ? "Room not found"
+                    : isSelfDisconnected
+                      ? "You're disconnected"
+                      : isOpponentLeft
+                        ? "Opponent Left"
+                        : "Something went wrong"}
                 </h2>
                 <p className="text-foreground-600 dark:text-foreground-400 text-sm">
                   {status.message}
@@ -372,6 +415,7 @@ function RoomPage() {
               <Input
                 isRequired
                 autoFocus
+                autoComplete="off"
                 errorMessage={
                   status.status === RoomStatus.authFailed ? status.message : ""
                 }

@@ -21,6 +21,7 @@ const useGame = () => {
   const { setMove, setNextPlayer } = GameStore();
   const { pushMessage, clearChat, ws } = RoomStore();
   const modeRef = useRef(RoomStore.getState().mode);
+  const statusRef = useRef<RoomStatus>(RoomStatus.connecting);
 
   const [rematchStatus, setRematchStatus] = useState<GameAction | null>(null);
   const [drawStatus, setDrawStatus] = useState<GameAction | null>(null);
@@ -36,6 +37,11 @@ const useGame = () => {
     message: "",
   });
 
+  const updateStatus = (nextStatus: RoomStatus, message: string) => {
+    statusRef.current = nextStatus;
+    setStatus({ status: nextStatus, message });
+  };
+
   const [disconnectOwner, setDisconnectOwner] = useState<
     "self" | "opponent" | null
   >(null);
@@ -47,7 +53,7 @@ const useGame = () => {
     if (!ws) return;
 
     let playerMarker: Marker = null;
-    let closed = false;
+    let unmounted = false;
 
     ws.onopen = () => {
       clearChat();
@@ -62,11 +68,8 @@ const useGame = () => {
           typeof event.data === "string" &&
           event.data.includes("Invalid room password")
         ) {
-          if (!closed) {
-            setStatus({
-              status: RoomStatus.authFailed,
-              message: "Invalid password",
-            });
+          if (!unmounted) {
+            updateStatus(RoomStatus.authFailed, "Invalid password");
           }
         }
         return;
@@ -103,17 +106,17 @@ const useGame = () => {
             if (isOpponent) {
               setDisconnectOwner("opponent");
               setOpponentReconnectSeconds(seconds);
-              setStatus({
-                status: RoomStatus.disconnected,
-                message: "Opponent disconnected. Waiting for reconnection...",
-              });
+              updateStatus(
+                RoomStatus.disconnected,
+                "Opponent disconnected. Waiting for reconnection...",
+              );
             } else {
               setDisconnectOwner("self");
               setOpponentReconnectSeconds(null);
-              setStatus({
-                status: RoomStatus.disconnected,
-                message: "You disconnected. Reconnecting...",
-              });
+              updateStatus(
+                RoomStatus.disconnected,
+                "You disconnected. Reconnecting...",
+              );
             }
             break;
           }
@@ -135,8 +138,8 @@ const useGame = () => {
               setPlayer(e.data.player);
             }
 
-            if (!closed) {
-              setStatus({ status: newStatus, message });
+            if (!unmounted) {
+              updateStatus(newStatus, message);
             }
             break;
           }
@@ -144,11 +147,8 @@ const useGame = () => {
           if (action === "Left") {
             setDisconnectOwner(null);
             setOpponentReconnectSeconds(null);
-            if (!closed) {
-              setStatus({
-                status: RoomStatus.opponentLeft,
-                message: "Opponent left",
-              });
+            if (!unmounted) {
+              updateStatus(RoomStatus.opponentLeft, "Opponent left");
             }
             break;
           }
@@ -193,19 +193,13 @@ const useGame = () => {
 
         case "Error":
           if (e.data.error === "InvalidPassword") {
-            if (!closed) {
-              setStatus({
-                status: RoomStatus.authFailed,
-                message: "Invalid password",
-              });
+            if (!unmounted) {
+              updateStatus(RoomStatus.authFailed, "Invalid password");
             }
             break;
           }
-          if (!closed) {
-            setStatus({
-              status: RoomStatus.internal,
-              message: e.data.error,
-            });
+          if (!unmounted) {
+            updateStatus(RoomStatus.internal, e.data.error);
           }
           break;
 
@@ -215,19 +209,17 @@ const useGame = () => {
     };
 
     ws.onclose = () => {
-      closed = true;
-      if (status.status === RoomStatus.authFailed) return;
+      if (unmounted) return;
+      if (RoomStore.getState().ws !== ws) return;
+      if (statusRef.current === RoomStatus.authFailed) return;
 
       setDisconnectOwner("self");
       setOpponentReconnectSeconds(null);
-      setStatus({
-        status: RoomStatus.disconnected,
-        message: "Connection lost",
-      });
+      updateStatus(RoomStatus.disconnected, "Connection lost");
     };
 
     return () => {
-      closed = true;
+      unmounted = true;
       ws.onopen = null;
       ws.onmessage = null;
       ws.onclose = null;
