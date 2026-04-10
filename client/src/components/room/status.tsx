@@ -39,6 +39,10 @@ interface RematchModalProps {
 interface GameStatusModalProps {
   boardStatus: BoardStatus | null;
   player: Player;
+  playerNames?: {
+    player1?: string;
+    player2?: string;
+  };
   rematch: (action: GameAction) => void;
   openModal: string;
   setOpenModal: React.Dispatch<React.SetStateAction<string>>;
@@ -77,6 +81,7 @@ const GameStatus = ({
         boardStatus={boardStatus}
         openModal={currentOpenModal}
         player={player}
+        playerNames={playerNames}
         rematch={handleRematch}
         setOpenModal={setCurrentOpenModal}
       />
@@ -106,9 +111,33 @@ const ModalFrame = ({
   </ModalContent>
 );
 
-const ScoreBoard = ({ player, score }: ScoreBoardProps) => {
-  const leftLabel = player.marker === "X" ? "You" : "Opp";
-  const rightLabel = player.marker === "O" ? "You" : "Opp";
+const ScoreBoard = ({ player, score, playerNames }: ScoreBoardProps) => {
+  const { mode } = RoomStore();
+
+  const localLeftLabel = playerNames?.player1 ?? "Player 1";
+  const localRightLabel = playerNames?.player2 ?? "Player 2";
+  const botUserName = playerNames?.player1 ?? "You";
+
+  const leftLabel =
+    mode === "Online"
+      ? player.marker === "X"
+        ? "You"
+        : "Opponent"
+      : mode === "Bot"
+        ? player.marker === "X"
+          ? botUserName
+          : "Bot"
+        : localLeftLabel;
+  const rightLabel =
+    mode === "Online"
+      ? player.marker === "O"
+        ? "You"
+        : "Opponent"
+      : mode === "Bot"
+        ? player.marker === "O"
+          ? botUserName
+          : "Bot"
+        : localRightLabel;
   const round = score[0] + score[1] + 1;
 
   return (
@@ -194,16 +223,30 @@ const RematchModal = ({
 const GameStatusModal = ({
   boardStatus,
   player,
+  playerNames,
   rematch,
   openModal,
   setOpenModal,
 }: GameStatusModalProps) => {
-  const message =
-    boardStatus === BoardStatus.Draw
-      ? "Draw"
-      : player.marker === boardStatus
-        ? "You won!"
-        : "Opponent won!";
+  const { mode } = RoomStore();
+
+  const message = (() => {
+    if (boardStatus === BoardStatus.Draw) return "Draw";
+
+    if (mode === "Local") {
+      const xName = playerNames?.player1 ?? "Player 1";
+      const oName = playerNames?.player2 ?? "Player 2";
+      const winner = boardStatus === BoardStatus.X ? xName : oName;
+
+      return `${winner} won!`;
+    }
+
+    if (mode === "Bot") {
+      return player.marker === boardStatus ? "You won!" : "Bot won!";
+    }
+
+    return player.marker === boardStatus ? "You won!" : "Opponent won!";
+  })();
 
   useEffect(() => {
     if (

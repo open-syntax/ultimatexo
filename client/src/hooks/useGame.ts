@@ -20,7 +20,6 @@ const useGame = () => {
   const { player, setPlayer } = PlayerStore();
   const { setMove, setNextPlayer } = GameStore();
   const { pushMessage, clearChat, ws } = RoomStore();
-  const modeRef = useRef(RoomStore.getState().mode);
   const statusRef = useRef<RoomStatus>(RoomStatus.connecting);
 
   const [rematchStatus, setRematchStatus] = useState<GameAction | null>(null);
@@ -75,11 +74,9 @@ const useGame = () => {
         return;
       }
       const eventName = e.event;
-      const currentMode = modeRef.current;
-
       switch (eventName) {
         case "GameUpdate":
-          if (currentMode === "Local") {
+          if (RoomStore.getState().mode === "Local") {
             setPlayer({ marker: e.data.next_player.marker, id: "" });
             playerMarker = e.data.next_player.marker;
           }

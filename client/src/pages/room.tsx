@@ -31,6 +31,7 @@ interface roomResponse {
   bot_level: null | "Beginner" | "Intermediate" | "Advanced";
   is_public: boolean;
   is_protected: boolean;
+  room_type?: "Standard" | "LocalRoom" | "BotRoom";
 }
 
 function RoomPage() {
@@ -46,7 +47,7 @@ function RoomPage() {
     disconnectOwner,
     opponentReconnectSeconds,
   } = useGame();
-  const { setWs, setMode } = RoomStore();
+  const { setWs, setMode, mode } = RoomStore();
   let { state } = useLocation() as unknown as {
     state: {
       roomId: string;
@@ -69,6 +70,13 @@ function RoomPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [copiedField, setCopiedField] = useState<"id" | "link" | null>(null);
   const [password, setPassword] = useState("");
+  const [playerNamesState, setPlayerNamesState] = useState<
+    | {
+        player1?: string;
+        player2?: string;
+      }
+    | undefined
+  >(state?.playerNames);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptedPasswordRef = useRef("");
   const prefersReducedMotion = useReducedMotion();
@@ -128,6 +136,16 @@ function RoomPage() {
   useEffect(() => {
     if (!state) return;
 
+    if (state.playerNames) {
+      setPlayerNamesState(state.playerNames);
+      if (roomId) {
+        sessionStorage.setItem(
+          `roomPlayerNames:${roomId}`,
+          JSON.stringify(state.playerNames),
+        );
+      }
+    }
+
     if (state.password && roomId === state.roomId) {
       setIsLoading(false);
       setPassword(state.password);
@@ -136,6 +154,22 @@ function RoomPage() {
 
     setMode(state.mode);
   }, [state, roomId, setMode, handleWebSocket]);
+
+  useEffect(() => {
+    if (!roomId || state?.playerNames) return;
+    const storedNames = sessionStorage.getItem(`roomPlayerNames:${roomId}`);
+    if (!storedNames) return;
+
+    try {
+      const parsed = JSON.parse(storedNames) as {
+        player1?: string;
+        player2?: string;
+      };
+      setPlayerNamesState(parsed);
+    } catch {
+      sessionStorage.removeItem(`roomPlayerNames:${roomId}`);
+    }
+  }, [roomId, state?.playerNames]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -157,6 +191,19 @@ function RoomPage() {
 
         if (response.ok) {
           const data = (await response.json()) as roomResponse;
+
+          if (data.room_type === "LocalRoom") {
+            setMode("Local");
+          } else if (data.room_type === "BotRoom") {
+            setMode("Bot");
+            setPlayerNamesState((prev) => ({
+              player1: prev?.player1,
+              player2: "Bot",
+            }));
+          } else {
+            setMode("Online");
+          }
+
           if (!data.is_protected) {
             handleWebSocket("");
           } else {
@@ -194,7 +241,7 @@ function RoomPage() {
     return () => {
       controller.abort();
     };
-  }, [roomId, state, handleWebSocket, setStatus, setWs]);
+  }, [roomId, state, handleWebSocket, setStatus, setWs, setMode]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -445,7 +492,7 @@ function RoomPage() {
               boardStatus={board.status}
               drawStatus={drawStatus}
               player={player}
-              playerNames={state?.playerNames}
+              playerNames={playerNamesState}
               rematchStatus={rematchStatus}
               score={score}
             />
@@ -454,7 +501,7 @@ function RoomPage() {
                 board={board}
                 className="max-h-[56vh] max-w-[min(100%,38rem)] xl:max-h-[58vh] xl:max-w-[min(100%,40rem)]"
               />
-              <Chat />
+              {mode === "Online" ? <Chat /> : null}
             </div>
             <Actions
               boardStatus={board.status}
