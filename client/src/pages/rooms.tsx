@@ -60,7 +60,10 @@ export default function RoomsPage() {
           params.set("name", searchName);
         }
 
-        const endpoint = params.size ? `/api/rooms?${params}` : "/api/rooms";
+        // Add cache-busting timestamp to prevent browser caching
+        params.set("_t", Date.now().toString());
+
+        const endpoint = `/api/rooms?${params}`;
         const response = await fetch(endpoint, { signal: options?.signal });
 
         if (!response.ok) {
