@@ -142,15 +142,17 @@ const ScoreBoard = ({ player, score, playerNames }: ScoreBoardProps) => {
 
   return (
     <div className="border-foreground-100/70 bg-content1/85 mx-auto grid w-full max-w-2xl grid-cols-3 items-center rounded-2xl border shadow-lg">
-      <div className="border-foreground-100/60 flex h-full flex-col items-center justify-center gap-1 border-r px-4 py-3.5 text-center md:py-4">
-        <span className="text-primary text-4xl font-black">X</span>
-        <p className="text-foreground-900 dark:text-foreground text-sm font-bold tracking-[0.08em] uppercase">
+      <div className="border-foreground-100/60 flex h-full flex-col items-center justify-center gap-1 border-r px-4 py-3.5 text-center max-sm:px-2 max-sm:py-2 md:py-4">
+        <span className="text-primary text-4xl font-black max-sm:text-2xl">
+          X
+        </span>
+        <p className="text-foreground-900 dark:text-foreground text-sm font-bold tracking-[0.08em] uppercase max-sm:text-xs">
           {leftLabel}
         </p>
       </div>
 
-      <div className="border-foreground-100/60 flex h-full flex-col items-center justify-center border-r px-4 py-3.5 text-center md:py-4">
-        <p className="text-foreground-900 dark:text-foreground text-4xl font-black tracking-tight">
+      <div className="border-foreground-100/60 flex h-full flex-col items-center justify-center border-r px-4 py-3.5 text-center max-sm:px-2 max-sm:py-2 md:py-4">
+        <p className="text-foreground-900 dark:text-foreground text-4xl font-black tracking-tight max-sm:text-2xl">
           {score[0]} : {score[1]}
         </p>
         <p className="text-foreground-500 mt-1 text-xs font-bold tracking-[0.12em] uppercase">
@@ -158,9 +160,11 @@ const ScoreBoard = ({ player, score, playerNames }: ScoreBoardProps) => {
         </p>
       </div>
 
-      <div className="flex h-full flex-col items-center justify-center gap-1 px-4 py-3.5 text-center md:py-4">
-        <span className="text-danger text-4xl font-black">O</span>
-        <p className="text-foreground-900 dark:text-foreground text-sm font-bold tracking-[0.08em] uppercase">
+      <div className="flex h-full flex-col items-center justify-center gap-1 px-4 py-3.5 text-center max-sm:px-2 max-sm:py-2 md:py-4">
+        <span className="text-danger text-4xl font-black max-sm:text-2xl">
+          O
+        </span>
+        <p className="text-foreground-900 dark:text-foreground text-sm font-bold tracking-[0.08em] uppercase max-sm:text-xs">
           {rightLabel}
         </p>
       </div>

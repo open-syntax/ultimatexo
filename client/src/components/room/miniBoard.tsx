@@ -36,9 +36,9 @@ function MiniBoard({ board, status, index }: MiniBoardProps) {
           className={`flex h-full w-full items-center justify-center rounded-2xl text-8xl font-bold ${board.status === "X" ? "text-primary bg-primary/10" : "text-danger bg-danger/10"}`}
         >
           {board.status === "X" ? (
-            <X className="scale-[4]" />
+            <X className="scale-[4] max-sm:scale-[2.5]" />
           ) : (
-            <O className="scale-[4]" />
+            <O className="scale-[4] max-sm:scale-[2.5]" />
           )}
         </div>
       </div>

@@ -499,7 +499,7 @@ function RoomPage() {
             <div className="flex min-h-0 flex-1 items-center justify-center gap-3 lg:gap-4">
               <Board
                 board={board}
-                className="max-h-[56vh] max-w-[min(100%,38rem)] xl:max-h-[58vh] xl:max-w-[min(100%,40rem)]"
+                className="max-h-[56svh] max-w-[min(100%,38rem)] xl:max-h-[58svh] xl:max-w-[min(100%,40rem)]"
               />
               {mode === "Online" ? <Chat /> : null}
             </div>

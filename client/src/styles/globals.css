@@ -177,7 +177,7 @@
       100% 100%,
       50px 50px,
       50px 50px;
-    background-attachment: fixed;
+    background-attachment: local;
   }
 
   /* Light mode background with visible grid */
@@ -195,7 +195,7 @@
       100% 100%,
       50px 50px,
       50px 50px;
-    background-attachment: fixed;
+    background-attachment: local;
   }
 }
 

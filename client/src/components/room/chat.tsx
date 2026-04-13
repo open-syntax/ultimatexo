@@ -46,9 +46,18 @@ const ChatLayout = ({
 
   useEffect(() => {
     const board = document.getElementById("board") as HTMLDivElement | null;
-    if (board) {
-      setBoardHeight(board.offsetHeight);
-    }
+    if (!board) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setBoardHeight(entry.contentRect.height);
+      }
+    });
+
+    setBoardHeight(board.offsetHeight);
+    observer.observe(board);
+
+    return () => observer.disconnect();
   }, []);
 
   const stableChat = React.useMemo(
