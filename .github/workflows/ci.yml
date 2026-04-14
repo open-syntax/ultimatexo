@@ -26,6 +26,7 @@ permissions:
   checks: write
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
   NODE_VERSION: "22"
@@ -42,7 +43,7 @@ jobs:
       client: ${{ steps.filter.outputs.client }}
     steps:
       - uses: actions/checkout@v6
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -60,7 +61,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
           components: rustfmt, clippy
@@ -70,7 +71,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -121,7 +122,7 @@ jobs:
 
       - name: Setup Rust
         if: matrix.needs-server
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
 
@@ -131,7 +132,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
         if: matrix.needs-client
         with:
           version: ${{ env.PNPM_VERSION }}
@@ -164,7 +165,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
 

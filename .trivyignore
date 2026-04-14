@@ -1,0 +1,6 @@
+# Caddy transitive dependency CVEs - unreachable in our deployment
+# SCEP not used (Cloudflare DNS-01 only), grpc/authz not enabled
+# Remove when Caddy ships with smallstep >=0.30.0 and grpc >=1.79.3
+# Expires: 2026-07-14 (3 months)
+CVE-2026-30836
+CVE-2026-33186

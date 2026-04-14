@@ -99,7 +99,7 @@ jobs:
         run: cp docker-compose.yml deploy/
 
       - name: Copy files to server
-        uses: appleboy/scp-action@v1.0.0
+        uses: appleboy/scp-action@v1
         with:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ env.DEPLOY_USER }}
@@ -110,7 +110,7 @@ jobs:
           overwrite: true
 
       - name: Execute deployment
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
