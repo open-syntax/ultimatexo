@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:22-alpine AS builder
+FROM node:22-alpine3.21 AS builder
 
 RUN apk add --no-cache libc6-compat
 
@@ -17,6 +17,8 @@ COPY . .
 RUN pnpm run build && \
     test -d dist && test -f dist/index.html
 
-FROM alpine AS runner
+FROM alpine:3.21 AS runner
+
+RUN apk upgrade --no-cache
 
 COPY --from=builder /app/dist /srv/www
