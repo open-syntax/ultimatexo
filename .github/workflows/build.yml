@@ -124,6 +124,8 @@ jobs:
       matrix:
         image: [client, server, caddy]
     steps:
+      - uses: actions/checkout@v6
+
       - name: Download digest
         uses: actions/download-artifact@v8
         with:
