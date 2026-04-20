@@ -35,7 +35,7 @@
     "@heroui/use-disclosure": "^2.2.19",
     "@heroui/use-theme": "2.1.10",
     "@react-aria/visually-hidden": "3.8.31",
-    "@react-types/shared": "3.33.1",
+    "@react-types/shared": "3.34.0",
     "@tailwindcss/postcss": "^4.2.2",
     "@tailwindcss/vite": "^4.2.2",
     "clsx": "2.1.1",
