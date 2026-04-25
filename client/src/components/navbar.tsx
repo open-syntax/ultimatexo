@@ -59,6 +59,7 @@ export const Navbar = () => {
     if (href === "/") {
       return location.pathname === "/";
     }
+
     return location.pathname.startsWith(href);
   };
 
@@ -81,7 +82,7 @@ export const Navbar = () => {
       {/* Logo */}
       <div className="flex items-center">
         <Link className={logoLink()} to="/">
-          <Logo size={28} className="text-slate-900 dark:text-white" />
+          <Logo className="text-slate-900 dark:text-white" size={28} />
           <span>
             <span className={logoText()}>Ultimate</span>
             <span className={logoXO()}>XO</span>
@@ -209,10 +210,10 @@ export const Navbar = () => {
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
-            className={mobileMenu()}
-            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
+            className={mobileMenu()}
             exit={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
             <nav className="flex flex-col gap-2 p-4">

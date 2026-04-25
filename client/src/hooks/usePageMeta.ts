@@ -13,6 +13,7 @@ export function usePageMeta({ title, description, path = "/" }: PageMetaProps) {
     document.title = fullTitle;
 
     let metaDescription = document.querySelector('meta[name="description"]');
+
     if (!metaDescription) {
       metaDescription = document.createElement("meta");
       metaDescription.setAttribute("name", "description");
@@ -21,6 +22,7 @@ export function usePageMeta({ title, description, path = "/" }: PageMetaProps) {
     metaDescription.setAttribute("content", description);
 
     let ogTitle = document.querySelector('meta[property="og:title"]');
+
     if (!ogTitle) {
       ogTitle = document.createElement("meta");
       ogTitle.setAttribute("property", "og:title");
@@ -31,6 +33,7 @@ export function usePageMeta({ title, description, path = "/" }: PageMetaProps) {
     let ogDescription = document.querySelector(
       'meta[property="og:description"]',
     );
+
     if (!ogDescription) {
       ogDescription = document.createElement("meta");
       ogDescription.setAttribute("property", "og:description");
@@ -39,6 +42,7 @@ export function usePageMeta({ title, description, path = "/" }: PageMetaProps) {
     ogDescription.setAttribute("content", description);
 
     let twitterTitle = document.querySelector('meta[name="twitter:title"]');
+
     if (!twitterTitle) {
       twitterTitle = document.createElement("meta");
       twitterTitle.setAttribute("name", "twitter:title");
@@ -49,6 +53,7 @@ export function usePageMeta({ title, description, path = "/" }: PageMetaProps) {
     let twitterDescription = document.querySelector(
       'meta[name="twitter:description"]',
     );
+
     if (!twitterDescription) {
       twitterDescription = document.createElement("meta");
       twitterDescription.setAttribute("name", "twitter:description");
@@ -57,6 +62,7 @@ export function usePageMeta({ title, description, path = "/" }: PageMetaProps) {
     twitterDescription.setAttribute("content", description);
 
     let canonical = document.querySelector('link[rel="canonical"]');
+
     if (!canonical) {
       canonical = document.createElement("link");
       canonical.setAttribute("rel", "canonical");

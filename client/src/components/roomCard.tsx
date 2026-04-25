@@ -71,9 +71,9 @@ function RoomCard({ room }: { room: room }) {
         <div className="flex items-center gap-2">
           {room.is_protected && (
             <Lock
+              aria-label="Protected room"
               className="text-warning"
               size={16}
-              aria-label="Protected room"
             />
           )}
           <button
@@ -88,8 +88,8 @@ function RoomCard({ room }: { room: room }) {
             {copied ? (
               <motion.span
                 animate={{ scale: [0.8, 1.1, 1] }}
-                transition={{ duration: 0.3 }}
                 className="flex items-center gap-1.5"
+                transition={{ duration: 0.3 }}
               >
                 <Check size={12} />
                 Copied

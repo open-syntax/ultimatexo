@@ -59,7 +59,9 @@ const PostGameActions = ({ rematch, rematchStatus }: PostGameActions) => {
         color="primary"
         isLoading={rematchSent}
         onPress={() => {
-          rematchSent || rematch(GameAction.Requested);
+          if (!rematchSent) {
+            rematch(GameAction.Requested);
+          }
         }}
       >
         {rematchSent ? "Rematch Sent" : "Rematch"}

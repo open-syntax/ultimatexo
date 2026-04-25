@@ -35,7 +35,7 @@ interface roomResponse {
 }
 
 function RoomPage() {
-  let { roomId } = useParams();
+  const { roomId } = useParams();
   const {
     player,
     board,
@@ -48,7 +48,7 @@ function RoomPage() {
     opponentReconnectSeconds,
   } = useGame();
   const { setWs, setMode, mode } = RoomStore();
-  let { state } = useLocation() as unknown as {
+  const { state } = useLocation() as unknown as {
     state: {
       roomId: string;
       password?: string;
@@ -103,6 +103,7 @@ function RoomPage() {
       attemptedPasswordRef.current = password;
 
       const existingWs = RoomStore.getState().ws;
+
       if (existingWs) {
         existingWs.close();
       }
@@ -158,6 +159,7 @@ function RoomPage() {
   useEffect(() => {
     if (!roomId || state?.playerNames) return;
     const storedNames = sessionStorage.getItem(`roomPlayerNames:${roomId}`);
+
     if (!storedNames) return;
 
     try {
@@ -165,6 +167,7 @@ function RoomPage() {
         player1?: string;
         player2?: string;
       };
+
       setPlayerNamesState(parsed);
     } catch {
       sessionStorage.removeItem(`roomPlayerNames:${roomId}`);
@@ -210,6 +213,7 @@ function RoomPage() {
             const storedPassword = sessionStorage.getItem(
               `roomPassword:${roomId}`,
             );
+
             if (storedPassword) {
               setPassword(storedPassword);
               handleWebSocket(storedPassword);
@@ -275,10 +279,10 @@ function RoomPage() {
       <DefaultLayout>
         <div className="flex h-full flex-col items-center justify-center gap-4">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
             className="flex flex-col items-center gap-4"
+            initial={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
           >
             <div className="relative">
               <div className="animate-ping-slow bg-primary/20 absolute inset-0 rounded-full" />
@@ -328,27 +332,27 @@ function RoomPage() {
               <div className="relative">
                 <svg className="size-20 -rotate-90" viewBox="0 0 100 100">
                   <circle
+                    className="text-warning/20"
                     cx="50"
                     cy="50"
-                    r="45"
                     fill="none"
+                    r="45"
                     stroke="currentColor"
                     strokeWidth="6"
-                    className="text-warning/20"
                   />
                   <circle
+                    className={`text-warning transition-all duration-1000 ${isUrgentCountdown ? "text-danger" : ""}`}
                     cx="50"
                     cy="50"
-                    r="45"
                     fill="none"
+                    r="45"
                     stroke="currentColor"
-                    strokeWidth="6"
-                    strokeLinecap="round"
                     strokeDasharray={283}
                     strokeDashoffset={
                       283 - (283 * opponentReconnectSeconds) / 60
                     }
-                    className={`text-warning transition-all duration-1000 ${isUrgentCountdown ? "text-danger" : ""}`}
+                    strokeLinecap="round"
+                    strokeWidth="6"
                     style={{
                       transformOrigin: "center",
                       transition:
@@ -460,8 +464,9 @@ function RoomPage() {
               }}
             >
               <Input
-                isRequired
+                // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
+                isRequired
                 autoComplete="off"
                 errorMessage={
                   status.status === RoomStatus.authFailed ? status.message : ""
@@ -536,8 +541,6 @@ function RoomPage() {
             <div className="flex w-full flex-col gap-3">
               <Button
                 fullWidth
-                variant="bordered"
-                onPress={() => handleCopy(roomId as string, "id")}
                 startContent={
                   copiedField === "id" ? (
                     <Check className="text-success" size={18} />
@@ -545,6 +548,8 @@ function RoomPage() {
                     <Copy size={18} />
                   )
                 }
+                variant="bordered"
+                onPress={() => handleCopy(roomId as string, "id")}
               >
                 {copiedField === "id" ? (
                   <span className="text-success">Copied!</span>
@@ -557,7 +562,6 @@ function RoomPage() {
               <Button
                 fullWidth
                 color="primary"
-                onPress={() => handleCopy(window.location.href, "link")}
                 startContent={
                   copiedField === "link" ? (
                     <Check className="text-white" size={18} />
@@ -565,6 +569,7 @@ function RoomPage() {
                     <LinkIcon size={18} />
                   )
                 }
+                onPress={() => handleCopy(window.location.href, "link")}
               >
                 {copiedField === "link" ? "Copied!" : "Copy Invite Link"}
               </Button>

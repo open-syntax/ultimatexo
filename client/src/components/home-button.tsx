@@ -32,6 +32,7 @@ export const HomeButton = <T extends ElementType = "button">({
   ...props
 }: HomeButtonProps<T>) => {
   const Component = as || "button";
+
   return (
     <Component className={button({ variant, className })} {...props}>
       {children}

@@ -60,6 +60,7 @@ const useGame = () => {
 
     ws.onmessage = (event) => {
       let e: socketEvent;
+
       try {
         e = JSON.parse(event.data);
       } catch {
@@ -71,9 +72,11 @@ const useGame = () => {
             updateStatus(RoomStatus.authFailed, "Invalid password");
           }
         }
+
         return;
       }
       const eventName = e.event;
+
       switch (eventName) {
         case "GameUpdate":
           if (RoomStore.getState().mode === "Local") {
@@ -123,7 +126,7 @@ const useGame = () => {
             setOpponentReconnectSeconds(null);
 
             const newStatus = RoomStatus.connected;
-            let message = "Connected";
+            const message = "Connected";
 
             if (!playerMarker) {
               playerMarker = e.data.player.marker;
@@ -233,6 +236,7 @@ const useGame = () => {
         if (prev === null || prev <= 1) {
           return 0;
         }
+
         return prev - 1;
       });
     }, 1000);

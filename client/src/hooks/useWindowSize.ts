@@ -19,6 +19,7 @@ function useWindowSize() {
 
     const debounced = (() => {
       let timer: ReturnType<typeof setTimeout>;
+
       return () => {
         clearTimeout(timer);
         timer = setTimeout(handleResize, 100);

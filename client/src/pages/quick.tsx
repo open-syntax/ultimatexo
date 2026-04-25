@@ -147,20 +147,20 @@ function Quick() {
           >
             <div className="bg-danger/20 flex h-14 w-14 items-center justify-center rounded-full">
               <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
+                className="text-danger"
                 fill="none"
+                height="28"
                 stroke="currentColor"
-                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-danger"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                width="28"
+                xmlns="http://www.w3.org/2000/svg"
               >
                 <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
+                <line x1="12" x2="12" y1="8" y2="12" />
+                <line x1="12" x2="12.01" y1="16" y2="16" />
               </svg>
             </div>
             <div className="flex flex-col gap-1">

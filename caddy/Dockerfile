@@ -1,21 +1,19 @@
-# syntax=docker/dockerfile:1.4
-FROM caddy:builder AS builder
+# syntax=docker/dockerfile:1.7
 
-RUN xcaddy build \
+FROM caddy:2.11.1-builder AS builder
+
+RUN xcaddy build v2.11.1 \
     --with github.com/caddy-dns/cloudflare \
     --with github.com/mholt/caddy-ratelimit \
     --with github.com/quic-go/quic-go@v0.59.0
 
-FROM caddy:latest
+FROM caddy:2.11.1-alpine
 
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 
 COPY Caddyfile /etc/caddy/Caddyfile
 
-RUN apk update && \
-    apk upgrade --no-cache && \
-    apk add --no-cache ca-certificates tzdata && \
-    rm -rf /var/cache/apk/*
+RUN apk add --no-cache ca-certificates tzdata
 
 RUN mkdir -p /var/log/caddy /srv/www && \
     chown -R nobody:nobody /var/log/caddy /srv/www

@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
-
 import { Spinner } from "@heroui/spinner";
+
 import { BackgroundEffects } from "@/components/background-effects";
 
 const IndexPage = lazy(() => import("@/pages/index"));

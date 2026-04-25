@@ -4,17 +4,27 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to deploy (e.g., latest, v1.0.0)'
+        description: "Version to deploy (e.g., v1.0.0, main)"
         required: true
-        default: 'latest'
+        default: "latest"
       skip_health_check:
-        description: 'Skip health check (not recommended)'
+        description: "Skip health check (not recommended)"
         type: boolean
         default: false
+  workflow_call:
+    inputs:
+      version:
+        description: "Version to deploy"
+        required: true
+        type: string
 
 concurrency:
   group: production-deploy
   cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: read
 
 env:
   REGISTRY: ghcr.io
@@ -28,19 +38,14 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     outputs:
-      version: ${{ github.event.inputs.version }}
+      version: ${{ steps.version.outputs.version }}
     steps:
-      - name: Validate inputs
+      - name: Set version
+        id: version
         run: |
-          VERSION="${{ github.event.inputs.version }}"
-          echo "🔍 Validating version: $VERSION"
-
-          if [[ -z "$VERSION" ]]; then
-            echo "❌ Version cannot be empty"
-            exit 1
-          fi
-
-          echo "✅ Version validated: $VERSION"
+          VERSION="${{ github.event.inputs.version || inputs.version }}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Deploying version: $VERSION"
 
       - name: Login to GHCR
         uses: docker/login-action@v4
@@ -51,32 +56,16 @@ jobs:
 
       - name: Verify images exist
         run: |
-          VERSION="${{ github.event.inputs.version }}"
-
+          VERSION="${{ steps.version.outputs.version }}"
           for component in client server caddy; do
             IMAGE="${{ env.IMAGE_BASE }}-${component}:${VERSION}"
             echo "Checking: $IMAGE"
-
             if ! docker manifest inspect "$IMAGE" > /dev/null 2>&1; then
-              echo "❌ Image not found: $IMAGE"
+              echo "ERROR: Image not found: $IMAGE"
               exit 1
             fi
-            echo "✅ Found: $IMAGE"
+            echo "Found: $IMAGE"
           done
-
-      - name: Notify start
-        uses: sarisia/actions-status-discord@v1
-        continue-on-error: true
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          title: "🚀 Deployment Starting"
-          description: |
-            **Version:** `${{ github.event.inputs.version }}`
-            **Initiated by:** ${{ github.actor }}
-            **Environment:** Production
-            **URL:** https://ultimatexo.com
-          color: 0xffc107
-          username: "UltimateXO Deploy"
 
   deploy:
     name: Deploy
@@ -88,91 +77,29 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Prepare deployment
+      - name: Prepare deployment files
         run: |
           mkdir -p deploy
-          cp docker-compose.yml deploy/
 
           cat > deploy/.env << EOF
           IMAGE_BASE=${{ env.IMAGE_BASE }}
-          VERSION=${{ github.event.inputs.version }}
+          VERSION=${{ needs.validate.outputs.version }}
           CLOUDFLARE_EMAIL=${{ secrets.CLOUDFLARE_EMAIL }}
           CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}
           RUST_LOG=info
           EOF
 
-          cat > deploy/deploy.sh << 'SCRIPT'
-          #!/bin/bash
-          set -euo pipefail
+      - name: Copy deploy script
+        run: |
+          mkdir -p deploy/scripts
+          cp scripts/deploy.sh deploy/scripts/deploy.sh
+          chmod +x deploy/scripts/deploy.sh
 
-          VERSION="${1:-latest}"
-          SKIP_HEALTH="${2:-false}"
-
-          cd ~/ultimatexo
-
-          echo "📦 Backup current state..."
-          BACKUP_DIR="backups/$(date +%Y%m%d_%H%M%S)"
-          mkdir -p "$BACKUP_DIR"
-
-          if [ -f .env ]; then
-            cp .env "$BACKUP_DIR/.env"
-            CURRENT_VERSION=$(grep "^VERSION=" .env | cut -d= -f2 || echo "unknown")
-            echo "$CURRENT_VERSION" > "$BACKUP_DIR/version.txt"
-            echo "Previous version: $CURRENT_VERSION"
-          fi
-
-          docker compose ps -a > "$BACKUP_DIR/containers.txt" 2>/dev/null || true
-
-          echo "🔐 Login to registry..."
-          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-
-          echo "📥 Pull images for version: $VERSION"
-          docker compose pull
-
-          echo "🧹 Remove client-builder if exists..."
-          docker compose rm -f client-builder 2>/dev/null || true
-
-          echo "🚀 Deploy services..."
-          docker compose up -d --remove-orphans
-
-          if [ "$SKIP_HEALTH" = "false" ]; then
-            echo "⏳ Health check (max 5 minutes)..."
-
-            for i in {1..30}; do
-              echo "Attempt $i/30..."
-
-              if docker inspect ultimatexo-server --format='{{.State.Health.Status}}' 2>/dev/null | grep -q "healthy"; then
-                echo "✅ Server healthy"
-
-                if curl -sf http://localhost > /dev/null 2>&1 || \
-                   curl -sf http://localhost -o /dev/null -w "%{http_code}" | grep -qE "^(200|308|301)$"; then
-                  echo "✅ Proxy responding"
-                  echo "✅ Deployment successful!"
-
-                  echo "🧹 Cleanup old images..."
-                  docker image prune -af --filter "until=168h" || true
-
-                  exit 0
-                fi
-              fi
-
-              sleep 10
-            done
-
-            echo "❌ Health check timeout"
-            echo "📋 Service logs:"
-            docker compose logs --tail=50
-            exit 1
-          fi
-
-          echo "⚠️ Health check skipped"
-          echo "✅ Services started"
-          SCRIPT
-
-          chmod +x deploy/deploy.sh
+      - name: Copy docker-compose
+        run: cp docker-compose.yml deploy/
 
       - name: Copy files to server
-        uses: appleboy/scp-action@v1.0.0
+        uses: appleboy/scp-action@v1
         with:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ env.DEPLOY_USER }}
@@ -183,7 +110,7 @@ jobs:
           overwrite: true
 
       - name: Execute deployment
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
@@ -195,7 +122,8 @@ jobs:
           command_timeout: 10m
           script: |
             cd ~/ultimatexo
-            ./deploy.sh "${{ github.event.inputs.version }}" "${{ github.event.inputs.skip_health_check }}"
+            export DEPLOY_DIR="$HOME/ultimatexo"
+            ./scripts/deploy.sh "${{ needs.validate.outputs.version }}" "${{ github.event.inputs.skip_health_check || 'false' }}"
 
   verify:
     name: Post-deployment Verification
@@ -204,9 +132,7 @@ jobs:
     if: github.event.inputs.skip_health_check != 'true'
     steps:
       - name: Wait for stabilization
-        run: |
-          echo "⏳ Waiting 30s for deployment to stabilize..."
-          sleep 30
+        run: sleep 30
 
       - name: Health checks
         run: |
@@ -216,19 +142,15 @@ jobs:
           check_endpoint() {
             local url=$1
             local name=$2
-
-            for i in $(seq 1 $MAX_ATTEMPTS); do
+            for i in $(seq 1 "$MAX_ATTEMPTS"); do
               echo "[$i/$MAX_ATTEMPTS] Checking $name..."
-
               if curl -fsSL "$url" > /dev/null 2>&1; then
-                echo "✅ $name OK"
+                echo "OK: $name"
                 return 0
               fi
-
-              [ $i -lt $MAX_ATTEMPTS ] && sleep $DELAY
+              [ "$i" -lt "$MAX_ATTEMPTS" ] && sleep "$DELAY"
             done
-
-            echo "❌ $name failed"
+            echo "FAILED: $name"
             return 1
           }
 
@@ -236,24 +158,20 @@ jobs:
           check_endpoint "https://ultimatexo.com" "Homepage" || FAILED=1
           check_endpoint "https://ultimatexo.com/api/health" "API Health" || FAILED=1
 
-          if [ $FAILED -eq 1 ]; then
-            echo "❌ Verification failed"
+          if [ "$FAILED" -eq 1 ]; then
+            echo "Verification failed"
             exit 1
           fi
-
-          echo "✅ All checks passed"
+          echo "All checks passed"
 
       - name: Performance check
         run: |
-          echo "📊 Performance baseline..."
-
           RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}\n' https://ultimatexo.com)
           echo "Response time: ${RESPONSE_TIME}s"
-
           if (( $(echo "$RESPONSE_TIME > 2.0" | bc -l) )); then
-            echo "⚠️ Response time above 2s"
+            echo "WARNING: Response time above 2s"
           else
-            echo "✅ Response time acceptable"
+            echo "Response time acceptable"
           fi
 
   notify:
@@ -262,45 +180,26 @@ jobs:
     needs: [validate, deploy, verify]
     if: always()
     steps:
-      - name: Success notification
-        if: needs.deploy.result == 'success' && (needs.verify.result == 'success' || needs.verify.result == 'skipped')
+      - name: Discord notification
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          title: "✅ Deployment Successful"
+          title: ${{ needs.deploy.result == 'success' && '✅ Deployment Successful' || '❌ Deployment Failed' }}
           description: |
-            🎉 **UltimateXO ${{ needs.validate.outputs.version }}** is live!
-
-            **Environment:** Production
-            **URL:** https://ultimatexo.com
-            **Deployed by:** ${{ github.actor }}
-            **Health Check:** ${{ needs.verify.result == 'skipped' && '⏭️ Skipped' || '✅ Passed' }}
-          color: 0x28a745
-          username: "UltimateXO Deploy"
-
-      - name: Failure notification
-        if: needs.deploy.result == 'failure' || needs.verify.result == 'failure'
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          title: "❌ Deployment Failed"
-          description: |
-            🚨 **Deployment of ${{ needs.validate.outputs.version }} failed!**
-
-            **Failed at:** ${{ needs.deploy.result == 'failure' && 'Deployment' || 'Verification' }}
-            **Logs:** [View Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-            💡 **To rollback:** Re-run workflow with previous version
-          color: 0xdc3545
+            **Version:** `${{ needs.validate.outputs.version }}`
+            **Status:** ${{ needs.deploy.result == 'success' && 'Deployed' || 'Failed' }}
+            **Health Check:** ${{ needs.verify.result == 'skipped' && 'Skipped' || needs.verify.result == 'success' && 'Passed' || 'Failed' }}
+            [View Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          color: ${{ needs.deploy.result == 'success' && 0x28a745 || 0xdc3545 }}
           username: "UltimateXO Deploy"
 
       - name: Deployment summary
         if: always()
         run: |
-          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
-          ## 🚀 Deployment Summary
+          cat >> "$GITHUB_STEP_SUMMARY" << EOF
+          ## Deployment Summary
 
-          **Version:** `${{ needs.validate.outputs.version }}`
+          **Version:** \`${{ needs.validate.outputs.version }}\`
           **Status:** ${{ needs.deploy.result == 'success' && needs.verify.result != 'failure' && '✅ Success' || '❌ Failed' }}
 
           | Stage | Status |
@@ -308,8 +207,4 @@ jobs:
           | Validation | ${{ needs.validate.result == 'success' && '✅' || '❌' }} |
           | Deploy | ${{ needs.deploy.result == 'success' && '✅' || '❌' }} |
           | Verify | ${{ needs.verify.result == 'success' && '✅' || needs.verify.result == 'skipped' && '⏭️' || '❌' }} |
-
-          ---
-
-          **🔄 To rollback:** Manually trigger this workflow with a previous version
           EOF

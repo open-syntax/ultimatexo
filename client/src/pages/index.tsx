@@ -61,9 +61,9 @@ export default function IndexPage() {
 
         {/* Primary Action Buttons */}
         <motion.div
+          animate={{ opacity: 1, y: 0 }}
           className="flex w-full max-w-2xl flex-col justify-center gap-4 sm:flex-row sm:gap-6"
           initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20 }}
-          animate={{ opacity: 1, y: 0 }}
           transition={{
             duration: prefersReducedMotion ? 0 : 0.5,
             delay: prefersReducedMotion ? 0 : 0.15,
@@ -73,8 +73,8 @@ export default function IndexPage() {
           {/* Play Button */}
           <HomeButton as={Link} to="/create" variant="primary">
             <Controller
-              size={24}
               className="transition-transform group-hover:rotate-12"
+              size={24}
             />
             Play
           </HomeButton>
@@ -82,24 +82,24 @@ export default function IndexPage() {
           {/* Quick Play Button */}
           <HomeButton as={Link} to="/quick" variant="secondary">
             <LightningIcon
-              size={24}
               className="text-slate-400 dark:text-slate-400"
+              size={24}
             />
             Quick Play
           </HomeButton>
 
           {/* Rooms Button */}
           <HomeButton as={Link} to="/rooms" variant="secondary">
-            <Group size={24} className="text-slate-400 dark:text-slate-400" />
+            <Group className="text-slate-400 dark:text-slate-400" size={24} />
             Rooms
           </HomeButton>
         </motion.div>
 
         {/* Divider with Text */}
         <motion.div
+          animate={{ opacity: 0.6 }}
           className="flex w-full max-w-lg items-center gap-4 opacity-60"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.6 }}
           transition={{
             duration: prefersReducedMotion ? 0 : 0.6,
             delay: prefersReducedMotion ? 0 : 0.3,
@@ -115,31 +115,18 @@ export default function IndexPage() {
 
         {/* Room Entry Section */}
         <motion.form
-          className="w-full max-w-lg"
-          onSubmit={handleSubmit}
-          initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20 }}
           animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-lg"
+          initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20 }}
           transition={{
             duration: prefersReducedMotion ? 0 : 0.5,
             delay: prefersReducedMotion ? 0 : 0.4,
             ease: "easeOut" as const,
           }}
+          onSubmit={handleSubmit}
         >
           <div className="dark:shadow-neon-input flex w-full items-center rounded-2xl border border-slate-300 bg-white p-2 pl-4 shadow-sm transition-all duration-300 hover:border-blue-500/60 hover:shadow-md dark:border-blue-500/30 dark:bg-[#020408]">
             <Input
-              name="roomId"
-              value={roomId}
-              onValueChange={handleRoomIdInput}
-              placeholder="Enter Room ID"
-              variant="underlined"
-              inputMode="numeric"
-              maxLength={6}
-              startContent={
-                <KeyboardIcon
-                  size={20}
-                  className="shrink-0 text-slate-400 dark:text-slate-500"
-                />
-              }
               classNames={{
                 base: "flex-grow",
                 input:
@@ -148,11 +135,24 @@ export default function IndexPage() {
                   "bg-transparent border-none shadow-none after:hidden p-0 h-auto min-h-0",
                 innerWrapper: "gap-3 items-center py-0",
               }}
+              inputMode="numeric"
+              maxLength={6}
+              name="roomId"
+              placeholder="Enter Room ID"
+              startContent={
+                <KeyboardIcon
+                  className="shrink-0 text-slate-400 dark:text-slate-500"
+                  size={20}
+                />
+              }
+              value={roomId}
+              variant="underlined"
+              onValueChange={handleRoomIdInput}
             />
             <button
-              type="submit"
-              disabled={roomId.length !== 6}
               className="ml-2 shrink-0 rounded-full bg-blue-600 px-6 py-2 font-bold whitespace-nowrap text-white shadow-lg shadow-blue-600/30 transition-all duration-200 hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={roomId.length !== 6}
+              type="submit"
             >
               Join
             </button>

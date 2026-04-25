@@ -1,175 +1,207 @@
 name: Build & Publish
 
 on:
-  push:
-    branches: [main]
-    tags: ['v*']
   workflow_dispatch:
     inputs:
-      push_images:
-        description: 'Push images to registry'
-        type: boolean
-        default: true
+      trigger_ref:
+        description: "Git ref that triggered this build"
+        required: false
+        default: "main"
+      trigger_sha:
+        description: "Commit SHA"
+        required: false
+  push:
+    tags: ["v*"]
 
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
 
 env:
   REGISTRY: ghcr.io
   IMAGE_BASE: ghcr.io/open-syntax/ultimatexo
 
 jobs:
-  build:
-    name: Build & Push
+  meta:
+    name: Generate Metadata
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     outputs:
-      version: ${{ steps.meta.outputs.version }}
-      client-digest: ${{ steps.build-client.outputs.digest }}
-      server-digest: ${{ steps.build-server.outputs.digest }}
-      caddy-digest: ${{ steps.build-caddy.outputs.digest }}
+      version: ${{ steps.version.outputs.version }}
+      tags: ${{ steps.tags.outputs.tags }}
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set version
-        id: meta
+      - name: Determine version
+        id: version
         run: |
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/}
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
           else
-            VERSION="latest"
+            VERSION="${{ github.event.inputs.trigger_ref || 'main' }}"
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+      - name: Generate tags
+        id: tags
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAGS=""
+          if [[ "$VERSION" == v* ]]; then
+            MAJOR="${VERSION#v}"
+            MAJOR="${MAJOR%%.*}"
+            MINOR="${VERSION#v}"
+            MINOR="${MINOR%.*}"
+            TAGS="${{ env.IMAGE_BASE }}-${{ matrix.component }}:$VERSION\n"
+            TAGS="${TAGS}${{ env.IMAGE_BASE }}-${{ matrix.component }}:$MINOR\n"
+            [[ "$MAJOR" != "0" ]] && TAGS="${TAGS}${{ env.IMAGE_BASE }}-${{ matrix.component }}:$MAJOR\n"
+            TAGS="${TAGS}${{ env.IMAGE_BASE }}-${{ matrix.component }}:latest"
+          else
+            TAGS="${{ env.IMAGE_BASE }}-${{ matrix.component }}:$VERSION"
+          fi
+          {
+            echo "tags<<EOF"
+            echo -e "$TAGS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Tags:"
+          echo -e "$TAGS"
+
+  build:
+    name: Build (${{ matrix.component }})
+    runs-on: ubuntu-latest
+    needs: meta
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [client, server, caddy]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.trigger_sha || github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
       - name: Login to GHCR
-        if: github.event_name != 'workflow_dispatch' || github.event.inputs.push_images == 'true'
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate tags
-        id: tags
+      - name: Build and push
+        id: build-push
+        uses: docker/build-push-action@v7
+        with:
+          context: ./${{ matrix.component }}
+          push: true
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+          tags: ${{ needs.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.title=UltimateXO ${{ matrix.component }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.event.inputs.trigger_sha || github.sha }}
+            org.opencontainers.image.version=${{ needs.meta.outputs.version }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Export digest
         run: |
-          VERSION="${{ steps.meta.outputs.version }}"
+          echo "${{ steps.build-push.outputs.digest }}" > ${{ matrix.component }}-digest.txt
 
-          if [[ $VERSION == v* ]]; then
-            MAJOR=$(echo $VERSION | cut -d. -f1 | tr -d 'v')
-            MINOR=$(echo $VERSION | cut -d. -f1-2)
-
-            TAGS="$VERSION,$MINOR"
-            [[ $MAJOR != "0" ]] && TAGS="$TAGS,$MAJOR"
-          else
-            TAGS="$VERSION"
-          fi
-
-          echo "tags=$TAGS" >> $GITHUB_OUTPUT
-          echo "📌 Tags: $TAGS"
-
-      - name: Build & push client
-        id: build-client
-        uses: docker/build-push-action@v7
+      - name: Upload digest
+        uses: actions/upload-artifact@v7
         with:
-          context: ./client
-          push: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.push_images == 'true' }}
-          tags: |
-            ${{ env.IMAGE_BASE }}-client:${{ steps.meta.outputs.version }}
-            ${{ env.IMAGE_BASE }}-client:${{ steps.tags.outputs.tags }}
-          cache-from: type=gha,scope=client
-          cache-to: type=gha,mode=max,scope=client
-          labels: |
-            org.opencontainers.image.title=UltimateXO Client
-            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
-
-      - name: Build & push server
-        id: build-server
-        uses: docker/build-push-action@v7
-        with:
-          context: ./server
-          push: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.push_images == 'true' }}
-          tags: |
-            ${{ env.IMAGE_BASE }}-server:${{ steps.meta.outputs.version }}
-            ${{ env.IMAGE_BASE }}-server:${{ steps.tags.outputs.tags }}
-          cache-from: type=gha,scope=server
-          cache-to: type=gha,mode=max,scope=server
-          labels: |
-            org.opencontainers.image.title=UltimateXO Server
-            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
-
-      - name: Build & push caddy
-        id: build-caddy
-        uses: docker/build-push-action@v7
-        with:
-          context: ./caddy
-          push: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.push_images == 'true' }}
-          tags: |
-            ${{ env.IMAGE_BASE }}-caddy:${{ steps.meta.outputs.version }}
-            ${{ env.IMAGE_BASE }}-caddy:${{ steps.tags.outputs.tags }}
-          cache-from: type=gha,scope=caddy
-          cache-to: type=gha,mode=max,scope=caddy
-          labels: |
-            org.opencontainers.image.title=UltimateXO Caddy
-            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+          name: ${{ matrix.component }}-digest
+          path: ${{ matrix.component }}-digest.txt
+          retention-days: 1
 
   security-scan:
-    name: Security Scan
+    name: Security Scan (${{ matrix.image }})
     runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name != 'workflow_dispatch' || github.event.inputs.push_images == 'true'
-    permissions:
-      contents: read
-      packages: read
-      security-events: write
+    needs: [meta, build]
     strategy:
       fail-fast: false
       matrix:
         image: [client, server, caddy]
     steps:
-      - name: Login to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v6
 
-      - name: Run Trivy
-        uses: aquasecurity/trivy-action@master
+      - name: Download digest
+        uses: actions/download-artifact@v8
         with:
-          image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ matrix.image == 'client' && needs.build.outputs.client-digest || matrix.image == 'server' && needs.build.outputs.server-digest || needs.build.outputs.caddy-digest }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
+          name: ${{ matrix.image }}-digest
 
-      - name: Upload to Security
-        uses: github/codeql-action/upload-sarif@v4
+      - name: Set digest
+        id: digest
+        run: echo "digest=$(cat ${{ matrix.image }}-digest.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Generate SARIF report
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ steps.digest.outputs.digest }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "0"
+
+      - name: Upload SARIF
         if: always()
+        uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: trivy-results.sarif
 
-      - name: Trivy report
-        uses: aquasecurity/trivy-action@master
+      - name: Critical vulnerability gate
+        uses: aquasecurity/trivy-action@0.35.0
         with:
-          image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ matrix.image == 'client' && needs.build.outputs.client-digest || matrix.image == 'server' && needs.build.outputs.server-digest || needs.build.outputs.caddy-digest }}
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
+          image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ steps.digest.outputs.digest }}
+          format: table
+          severity: CRITICAL
+          exit-code: "1"
+
+      - name: Table report
+        if: always()
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ steps.digest.outputs.digest }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "0"
+
+  trigger-deploy:
+    name: Trigger Deploy (Release Only)
+    runs-on: ubuntu-latest
+    needs: [meta, build, security-scan]
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    steps:
+      - name: Trigger deploy workflow
+        uses: actions/github-script@v9
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deploy.yml',
+              ref: context.ref.startsWith('refs/tags/')
+                ? context.ref.replace('refs/tags/', '')
+                : context.ref.replace('refs/heads/', ''),
+              inputs: {
+                version: '${{ needs.meta.outputs.version }}'
+              }
+            })
 
   notify:
     name: Notify
     runs-on: ubuntu-latest
-    needs: [build, security-scan]
-    if: always() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+    needs: [meta, build, security-scan]
+    if: always()
     steps:
       - name: Discord notification
         uses: sarisia/actions-status-discord@v1
@@ -177,10 +209,10 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           title: ${{ needs.security-scan.result == 'success' && '✅ Build Success' || '❌ Build Failed' }}
           description: |
-            **Version:** `${{ needs.build.outputs.version }}`
+            <@590555241292890142>
+            **Version:** `${{ needs.meta.outputs.version }}`
             **Build:** ${{ needs.build.result == 'success' && '✅' || '❌' }}
             **Security:** ${{ needs.security-scan.result == 'success' && '✅' || '❌' }}
-
             [View Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
           color: ${{ needs.security-scan.result == 'success' && 0x28a745 || 0xdc3545 }}
           username: "UltimateXO CI"

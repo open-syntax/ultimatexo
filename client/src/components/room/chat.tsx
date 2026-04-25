@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/no-autofocus */
 import { Button } from "@heroui/button";
 import { Drawer, DrawerBody, DrawerContent } from "@heroui/drawer";
 import { useDisclosure } from "@heroui/use-disclosure";
@@ -45,6 +44,7 @@ const ChatLayout = ({
 
   useEffect(() => {
     const board = document.getElementById("board") as HTMLDivElement | null;
+
     if (!board) return;
 
     const observer = new ResizeObserver((entries) => {
@@ -203,6 +203,7 @@ const DesktopChat = ({
 
   useEffect(() => {
     const board = document.getElementById("board") as HTMLDivElement | null;
+
     if (!board) return;
 
     const observer = new ResizeObserver((entries) => {
@@ -228,8 +229,8 @@ const DesktopChat = ({
       <div className="relative h-full">
         <button
           className="text-foreground-400 hover:text-foreground absolute top-3 right-3 z-10 cursor-pointer rounded-lg p-1 transition-colors"
-          onClick={() => onOpenChange()}
           type="button"
+          onClick={() => onOpenChange()}
         >
           <X size={16} />
         </button>

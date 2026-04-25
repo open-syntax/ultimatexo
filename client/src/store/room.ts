@@ -32,6 +32,7 @@ const RoomStore = create<Store>()((set) => ({
 
   sendMessage: (message) => {
     const state = RoomStore.getState();
+
     state.ws?.send(
       JSON.stringify({
         TextMessage: {
