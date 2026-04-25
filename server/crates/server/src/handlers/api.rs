@@ -2,7 +2,7 @@ use crate::app::AppState;
 use axum::{
     Json,
     extract::{ConnectInfo, Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, HeaderValue, StatusCode},
 };
 use serde_json::{Value, json};
 use std::{net::SocketAddr, sync::Arc};
@@ -22,9 +22,15 @@ use ultimatexo_core::{GetRoomQuery, RoomInfo};
 pub async fn get_rooms(
     State(state): State<Arc<AppState>>,
     Query(GetRoomQuery { name }): Query<GetRoomQuery>,
-) -> Result<Json<Vec<RoomInfo>>, StatusCode> {
+) -> Result<(HeaderMap, Json<Vec<RoomInfo>>), StatusCode> {
     let rooms = state.get_public_rooms(name.as_deref()).await;
-    Ok(Json(rooms))
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        "Cache-Control",
+        HeaderValue::from_static("no-store, no-cache, must-revalidate"),
+    );
+    headers.insert("Pragma", HeaderValue::from_static("no-cache"));
+    Ok((headers, Json(rooms)))
 }
 
 #[utoipa::path(

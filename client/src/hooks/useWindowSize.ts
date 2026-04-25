@@ -17,14 +17,25 @@ function useWindowSize() {
       });
     }
 
-    window.addEventListener("resize", handleResize);
+    const debounced = (() => {
+      let timer: ReturnType<typeof setTimeout>;
 
-    // Call handler right away so state gets updated with initial window size
+      return () => {
+        clearTimeout(timer);
+        timer = setTimeout(handleResize, 100);
+      };
+    })();
+
+    window.addEventListener("resize", debounced);
+    window.addEventListener("orientationchange", handleResize);
+
     handleResize();
 
-    // Remove event listener on cleanup
-    return () => window.removeEventListener("resize", handleResize);
-  }, []); // Empty array ensures that effect is only run on mount and unmount
+    return () => {
+      window.removeEventListener("resize", debounced);
+      window.removeEventListener("orientationchange", handleResize);
+    };
+  }, []);
 
   return windowSize;
 }

@@ -1,23 +1,4 @@
-import { GameAction } from "./actions";
 import { Player } from "./player";
-
-export type GameMove = {
-  GameUpdate: {
-    mv: string;
-  };
-};
-
-export type TextMessage = {
-  TextMessage: {
-    content: string;
-  };
-};
-
-export type GameRestart = {
-  GameRestart: {
-    action: GameAction;
-  };
-};
 
 export type Message = {
   content: string;

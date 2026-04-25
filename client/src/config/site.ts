@@ -1,5 +1,3 @@
-export type SiteConfig = typeof siteConfig;
-
 export const siteConfig = {
   name: "UltimateXO",
   description: "UltimateXO.",

@@ -1,5 +1,5 @@
 import { useLocation, useParams, Link } from "react-router-dom";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Spinner } from "@heroui/spinner";
 import { button as buttonStyles } from "@heroui/theme";
 import { Button } from "@heroui/button";
@@ -23,6 +23,7 @@ import useGame from "@/hooks/useGame";
 import { RoomStore } from "@/store";
 import Actions from "@/components/room/actions";
 import { RoomStatus } from "@/types";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 interface roomResponse {
   id: string;
@@ -30,13 +31,23 @@ interface roomResponse {
   bot_level: null | "Beginner" | "Intermediate" | "Advanced";
   is_public: boolean;
   is_protected: boolean;
+  room_type?: "Standard" | "LocalRoom" | "BotRoom";
 }
 
 function RoomPage() {
   const { roomId } = useParams();
-  const { player, board, status, score, rematchStatus, drawStatus, setStatus } =
-    useGame();
-  const { setWs, setMode } = RoomStore();
+  const {
+    player,
+    board,
+    status,
+    score,
+    rematchStatus,
+    drawStatus,
+    setStatus,
+    disconnectOwner,
+    opponentReconnectSeconds,
+  } = useGame();
+  const { setWs, setMode, mode } = RoomStore();
   const { state } = useLocation() as unknown as {
     state: {
       roomId: string;
@@ -50,16 +61,38 @@ function RoomPage() {
     } | null;
   };
 
+  usePageMeta({
+    title: `Room ${roomId} - Live Game`,
+    description: `Join Ultimate Tic-Tac-Toe room ${roomId}. Play a live multiplayer game online.`,
+    path: `/room/${roomId}`,
+  });
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [copiedField, setCopiedField] = useState<"id" | "link" | null>(null);
   const [password, setPassword] = useState("");
+  const [playerNamesState, setPlayerNamesState] = useState<
+    | {
+        player1?: string;
+        player2?: string;
+      }
+    | undefined
+  >(state?.playerNames);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const attemptedPasswordRef = useRef("");
   const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   const handleCopy = async (text: string, field: "id" | "link") => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedField(field);
-      setTimeout(() => setCopiedField(null), 2000);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopiedField(null), 2000);
     } catch {
       setCopiedField(null);
     }
@@ -67,6 +100,8 @@ function RoomPage() {
 
   const handleWebSocket = useCallback(
     (password: string) => {
+      attemptedPasswordRef.current = password;
+
       const existingWs = RoomStore.getState().ws;
 
       if (existingWs) {
@@ -102,8 +137,19 @@ function RoomPage() {
   useEffect(() => {
     if (!state) return;
 
+    if (state.playerNames) {
+      setPlayerNamesState(state.playerNames);
+      if (roomId) {
+        sessionStorage.setItem(
+          `roomPlayerNames:${roomId}`,
+          JSON.stringify(state.playerNames),
+        );
+      }
+    }
+
     if (state.password && roomId === state.roomId) {
       setIsLoading(false);
+      setPassword(state.password);
       handleWebSocket(state.password);
     }
 
@@ -111,33 +157,113 @@ function RoomPage() {
   }, [state, roomId, setMode, handleWebSocket]);
 
   useEffect(() => {
+    if (!roomId || state?.playerNames) return;
+    const storedNames = sessionStorage.getItem(`roomPlayerNames:${roomId}`);
+
+    if (!storedNames) return;
+
+    try {
+      const parsed = JSON.parse(storedNames) as {
+        player1?: string;
+        player2?: string;
+      };
+
+      setPlayerNamesState(parsed);
+    } catch {
+      sessionStorage.removeItem(`roomPlayerNames:${roomId}`);
+    }
+  }, [roomId, state?.playerNames]);
+
+  useEffect(() => {
     if (!roomId) return;
+    if (state?.password && roomId === state.roomId) return;
 
-    const checkRoom = () => {
-      fetch(`/api/room/${roomId}`)
-        .then((response) => {
-          if (response.ok) {
-            const res = response.json();
+    const controller = new AbortController();
+    const currentWs = RoomStore.getState().ws;
 
-            res.then((data: roomResponse) => {
-              if (!data.is_protected) {
-                handleWebSocket("");
-              } else {
-                setStatus({ status: RoomStatus.auth, message: "" });
-              }
-            });
-          } else if (response.status === 404) {
-            return setStatus({
-              status: RoomStatus.notFound,
-              message: "Room Not Found",
-            });
+    if (currentWs) {
+      currentWs.close();
+      setWs(undefined);
+    }
+
+    const checkRoom = async () => {
+      try {
+        const response = await fetch(`/api/room/${roomId}`, {
+          signal: controller.signal,
+        });
+
+        if (response.ok) {
+          const data = (await response.json()) as roomResponse;
+
+          if (data.room_type === "LocalRoom") {
+            setMode("Local");
+          } else if (data.room_type === "BotRoom") {
+            setMode("Bot");
+            setPlayerNamesState((prev) => ({
+              player1: prev?.player1,
+              player2: "Bot",
+            }));
+          } else {
+            setMode("Online");
           }
-        })
-        .finally(() => setIsLoading(false));
+
+          if (!data.is_protected) {
+            handleWebSocket("");
+          } else {
+            const storedPassword = sessionStorage.getItem(
+              `roomPassword:${roomId}`,
+            );
+
+            if (storedPassword) {
+              setPassword(storedPassword);
+              handleWebSocket(storedPassword);
+            } else {
+              setStatus({ status: RoomStatus.auth, message: "" });
+            }
+          }
+        } else if (response.status === 404) {
+          setWs(undefined);
+          sessionStorage.removeItem(`roomPassword:${roomId}`);
+          setStatus({
+            status: RoomStatus.notFound,
+            message: "Room Not Found",
+          });
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          // silently ignore aborted requests
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
     };
 
     checkRoom();
-  }, [roomId, handleWebSocket, setStatus]);
+
+    return () => {
+      controller.abort();
+    };
+  }, [roomId, state, handleWebSocket, setStatus, setWs, setMode]);
+
+  useEffect(() => {
+    if (!roomId) return;
+
+    if (
+      status.status === RoomStatus.connected &&
+      attemptedPasswordRef.current
+    ) {
+      sessionStorage.setItem(
+        `roomPassword:${roomId}`,
+        attemptedPasswordRef.current,
+      );
+    }
+
+    if (status.status === RoomStatus.authFailed) {
+      sessionStorage.removeItem(`roomPassword:${roomId}`);
+    }
+  }, [roomId, status.status]);
 
   const motionProps = {
     initial: { opacity: 0, y: prefersReducedMotion ? 0 : 8 },
@@ -182,59 +308,137 @@ function RoomPage() {
     RoomStatus.disconnected,
     RoomStatus.opponentLeft,
     RoomStatus.error,
+    RoomStatus.notFound,
   ].includes(status.status);
 
   const isDisconnected = status.status === RoomStatus.disconnected;
   const isOpponentLeft = status.status === RoomStatus.opponentLeft;
+  const isNotFound = status.status === RoomStatus.notFound;
+  const isSelfDisconnected = isDisconnected && disconnectOwner === "self";
+  const isOpponentDisconnected =
+    isDisconnected && disconnectOwner === "opponent";
+  const isUrgentCountdown =
+    opponentReconnectSeconds !== null && opponentReconnectSeconds <= 10;
 
   return (
     <DefaultLayout>
       {isErrorState ? (
         <RoomLayout>
-          <motion.div
-            {...motionProps}
-            className="border-danger/40 bg-danger/10 flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border p-6 text-center"
-          >
-            <div className="bg-danger/20 flex h-14 w-14 items-center justify-center rounded-full">
-              {isDisconnected ? (
-                <WifiOff className="text-danger" size={28} />
-              ) : (
-                <AlertCircle className="text-danger" size={28} />
-              )}
-            </div>
-            <div className="flex flex-col gap-1">
-              <h2 className="text-foreground-900 dark:text-foreground text-xl font-bold">
-                {isDisconnected
-                  ? "Connection Lost"
-                  : isOpponentLeft
-                    ? "Opponent Left"
-                    : "Something went wrong"}
-              </h2>
-              <p className="text-foreground-600 dark:text-foreground-400 text-sm">
-                {status.message}
-              </p>
-            </div>
-            <div className="flex gap-3">
-              {isDisconnected && (
-                <Button
-                  color="primary"
-                  startContent={<RefreshCw size={16} />}
-                  onPress={() => {
-                    setStatus({ status: RoomStatus.connecting, message: "" });
-                    handleWebSocket("");
-                  }}
+          {isOpponentDisconnected && opponentReconnectSeconds !== null ? (
+            <motion.div
+              {...motionProps}
+              className="border-warning/40 bg-warning/10 flex w-full max-w-md flex-col items-center gap-5 rounded-2xl border p-6 text-center"
+            >
+              <div className="relative">
+                <svg className="size-20 -rotate-90" viewBox="0 0 100 100">
+                  <circle
+                    className="text-warning/20"
+                    cx="50"
+                    cy="50"
+                    fill="none"
+                    r="45"
+                    stroke="currentColor"
+                    strokeWidth="6"
+                  />
+                  <circle
+                    className={`text-warning transition-all duration-1000 ${isUrgentCountdown ? "text-danger" : ""}`}
+                    cx="50"
+                    cy="50"
+                    fill="none"
+                    r="45"
+                    stroke="currentColor"
+                    strokeDasharray={283}
+                    strokeDashoffset={
+                      283 - (283 * opponentReconnectSeconds) / 60
+                    }
+                    strokeLinecap="round"
+                    strokeWidth="6"
+                    style={{
+                      transformOrigin: "center",
+                      transition:
+                        "stroke-dashoffset 1s linear, stroke 0.3s ease",
+                    }}
+                  />
+                </svg>
+                <div
+                  className={`absolute inset-0 flex items-center justify-center text-2xl font-black ${isUrgentCountdown ? "text-danger animate-pulse" : "text-warning"}`}
                 >
-                  Reconnect
-                </Button>
-              )}
-              <Link className={buttonStyles({ variant: "bordered" })} to="/">
-                Home
-              </Link>
-              <Link className={buttonStyles({ color: "primary" })} to="/rooms">
-                Rooms
-              </Link>
-            </div>
-          </motion.div>
+                  {opponentReconnectSeconds}
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <h2 className="text-foreground-900 dark:text-foreground text-xl font-bold">
+                  Waiting for opponent
+                </h2>
+                <p className="text-foreground-600 dark:text-foreground-400 text-sm">
+                  {isUrgentCountdown
+                    ? "Opponent is taking too long..."
+                    : "Opponent disconnected. Waiting for reconnection..."}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Link className={buttonStyles({ variant: "bordered" })} to="/">
+                  Home
+                </Link>
+                <Link
+                  className={buttonStyles({ color: "primary" })}
+                  to="/rooms"
+                >
+                  Rooms
+                </Link>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              {...motionProps}
+              className="border-danger/40 bg-danger/10 flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border p-6 text-center"
+            >
+              <div className="bg-danger/20 flex h-14 w-14 items-center justify-center rounded-full">
+                {isSelfDisconnected ? (
+                  <WifiOff className="text-danger" size={28} />
+                ) : (
+                  <AlertCircle className="text-danger" size={28} />
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                <h2 className="text-foreground-900 dark:text-foreground text-xl font-bold">
+                  {isNotFound
+                    ? "Room not found"
+                    : isSelfDisconnected
+                      ? "You're disconnected"
+                      : isOpponentLeft
+                        ? "Opponent Left"
+                        : "Something went wrong"}
+                </h2>
+                <p className="text-foreground-600 dark:text-foreground-400 text-sm">
+                  {status.message}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                {isSelfDisconnected && (
+                  <Button
+                    color="primary"
+                    startContent={<RefreshCw size={16} />}
+                    onPress={() => {
+                      setStatus({ status: RoomStatus.connecting, message: "" });
+                      handleWebSocket("");
+                    }}
+                  >
+                    Reconnect
+                  </Button>
+                )}
+                <Link className={buttonStyles({ variant: "bordered" })} to="/">
+                  Home
+                </Link>
+                <Link
+                  className={buttonStyles({ color: "primary" })}
+                  to="/rooms"
+                >
+                  Rooms
+                </Link>
+              </div>
+            </motion.div>
+          )}
         </RoomLayout>
       ) : (status.status === RoomStatus.auth &&
           !(state?.password && roomId === state?.roomId)) ||
@@ -263,6 +467,7 @@ function RoomPage() {
                 // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
                 isRequired
+                autoComplete="off"
                 errorMessage={
                   status.status === RoomStatus.authFailed ? status.message : ""
                 }
@@ -292,16 +497,16 @@ function RoomPage() {
               boardStatus={board.status}
               drawStatus={drawStatus}
               player={player}
-              playerNames={state?.playerNames}
+              playerNames={playerNamesState}
               rematchStatus={rematchStatus}
               score={score}
             />
             <div className="flex min-h-0 flex-1 items-center justify-center gap-3 lg:gap-4">
               <Board
                 board={board}
-                className="max-h-[56vh] max-w-[min(100%,38rem)] xl:max-h-[58vh] xl:max-w-[min(100%,40rem)]"
+                className="max-h-[56svh] max-w-[min(100%,38rem)] xl:max-h-[58svh] xl:max-w-[min(100%,40rem)]"
               />
-              <Chat />
+              {mode === "Online" ? <Chat /> : null}
             </div>
             <Actions
               boardStatus={board.status}

@@ -86,7 +86,7 @@ impl RoomService {
         let remaining_count = room.player_counter.fetch_sub(1, Ordering::SeqCst) - 1;
 
         debug!(
-            "Player {} leaving room {}. Remaining players: {}",
+            "Player {} leaving room {} in . Remaining players: {}",
             player_id, room_id, remaining_count
         );
 
@@ -120,7 +120,7 @@ impl RoomService {
         }
 
         let disconnect_msg = ServerMessage::PlayerUpdate {
-            action: PlayerAction::Disconnected,
+            action: PlayerAction::Disconnected(self.rules.get_cleanup_timeout().as_secs()),
             player: SerizlizedPlayer::new(
                 room.get_player(&leaving_player_id.to_string())
                     .await
@@ -195,7 +195,7 @@ impl RoomService {
         use rand::RngExt;
         let mut rng = rand::rng();
         loop {
-            let id = rng.random_range(10000..=99999).to_string();
+            let id = rng.random_range(100000..=999999).to_string();
             if !self.rooms.contains_key(&id) {
                 return id;
             }

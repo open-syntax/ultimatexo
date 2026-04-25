@@ -12,8 +12,16 @@ import {
 import DefaultLayout from "@/layouts/default";
 import { HomeButton } from "@/components/home-button";
 import { Footer } from "@/components/footer";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 export default function IndexPage() {
+  usePageMeta({
+    title: "Play Ultimate Tic-Tac-Toe Online",
+    description:
+      "Play Ultimate Tic-Tac-Toe online for free. Challenge friends, join public rooms, or practice against AI. Nine boards, one champion.",
+    path: "/",
+  });
+
   const navigate = useNavigate();
   const [roomId, setRoomId] = useState("");
   const prefersReducedMotion = useReducedMotion();
@@ -41,7 +49,7 @@ export default function IndexPage() {
 
   return (
     <DefaultLayout pageScrollable>
-      <section className="relative z-10 mx-auto flex h-full w-full max-w-4xl flex-col items-center justify-center gap-8 py-8 md:py-10">
+      <section className="relative z-10 mx-auto flex h-full w-full max-w-4xl flex-col items-center justify-center gap-8 py-4 md:py-6">
         {/* Main Title */}
         <motion.h1
           {...fadeInUp}

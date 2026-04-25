@@ -5,7 +5,7 @@ import { cn } from "@heroui/theme";
 
 import { BoardStatus } from "@/types";
 import { GameAction } from "@/types/actions";
-import { GameStore } from "@/store";
+import { GameStore, RoomStore } from "@/store";
 import { Player } from "@/types/player";
 
 interface GameStatusProps {
@@ -39,6 +39,10 @@ interface RematchModalProps {
 interface GameStatusModalProps {
   boardStatus: BoardStatus | null;
   player: Player;
+  playerNames?: {
+    player1?: string;
+    player2?: string;
+  };
   rematch: (action: GameAction) => void;
   openModal: string;
   setOpenModal: React.Dispatch<React.SetStateAction<string>>;
@@ -58,15 +62,18 @@ const GameStatus = ({
   playerNames,
 }: GameStatusProps) => {
   const { rematch } = GameStore();
+  const { ws } = RoomStore();
 
   const [currentOpenModal, setCurrentOpenModal] = useState<string>("");
+
+  const handleRematch = (action: GameAction) => rematch(action, ws);
 
   return (
     <>
       <ScoreBoard player={player} playerNames={playerNames} score={score} />
       <RematchModal
         openModal={currentOpenModal}
-        rematch={rematch}
+        rematch={handleRematch}
         rematchStatus={rematchStatus}
         setOpenModal={setCurrentOpenModal}
       />
@@ -74,7 +81,8 @@ const GameStatus = ({
         boardStatus={boardStatus}
         openModal={currentOpenModal}
         player={player}
-        rematch={rematch}
+        playerNames={playerNames}
+        rematch={handleRematch}
         setOpenModal={setCurrentOpenModal}
       />
       <RematchStatusModal
@@ -104,45 +112,60 @@ const ModalFrame = ({
 );
 
 const ScoreBoard = ({ player, score, playerNames }: ScoreBoardProps) => {
-  const youName = playerNames
-    ? player.marker === "X"
-      ? (playerNames.player1 ?? "You")
-      : (playerNames.player2 ?? "You")
-    : "You";
-  const oppName = playerNames
-    ? player.marker === "X"
-      ? (playerNames.player2 ?? "Opp")
-      : (playerNames.player1 ?? "Opp")
-    : "Opp";
+  const { mode } = RoomStore();
+
+  const localLeftLabel = playerNames?.player1 ?? "Player 1";
+  const localRightLabel = playerNames?.player2 ?? "Player 2";
+  const botUserName = playerNames?.player1 ?? "You";
+
+  const leftLabel =
+    mode === "Online"
+      ? player.marker === "X"
+        ? "You"
+        : "Opponent"
+      : mode === "Bot"
+        ? player.marker === "X"
+          ? botUserName
+          : "Bot"
+        : localLeftLabel;
+  const rightLabel =
+    mode === "Online"
+      ? player.marker === "O"
+        ? "You"
+        : "Opponent"
+      : mode === "Bot"
+        ? player.marker === "O"
+          ? botUserName
+          : "Bot"
+        : localRightLabel;
   const round = score[0] + score[1] + 1;
 
   return (
     <div className="border-foreground-100/70 bg-content1/85 mx-auto grid w-full max-w-2xl grid-cols-3 items-center rounded-2xl border shadow-lg">
-      <div className="border-foreground-100/60 flex h-full flex-col items-center justify-center gap-1 border-r px-4 py-3.5 text-center md:py-4">
-        <span className="text-primary text-4xl font-black">
-          {player.marker}
+      <div className="border-foreground-100/60 flex h-full flex-col items-center justify-center gap-1 border-r px-4 py-3.5 text-center max-sm:px-2 max-sm:py-2 md:py-4">
+        <span className="text-primary text-4xl font-black max-sm:text-2xl">
+          X
         </span>
-        <p className="text-foreground-900 dark:text-foreground text-sm font-bold tracking-[0.08em] uppercase">
-          {youName}
+        <p className="text-foreground-900 dark:text-foreground text-sm font-bold tracking-[0.08em] uppercase max-sm:text-xs">
+          {leftLabel}
         </p>
       </div>
 
-      <div className="border-foreground-100/60 flex h-full flex-col items-center justify-center border-r px-4 py-3.5 text-center md:py-4">
-        <p className="text-foreground-900 dark:text-foreground text-4xl font-black tracking-tight">
-          {score[player.marker === "X" ? 0 : 1]} :
-          {score[player.marker === "X" ? 1 : 0]}
+      <div className="border-foreground-100/60 flex h-full flex-col items-center justify-center border-r px-4 py-3.5 text-center max-sm:px-2 max-sm:py-2 md:py-4">
+        <p className="text-foreground-900 dark:text-foreground text-4xl font-black tracking-tight max-sm:text-2xl">
+          {score[0]} : {score[1]}
         </p>
         <p className="text-foreground-500 mt-1 text-xs font-bold tracking-[0.12em] uppercase">
           Round {round}
         </p>
       </div>
 
-      <div className="flex h-full flex-col items-center justify-center gap-1 px-4 py-3.5 text-center md:py-4">
-        <span className="text-danger text-4xl font-black">
-          {player.marker === "X" ? "O" : "X"}
+      <div className="flex h-full flex-col items-center justify-center gap-1 px-4 py-3.5 text-center max-sm:px-2 max-sm:py-2 md:py-4">
+        <span className="text-danger text-4xl font-black max-sm:text-2xl">
+          O
         </span>
-        <p className="text-foreground-900 dark:text-foreground text-sm font-bold tracking-[0.08em] uppercase">
-          {oppName}
+        <p className="text-foreground-900 dark:text-foreground text-sm font-bold tracking-[0.08em] uppercase max-sm:text-xs">
+          {rightLabel}
         </p>
       </div>
     </div>
@@ -204,16 +227,30 @@ const RematchModal = ({
 const GameStatusModal = ({
   boardStatus,
   player,
+  playerNames,
   rematch,
   openModal,
   setOpenModal,
 }: GameStatusModalProps) => {
-  const message =
-    boardStatus === BoardStatus.Draw
-      ? "Draw"
-      : player.marker === boardStatus
-        ? "You won!"
-        : "Opponent won!";
+  const { mode } = RoomStore();
+
+  const message = (() => {
+    if (boardStatus === BoardStatus.Draw) return "Draw";
+
+    if (mode === "Local") {
+      const xName = playerNames?.player1 ?? "Player 1";
+      const oName = playerNames?.player2 ?? "Player 2";
+      const winner = boardStatus === BoardStatus.X ? xName : oName;
+
+      return `${winner} won!`;
+    }
+
+    if (mode === "Bot") {
+      return player.marker === boardStatus ? "You won!" : "Bot won!";
+    }
+
+    return player.marker === boardStatus ? "You won!" : "Opponent won!";
+  })();
 
   useEffect(() => {
     if (

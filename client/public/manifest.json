@@ -1,0 +1,22 @@
+{
+  "name": "UltimateXO",
+  "short_name": "UltimateXO",
+  "description": "Play Ultimate Tic-Tac-Toe online for free. Challenge friends, join public rooms, or practice against AI.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050810",
+  "theme_color": "#050810",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "any",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

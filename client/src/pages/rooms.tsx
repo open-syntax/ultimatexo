@@ -9,6 +9,7 @@ import { Controller, SearchIcon } from "@/components/icons";
 import RoomCard from "@/components/roomCard";
 import DefaultLayout from "@/layouts/default";
 import { Footer } from "@/components/footer";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 export type room = {
   id: string;
@@ -19,6 +20,13 @@ export type room = {
 const AUTO_REFRESH_MS = 15000;
 
 export default function RoomsPage() {
+  usePageMeta({
+    title: "Find a Game Room",
+    description:
+      "Browse active Ultimate Tic-Tac-Toe rooms, filter by privacy, and jump straight into a live multiplayer game.",
+    path: "/rooms",
+  });
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState<string>(() => searchParams.get("q") ?? "");
   const [protectedOnly, setProtectedOnly] = useState<boolean>(
@@ -32,7 +40,10 @@ export default function RoomsPage() {
   const prefersReducedMotion = useReducedMotion();
 
   const fetchRooms = useCallback(
-    async (name: string, options?: { silent?: boolean }) => {
+    async (
+      name: string,
+      options?: { silent?: boolean; signal?: AbortSignal },
+    ) => {
       const searchName = name.trim();
       const silent = options?.silent ?? false;
 
@@ -49,8 +60,11 @@ export default function RoomsPage() {
           params.set("name", searchName);
         }
 
-        const endpoint = params.size ? `/api/rooms?${params}` : "/api/rooms";
-        const response = await fetch(endpoint);
+        // Add cache-busting timestamp to prevent browser caching
+        params.set("_t", Date.now().toString());
+
+        const endpoint = `/api/rooms?${params}`;
+        const response = await fetch(endpoint, { signal: options?.signal });
 
         if (!response.ok) {
           throw new Error("Could not load rooms. Please try again.");
@@ -62,6 +76,7 @@ export default function RoomsPage() {
         setError(null);
         setLastUpdated(Date.now());
       } catch {
+        if (options?.signal?.aborted) return;
         setError("Unable to fetch rooms right now.");
       } finally {
         setIsLoading(false);

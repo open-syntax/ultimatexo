@@ -1,29 +1,27 @@
 import { create } from "zustand";
 
-import RoomStore from "./room";
-
-import { marker } from "@/types/player";
+import { Marker } from "@/types/player";
 import { GameAction } from "@/types/actions";
 
-type move = {
+interface Move {
   nextMove: number | null;
   lastMove: [number, number] | null;
-};
-
-interface store {
-  move: move;
-  nextPlayer?: marker;
-
-  setNextPlayer: (marker: marker) => void;
-  setMove: (move: move) => void;
-
-  playMove: (mv: [number, number]) => void;
-  rematch: (action: GameAction) => void;
-  resign: () => void;
-  draw: (action: GameAction) => void;
 }
 
-const GameStore = create<store>((set) => ({
+interface Store {
+  move: Move;
+  nextPlayer?: Marker;
+
+  setNextPlayer: (marker: Marker) => void;
+  setMove: (move: Move) => void;
+
+  playMove: (mv: [number, number], ws?: WebSocket) => void;
+  rematch: (action: GameAction, ws?: WebSocket) => void;
+  resign: (ws?: WebSocket) => void;
+  draw: (action: GameAction, ws?: WebSocket) => void;
+}
+
+const GameStore = create<Store>((set) => ({
   move: {
     nextMove: null,
     lastMove: null,
@@ -33,16 +31,17 @@ const GameStore = create<store>((set) => ({
   setNextPlayer: (marker) => set({ nextPlayer: marker }),
   setMove: (move) => set({ move }),
 
-  playMove: (mv) =>
-    RoomStore.getState().ws?.send(
+  playMove: (mv, ws) => {
+    ws?.send(
       JSON.stringify({
         GameUpdate: {
           mv,
         },
       }),
-    ),
-  rematch: (action) => {
-    RoomStore.getState().ws?.send(
+    );
+  },
+  rematch: (action, ws) => {
+    ws?.send(
       JSON.stringify({
         RematchRequest: {
           action,
@@ -51,11 +50,11 @@ const GameStore = create<store>((set) => ({
     );
   },
 
-  resign: () => {
-    RoomStore.getState().ws?.send(JSON.stringify("Resign"));
+  resign: (ws) => {
+    ws?.send(JSON.stringify("Resign"));
   },
-  draw: (action) => {
-    RoomStore.getState().ws?.send(
+  draw: (action, ws) => {
+    ws?.send(
       JSON.stringify({
         DrawRequest: {
           action,

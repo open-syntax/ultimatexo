@@ -6,6 +6,7 @@ import DefaultLayout from "@/layouts/default";
 import { Footer } from "@/components/footer";
 import Board from "@/components/room/board";
 import { Board as BoardType, BoardStatus } from "@/types";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 const guideSections = [
   { id: "overview", label: "Overview" },
@@ -72,6 +73,13 @@ function SectionTitle({ title }: { title: string }) {
 }
 
 function Instructions() {
+  usePageMeta({
+    title: "How to Play Ultimate Tic-Tac-Toe - Rules & Strategy Guide",
+    description:
+      "Learn how to play Ultimate Tic-Tac-Toe. Complete rules, gameplay mechanics, strategy tips, and a video tutorial to master the game.",
+    path: "/instructions",
+  });
+
   return (
     <DefaultLayout>
       <div className="h-full min-h-0">

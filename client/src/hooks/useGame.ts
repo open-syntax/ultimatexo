@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Board, BoardStatus, socketEvent, RoomStatus } from "@/types";
-import { playerActions, GameAction } from "@/types/actions";
+import {
+  Board,
+  BoardStatus,
+  socketEvent,
+  RoomStatus,
+  PlayerAction,
+} from "@/types";
+import { GameAction } from "@/types/actions";
 import { GameStore, PlayerStore, RoomStore } from "@/store";
-import { marker } from "@/types/player";
+import { Marker } from "@/types/player";
 
-interface room {
+interface RoomState {
   status: RoomStatus;
   message: string;
 }
@@ -13,7 +19,8 @@ interface room {
 const useGame = () => {
   const { player, setPlayer } = PlayerStore();
   const { setMove, setNextPlayer } = GameStore();
-  const { pushMessage, clearChat, ws, mode } = RoomStore();
+  const { pushMessage, clearChat, ws } = RoomStore();
+  const statusRef = useRef<RoomStatus>(RoomStatus.connecting);
 
   const [rematchStatus, setRematchStatus] = useState<GameAction | null>(null);
   const [drawStatus, setDrawStatus] = useState<GameAction | null>(null);
@@ -24,24 +31,33 @@ const useGame = () => {
     status: BoardStatus | null;
   } | null>(null);
 
-  const [status, setStatus] = useState<room>({
+  const [status, setStatus] = useState<RoomState>({
     status: RoomStatus.connecting,
     message: "",
   });
 
-  const statusRef = useRef<RoomStatus>(RoomStatus.connecting);
+  const updateStatus = (nextStatus: RoomStatus, message: string) => {
+    statusRef.current = nextStatus;
+    setStatus({ status: nextStatus, message });
+  };
+
+  const [disconnectOwner, setDisconnectOwner] = useState<
+    "self" | "opponent" | null
+  >(null);
+  const [opponentReconnectSeconds, setOpponentReconnectSeconds] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     if (!ws) return;
 
-    let playerMarker: marker = null;
+    let playerMarker: Marker = null;
+    let unmounted = false;
 
-    // handle on connection established
     ws.onopen = () => {
       clearChat();
     };
 
-    // handle on message arrival
     ws.onmessage = (event) => {
       let e: socketEvent;
 
@@ -52,11 +68,9 @@ const useGame = () => {
           typeof event.data === "string" &&
           event.data.includes("Invalid room password")
         ) {
-          setStatus({
-            status: RoomStatus.authFailed,
-            message: "Invalid password",
-          });
-          statusRef.current = RoomStatus.authFailed;
+          if (!unmounted) {
+            updateStatus(RoomStatus.authFailed, "Invalid password");
+          }
         }
 
         return;
@@ -65,7 +79,7 @@ const useGame = () => {
 
       switch (eventName) {
         case "GameUpdate":
-          if (mode === "Local") {
+          if (RoomStore.getState().mode === "Local") {
             setPlayer({ marker: e.data.next_player.marker, id: "" });
             playerMarker = e.data.next_player.marker;
           }
@@ -81,56 +95,64 @@ const useGame = () => {
           break;
 
         case "PlayerUpdate": {
-          let status: RoomStatus, message: string;
+          const action = e.data.action as PlayerAction;
+          const isDisconnectedObject =
+            typeof action === "object" && "Disconnected" in action;
 
-          switch (e.data.action) {
-            case playerActions.PlayerReconnected:
-            case playerActions.PlayerJoined:
-              status = RoomStatus.connected;
-              if (playerMarker) {
-                message = "PlayerJoined";
-                break;
-              } else {
-                playerMarker = e.data.player.marker;
+          if (isDisconnectedObject) {
+            const seconds = action.Disconnected;
+            const isOpponent = e.data.player.marker !== playerMarker;
 
-                sessionStorage.setItem(
-                  "roomId",
-                  window.location.pathname.split("/")[2],
-                );
-                sessionStorage.setItem("playerId", e.data.player.id);
-                setPlayer(e.data.player);
-                message = "Connected";
-                break;
-              }
-
-            case playerActions.PlayerLeft:
-              status = RoomStatus.opponentLeft;
-              message = "Opponent left";
-              break;
-
-            case playerActions.PlayerDisconnected:
-              if (e.data.player.marker !== playerMarker) {
-                status = RoomStatus.disconnected;
-                message =
-                  "Opponent disconnected \n Waiting for opponent to reconnect...";
-              } else {
-                status = RoomStatus.disconnected;
-                message = "You disconnected \n reconnecting...";
-              }
-
-              break;
-
-            default:
-              status = RoomStatus.error;
-              message = "Invalid player action";
-              break;
+            if (isOpponent) {
+              setDisconnectOwner("opponent");
+              setOpponentReconnectSeconds(seconds);
+              updateStatus(
+                RoomStatus.disconnected,
+                "Opponent disconnected. Waiting for reconnection...",
+              );
+            } else {
+              setDisconnectOwner("self");
+              setOpponentReconnectSeconds(null);
+              updateStatus(
+                RoomStatus.disconnected,
+                "You disconnected. Reconnecting...",
+              );
+            }
+            break;
           }
 
-          setStatus({
-            status,
-            message,
-          });
-          statusRef.current = status;
+          if (action === "Joined" || action === "Reconnected") {
+            setDisconnectOwner(null);
+            setOpponentReconnectSeconds(null);
+
+            const newStatus = RoomStatus.connected;
+            const message = "Connected";
+
+            if (!playerMarker) {
+              playerMarker = e.data.player.marker;
+              sessionStorage.setItem(
+                "roomId",
+                window.location.pathname.split("/")[2],
+              );
+              sessionStorage.setItem("playerId", e.data.player.id);
+              setPlayer(e.data.player);
+            }
+
+            if (!unmounted) {
+              updateStatus(newStatus, message);
+            }
+            break;
+          }
+
+          if (action === "Left") {
+            setDisconnectOwner(null);
+            setOpponentReconnectSeconds(null);
+            if (!unmounted) {
+              updateStatus(RoomStatus.opponentLeft, "Opponent left");
+            }
+            break;
+          }
+
           break;
         }
 
@@ -158,9 +180,6 @@ const useGame = () => {
           }
           break;
 
-        default:
-          break;
-
         case "TextMessage":
           pushMessage({
             content: e.data.content,
@@ -174,32 +193,56 @@ const useGame = () => {
 
         case "Error":
           if (e.data.error === "InvalidPassword") {
-            setStatus({
-              status: RoomStatus.authFailed,
-              message: "Invalid password",
-            });
-            statusRef.current = RoomStatus.authFailed;
-
+            if (!unmounted) {
+              updateStatus(RoomStatus.authFailed, "Invalid password");
+            }
             break;
           }
-          setStatus({
-            status: RoomStatus.internal,
-            message: e.data.error,
-          });
-          statusRef.current = RoomStatus.internal;
+          if (!unmounted) {
+            updateStatus(RoomStatus.internal, e.data.error);
+          }
+          break;
+
+        default:
           break;
       }
     };
 
-    // handle on disconnection
     ws.onclose = () => {
+      if (unmounted) return;
+      if (RoomStore.getState().ws !== ws) return;
       if (statusRef.current === RoomStatus.authFailed) return;
-      setStatus({
-        status: RoomStatus.disconnected,
-        message: "Cannot connect",
-      });
+
+      setDisconnectOwner("self");
+      setOpponentReconnectSeconds(null);
+      updateStatus(RoomStatus.disconnected, "Connection lost");
     };
-  }, [ws]);
+
+    return () => {
+      unmounted = true;
+      ws.onopen = null;
+      ws.onmessage = null;
+      ws.onclose = null;
+    };
+  }, [ws, clearChat, pushMessage, setPlayer, setMove, setNextPlayer]);
+
+  useEffect(() => {
+    if (disconnectOwner !== "opponent" || opponentReconnectSeconds === null) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setOpponentReconnectSeconds((prev) => {
+        if (prev === null || prev <= 1) {
+          return 0;
+        }
+
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [disconnectOwner, opponentReconnectSeconds]);
 
   return {
     ws,
@@ -210,6 +253,8 @@ const useGame = () => {
     drawStatus,
     setStatus,
     player,
+    disconnectOwner,
+    opponentReconnectSeconds,
   };
 };
 

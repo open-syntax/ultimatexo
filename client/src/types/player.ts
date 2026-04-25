@@ -1,6 +1,6 @@
-export type marker = "X" | "O" | null;
+export type Marker = "X" | "O" | null;
 
 export type Player = {
-  marker: marker;
+  marker: Marker;
   id: string;
 };

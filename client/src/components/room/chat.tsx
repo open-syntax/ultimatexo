@@ -1,24 +1,22 @@
-/* eslint-disable jsx-a11y/no-autofocus */
+ 
 import { Button } from "@heroui/button";
 import { Drawer, DrawerBody, DrawerContent } from "@heroui/drawer";
 import { useDisclosure } from "@heroui/use-disclosure";
-import { Input } from "@heroui/input";
 import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@heroui/theme";
 
-import { Chat as ChatIcon, X, MessageCircle } from "../icons";
+import { Chat as ChatIcon, X, MessageCircle, Send } from "../icons";
 
 import { Message } from "@/types/messages";
-import { marker, Player } from "@/types/player";
+import { Marker, Player } from "@/types/player";
 import { PlayerStore, RoomStore } from "@/store";
 import useWindowSize from "@/hooks/useWindowSize";
 
 interface props {
   chat: Message[];
-  marker?: marker;
+  marker?: Marker;
   className?: string;
   handleMessageSend: (e: React.FormEvent<HTMLFormElement>) => void;
-
   input: string;
   setInput: React.Dispatch<React.SetStateAction<string>>;
 }
@@ -42,16 +40,24 @@ const ChatLayout = ({
   setInput,
 }: props) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const boardRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [boardHeight, setBoardHeight] = useState<number | undefined>();
 
   useEffect(() => {
-    boardRef.current = document.getElementById(
-      "board",
-    ) as HTMLDivElement | null;
-    if (boardRef.current) {
-      setBoardHeight(boardRef.current.offsetHeight);
-    }
+    const board = document.getElementById("board") as HTMLDivElement | null;
+
+    if (!board) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setBoardHeight(entry.contentRect.height);
+      }
+    });
+
+    setBoardHeight(board.offsetHeight);
+    observer.observe(board);
+
+    return () => observer.disconnect();
   }, []);
 
   const stableChat = React.useMemo(
@@ -70,46 +76,47 @@ const ChatLayout = ({
     }
   }, [chat]);
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      e.currentTarget.form?.requestSubmit();
+    }
+  };
+
   return (
     <div
-      className={
-        "border-foreground-100/70 bg-content1/85 flex flex-col gap-4 rounded-2xl border p-4 " +
-        className
-      }
+      className={cn(
+        "border-foreground-100/70 bg-content1/90 flex flex-col rounded-3xl border shadow-[0_18px_70px_rgba(15,23,42,0.4)]",
+        className,
+      )}
       style={{ height: boardHeight }}
     >
-      <div className="border-foreground-100/60 flex items-center justify-between border-b pb-3">
-        <h1 className="text-foreground-900 dark:text-foreground text-xl font-bold">
-          Match Chat
-        </h1>
+      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="text-primary" size={18} />
+          <h1 className="text-foreground-900 dark:text-foreground text-sm font-bold tracking-[0.04em] uppercase">
+            Chat
+          </h1>
+        </div>
       </div>
+
       <div
         ref={chatContainerRef}
-        className="flex h-full w-full scroll-m-2 flex-col gap-2.5 overflow-y-auto pr-2"
+        className="scrollbar-hide flex flex-1 flex-col gap-2 overflow-y-auto px-3 py-1"
       >
         {stableChat.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-center opacity-60">
-            <MessageCircle className="text-foreground-400" size={32} />
-            <p className="text-foreground-500 text-sm">
-              No messages yet — say hello!
-            </p>
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center opacity-50">
+            <MessageCircle className="text-primary/60" size={36} />
+            <p className="text-foreground-500 text-xs">No messages yet</p>
           </div>
         ) : (
           stableChat.map((message) => (
             <div
               key={message.key}
-              className={`flex h-fit w-full gap-2 text-pretty ${message.player.marker === marker ? "justify-end" : "justify-start"}`}
+              className={`flex w-full text-pretty ${message.player.marker === marker ? "justify-end" : "justify-start"}`}
             >
-              {(message.player.marker === "X" ||
-                message.player.marker === "O") && (
-                <span
-                  className={`inline-flex h-6 min-w-6 items-center justify-center self-end rounded-full px-2 text-[11px] font-black ${message.player.marker === "X" ? "bg-primary/25 text-primary-800 dark:text-primary-200" : "bg-danger/25 text-danger-800 dark:text-danger-200"}`}
-                >
-                  {message.player.marker}
-                </span>
-              )}
               <p
-                className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-start text-sm leading-relaxed break-words ${message.player.marker === "X" ? "bg-primary/25 text-primary-800 dark:text-primary-200" : message.player.marker === "O" ? "bg-danger/25 text-danger-800 dark:text-danger-200" : "bg-content2/80 text-foreground-800 dark:text-foreground-200"}`}
+                className={`max-w-[85%] rounded-xl px-3 py-2 text-start text-sm leading-relaxed break-words whitespace-pre-wrap ${message.player.marker === "X" ? "from-primary/25 to-primary/10 bg-gradient-to-br text-blue-700 dark:text-blue-200" : message.player.marker === "O" ? "from-danger/25 to-danger/10 bg-gradient-to-br text-red-700 dark:text-red-200" : "bg-content2/60 text-foreground"}`}
               >
                 {message.content}
               </p>
@@ -117,21 +124,34 @@ const ChatLayout = ({
           ))
         )}
       </div>
+
       <form
         autoComplete="off"
-        className="border-foreground-100/60 flex h-fit w-full gap-2 border-t pt-2.5"
+        className="flex items-center gap-2 px-3 pt-2 pb-3"
         onSubmit={(e) => handleMessageSend(e)}
       >
-        <Input
-          autoFocus
-          id="input"
+        <textarea
+          ref={textareaRef}
+          className={cn(
+            "border-foreground-100/40 bg-content2/40 placeholder:text-foreground-400 h-10 w-full resize-none rounded-xl border px-3 py-2 text-sm leading-relaxed text-white transition-colors outline-none",
+            marker === "O"
+              ? "focus:border-danger/60"
+              : "focus:border-primary/60",
+          )}
           name="message"
-          placeholder="Message"
+          placeholder="Type a message..."
+          rows={1}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
-        <Button color="primary" type="submit">
-          Send
+        <Button
+          isIconOnly
+          className="h-10 min-w-10 shrink-0 rounded-xl"
+          color={marker === "O" ? "danger" : "primary"}
+          type="submit"
+        >
+          <Send size={18} />
         </Button>
       </form>
     </div>
@@ -155,11 +175,11 @@ const MobileChat = ({
       size="xl"
       onOpenChange={onOpenChange}
     >
-      <DrawerContent className="left-1/2 h-full max-w-xl -translate-x-1/2">
-        <DrawerBody className="h-full">
+      <DrawerContent className="left-1/2 h-full max-w-xl -translate-x-1/2 rounded-t-3xl">
+        <DrawerBody className="h-full p-0">
           <ChatLayout
             chat={chat}
-            className="!h-full"
+            className="!h-full !rounded-t-3xl !rounded-b-none border-b-0"
             handleMessageSend={handleMessageSend}
             input={input}
             marker={player?.marker}
@@ -180,34 +200,56 @@ const DesktopChat = ({
   isOpen,
   onOpenChange,
 }: ChatProps) => {
-  const chatRef = useRef<HTMLDivElement>(null);
+  const [boardHeight, setBoardHeight] = useState<number | undefined>();
+
+  useEffect(() => {
+    const board = document.getElementById("board") as HTMLDivElement | null;
+
+    if (!board) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setBoardHeight(entry.contentRect.height);
+      }
+    });
+
+    setBoardHeight(board.offsetHeight);
+    observer.observe(board);
+
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div
-      ref={chatRef}
       className={cn(
         isOpen ? "w-[320px] lg:w-[340px]" : "w-0",
-        "relative mt-auto h-full overflow-hidden transition-all duration-300 ease-out",
+        "relative overflow-hidden transition-all duration-300 ease-out",
       )}
+      style={{ height: boardHeight }}
     >
-      <X
-        className="text-foreground-500 hover:text-foreground absolute top-5 right-5 z-10 cursor-pointer transition"
-        onClick={() => onOpenChange()}
-      />
-      <ChatLayout
-        chat={chat}
-        className="rounded-2xl"
-        handleMessageSend={handleMessageSend}
-        input={input}
-        marker={player?.marker}
-        setInput={setInput}
-      />
+      <div className="relative h-full">
+        <button
+          className="text-foreground-400 hover:text-foreground absolute top-3 right-3 z-10 cursor-pointer rounded-lg p-1 transition-colors"
+          type="button"
+          onClick={() => onOpenChange()}
+        >
+          <X size={16} />
+        </button>
+        <ChatLayout
+          chat={chat}
+          className="!h-full"
+          handleMessageSend={handleMessageSend}
+          input={input}
+          marker={player?.marker}
+          setInput={setInput}
+        />
+      </div>
     </div>
   );
 };
 
 const Chat = () => {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { isOpen, onOpenChange } = useDisclosure();
 
   const { width } = useWindowSize();
 
@@ -215,54 +257,45 @@ const Chat = () => {
   const { chat, sendMessage } = RoomStore();
 
   const [input, setInput] = useState<string>("");
-  const [isRead, setIsRead] = useState<boolean>(true);
+  const [lastReadCount, setLastReadCount] = useState<number>(0);
 
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!chat.length) return;
-
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-
-    if (!isOpen) {
-      setIsRead(false);
-    }
-  }, [chat, isOpen]);
+  const hasUnread = chat.length > lastReadCount;
 
   useEffect(() => {
-    if (isOpen && chat.length) {
-      chatEndRef.current?.scrollIntoView({ behavior: "instant" });
+    if (isOpen) {
+      setLastReadCount(chat.length);
     }
   }, [isOpen, chat.length]);
 
   const handleMessageSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const message = e.currentTarget.message.value;
+    const form = e.currentTarget;
+    const textarea = form.querySelector(
+      "textarea[name=message]",
+    ) as HTMLTextAreaElement | null;
+    const message = textarea?.value?.trim();
 
     if (!message) return;
 
     sendMessage(message);
 
     setInput("");
-  };
-
-  const handleOnOpen = () => {
-    onOpen();
-    setIsRead(true);
+    if (textarea) {
+      textarea.style.height = "auto";
+    }
   };
 
   return (
     <>
       <Button
-        className="fixed right-4 bottom-20 z-[100] size-12 min-w-12 overflow-visible rounded-full p-0 shadow-lg md:right-5 md:bottom-6"
-        color="primary"
-        variant="solid"
-        onPress={() => handleOnOpen()}
+        className="border-foreground-100/30 bg-content1/80 fixed right-4 bottom-20 z-[100] size-12 min-w-12 overflow-visible rounded-full border p-0 backdrop-blur-sm md:right-5 md:bottom-6"
+        variant="bordered"
+        onPress={() => onOpenChange()}
       >
-        <ChatIcon className="fill-background stroke-background" />
-        {!isRead && (
-          <i className="bg-danger-400 absolute -top-1 -right-1 z-10 size-4 rounded-full" />
+        <ChatIcon className="text-primary" size={20} />
+        {hasUnread && !isOpen && (
+          <i className="bg-danger absolute -top-1 -right-1 z-10 size-4 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
         )}
       </Button>
       {width! >= 720 ? (

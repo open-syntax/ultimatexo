@@ -98,6 +98,6 @@ impl ServerMessage {
 pub enum PlayerAction {
     Joined,
     Left,
-    Disconnected,
+    Disconnected(u64),
     Reconnected,
 }
