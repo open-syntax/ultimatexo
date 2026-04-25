@@ -144,7 +144,7 @@ jobs:
         run: echo "digest=$(cat ${{ matrix.image }}-digest.txt)" >> "$GITHUB_OUTPUT"
 
       - name: Generate SARIF report
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ steps.digest.outputs.digest }}
           format: sarif
@@ -159,7 +159,7 @@ jobs:
           sarif_file: trivy-results.sarif
 
       - name: Critical vulnerability gate
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ steps.digest.outputs.digest }}
           format: table
@@ -168,7 +168,7 @@ jobs:
 
       - name: Table report
         if: always()
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_BASE }}-${{ matrix.image }}@${{ steps.digest.outputs.digest }}
           format: table
