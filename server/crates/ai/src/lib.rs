@@ -548,7 +548,7 @@ impl MoveGenerator {
             })
             .collect();
 
-        move_scores.sort_by(|a, b| b.1.cmp(&a.1));
+        move_scores.sort_by_key(|b| std::cmp::Reverse(b.1));
         move_scores.into_iter().map(|(mov, _)| mov).collect()
     }
 
@@ -729,7 +729,7 @@ impl MinimaxAI {
             move_scores.push((*mov, score));
         }
 
-        move_scores.sort_by(|a, b| b.1.cmp(&a.1));
+        move_scores.sort_by_key(|b| std::cmp::Reverse(b.1));
 
         if self.should_make_mistake() {
             self.select_mistake_move(&move_scores)
