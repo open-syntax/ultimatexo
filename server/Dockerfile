@@ -26,7 +26,6 @@ RUN cargo build --release --bin server && \
 FROM debian:trixie-slim AS runtime
 
 RUN apt-get update && \
-    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \

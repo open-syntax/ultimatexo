@@ -52,9 +52,11 @@ jobs:
 
               if (data.workflow_runs.length === 0) break;
 
-              for (const run of data.workflow_runs) {
+              let limitReached = false;
+            for (const run of data.workflow_runs) {
                 if (deleted >= 2000) {
                   console.log('Safety limit reached (2000). Stopping.');
+                  limitReached = true;
                   break;
                 }
                 if (dryRun) {
@@ -70,7 +72,7 @@ jobs:
                 deleted++;
               }
 
-              if (data.workflow_runs.length < 100) break;
+              if (limitReached || data.workflow_runs.length < 100) break;
               page++;
             }
 
@@ -93,18 +95,22 @@ jobs:
             console.log(`Deleting caches not accessed since: ${cutoff.toISOString()}`);
             console.log(`Dry run: ${dryRun}`);
 
-            const { data } = await github.rest.actions.getActionsCacheList({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              per_page: 100,
-              sort: 'last_accessed_at',
-              direction: 'asc'
-            });
+            const caches = await github.paginate(
+              github.rest.actions.getActionsCacheList,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+                sort: 'last_accessed_at',
+                direction: 'asc'
+              },
+              (response) => response.data.actions_caches
+            );
 
             let deleted = 0;
             let freedBytes = 0;
 
-            for (const cache of data.actions_caches) {
+            for (const cache of caches) {
               const lastAccessed = new Date(cache.last_accessed_at);
               if (lastAccessed < cutoff) {
                 const sizeMB = (cache.size_in_bytes / (1024 * 1024)).toFixed(2);

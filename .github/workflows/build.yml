@@ -51,19 +51,26 @@ jobs:
         id: tags
         run: |
           VERSION="${{ steps.version.outputs.version }}"
+          TAGS=""
           if [[ "$VERSION" == v* ]]; then
             MAJOR="${VERSION#v}"
             MAJOR="${MAJOR%%.*}"
             MINOR="${VERSION#v}"
             MINOR="${MINOR%.*}"
-            TAGS="$VERSION,$MINOR"
-            [[ "$MAJOR" != "0" ]] && TAGS="$TAGS,$MAJOR"
-            TAGS="$TAGS,latest"
+            TAGS="${{ env.IMAGE_BASE }}-${{ matrix.component }}:$VERSION\n"
+            TAGS="${TAGS}${{ env.IMAGE_BASE }}-${{ matrix.component }}:$MINOR\n"
+            [[ "$MAJOR" != "0" ]] && TAGS="${TAGS}${{ env.IMAGE_BASE }}-${{ matrix.component }}:$MAJOR\n"
+            TAGS="${TAGS}${{ env.IMAGE_BASE }}-${{ matrix.component }}:latest"
           else
-            TAGS="$VERSION"
+            TAGS="${{ env.IMAGE_BASE }}-${{ matrix.component }}:$VERSION"
           fi
-          echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
-          echo "Tags: $TAGS"
+          {
+            echo "tags<<EOF"
+            echo -e "$TAGS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Tags:"
+          echo -e "$TAGS"
 
   build:
     name: Build (${{ matrix.component }})
@@ -75,6 +82,8 @@ jobs:
         component: [client, server, caddy]
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.trigger_sha || github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -94,12 +103,11 @@ jobs:
           push: true
           cache-from: type=gha,scope=${{ matrix.component }}
           cache-to: type=gha,mode=max,scope=${{ matrix.component }}
-          tags: |
-            ${{ env.IMAGE_BASE }}-${{ matrix.component }}:${{ needs.meta.outputs.tags }}
+          tags: ${{ needs.meta.outputs.tags }}
           labels: |
             org.opencontainers.image.title=UltimateXO ${{ matrix.component }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ github.event.inputs.trigger_sha || github.sha }}
             org.opencontainers.image.version=${{ needs.meta.outputs.version }}
           provenance: mode=max
           sbom: true

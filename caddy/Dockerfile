@@ -13,8 +13,7 @@ COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 
 COPY Caddyfile /etc/caddy/Caddyfile
 
-RUN apk upgrade --no-cache && \
-    apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata
 
 RUN mkdir -p /var/log/caddy /srv/www && \
     chown -R nobody:nobody /var/log/caddy /srv/www

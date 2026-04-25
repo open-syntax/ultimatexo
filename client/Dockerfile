@@ -19,6 +19,4 @@ RUN pnpm run build && \
 
 FROM alpine:3.21 AS runner
 
-RUN apk upgrade --no-cache
-
 COPY --from=builder /app/dist /srv/www

@@ -35,12 +35,13 @@ backup_current_state() {
 
 pull_images() {
   log "Pulling images for version: $VERSION"
-  docker compose -f "$DEPLOY_DIR/docker-compose.yml" pull
+  VERSION="$VERSION" docker compose -f "$DEPLOY_DIR/docker-compose.yml" pull
 }
 
 deploy_services() {
   log "Deploying services..."
-  docker compose -f "$DEPLOY_DIR/docker-compose.yml" up -d --remove-orphans
+  docker compose -f "$DEPLOY_DIR/docker-compose.yml" rm -fsv client-builder 2>/dev/null || true
+  VERSION="$VERSION" docker compose -f "$DEPLOY_DIR/docker-compose.yml" up -d --remove-orphans
 }
 
 wait_for_server_health() {
