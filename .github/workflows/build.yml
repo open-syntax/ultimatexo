@@ -32,7 +32,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
-      tags: ${{ steps.tags.outputs.tags }}
     steps:
       - uses: actions/checkout@v6
 
@@ -46,31 +45,6 @@ jobs:
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Version: $VERSION"
-
-      - name: Generate tags
-        id: tags
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          TAGS=""
-          if [[ "$VERSION" == v* ]]; then
-            MAJOR="${VERSION#v}"
-            MAJOR="${MAJOR%%.*}"
-            MINOR="${VERSION#v}"
-            MINOR="${MINOR%.*}"
-            TAGS="${{ env.IMAGE_BASE }}-${{ matrix.component }}:$VERSION\n"
-            TAGS="${TAGS}${{ env.IMAGE_BASE }}-${{ matrix.component }}:$MINOR\n"
-            [[ "$MAJOR" != "0" ]] && TAGS="${TAGS}${{ env.IMAGE_BASE }}-${{ matrix.component }}:$MAJOR\n"
-            TAGS="${TAGS}${{ env.IMAGE_BASE }}-${{ matrix.component }}:latest"
-          else
-            TAGS="${{ env.IMAGE_BASE }}-${{ matrix.component }}:$VERSION"
-          fi
-          {
-            echo "tags<<EOF"
-            echo -e "$TAGS"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-          echo "Tags:"
-          echo -e "$TAGS"
 
   build:
     name: Build (${{ matrix.component }})
@@ -95,6 +69,31 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate tags
+        id: tags
+        run: |
+          VERSION="${{ needs.meta.outputs.version }}"
+          TAGS=""
+          if [[ "$VERSION" == v* ]]; then
+            MAJOR="${VERSION#v}"
+            MAJOR="${MAJOR%%.*}"
+            MINOR="${VERSION#v}"
+            MINOR="${MINOR%.*}"
+            TAGS="${{ env.IMAGE_BASE }}-${{ matrix.component }}:$VERSION\n"
+            TAGS="${TAGS}${{ env.IMAGE_BASE }}-${{ matrix.component }}:$MINOR\n"
+            [[ "$MAJOR" != "0" ]] && TAGS="${TAGS}${{ env.IMAGE_BASE }}-${{ matrix.component }}:$MAJOR\n"
+            TAGS="${TAGS}${{ env.IMAGE_BASE }}-${{ matrix.component }}:latest"
+          else
+            TAGS="${{ env.IMAGE_BASE }}-${{ matrix.component }}:$VERSION"
+          fi
+          {
+            echo "tags<<EOF"
+            echo -e "$TAGS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Tags:"
+          echo -e "$TAGS"
+
       - name: Build and push
         id: build-push
         uses: docker/build-push-action@v7
@@ -103,7 +102,7 @@ jobs:
           push: true
           cache-from: type=gha,scope=${{ matrix.component }}
           cache-to: type=gha,mode=max,scope=${{ matrix.component }}
-          tags: ${{ needs.meta.outputs.tags }}
+          tags: ${{ steps.tags.outputs.tags }}
           labels: |
             org.opencontainers.image.title=UltimateXO ${{ matrix.component }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}

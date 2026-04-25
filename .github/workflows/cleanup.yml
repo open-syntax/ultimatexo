@@ -104,13 +104,14 @@ jobs:
                 sort: 'last_accessed_at',
                 direction: 'asc'
               },
-              (response) => response.data.actions_caches
+              (response) => response.data?.actions_caches?.filter(Boolean) || []
             );
 
             let deleted = 0;
             let freedBytes = 0;
 
             for (const cache of caches) {
+              if (!cache?.last_accessed_at) continue;
               const lastAccessed = new Date(cache.last_accessed_at);
               if (lastAccessed < cutoff) {
                 const sizeMB = (cache.size_in_bytes / (1024 * 1024)).toFixed(2);
