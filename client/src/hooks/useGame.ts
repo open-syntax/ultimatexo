@@ -44,6 +44,7 @@ const useGame = () => {
     // handle on message arrival
     ws.onmessage = (event) => {
       let e: socketEvent;
+
       try {
         e = JSON.parse(event.data);
       } catch {
@@ -57,6 +58,7 @@ const useGame = () => {
           });
           statusRef.current = RoomStatus.authFailed;
         }
+
         return;
       }
       const eventName = e.event;
@@ -78,7 +80,7 @@ const useGame = () => {
           setNextPlayer(e.data.next_player.marker);
           break;
 
-        case "PlayerUpdate":
+        case "PlayerUpdate": {
           let status: RoomStatus, message: string;
 
           switch (e.data.action) {
@@ -130,6 +132,7 @@ const useGame = () => {
           });
           statusRef.current = status;
           break;
+        }
 
         case "RematchRequest":
           if (e.data.player === playerMarker) {

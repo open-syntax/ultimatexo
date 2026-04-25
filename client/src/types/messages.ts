@@ -9,7 +9,7 @@ export type GameMove = {
 
 export type TextMessage = {
   TextMessage: {
-    content: String;
+    content: string;
   };
 };
 

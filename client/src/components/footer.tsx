@@ -15,7 +15,7 @@ export function Footer() {
                 className="inline-flex items-center gap-2 text-xl font-bold tracking-tight"
                 to="/"
               >
-                <Logo size={28} className="text-slate-900 dark:text-white" />
+                <Logo className="text-slate-900 dark:text-white" size={28} />
                 <span>
                   <span className="text-slate-900 dark:text-white">
                     Ultimate
@@ -57,9 +57,9 @@ export function Footer() {
                 <li>
                   <Link
                     className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-400"
-                    to={siteConfig.links.discord}
-                    target="_blank"
                     rel="noopener noreferrer"
+                    target="_blank"
+                    to={siteConfig.links.discord}
                   >
                     <DiscordIcon size={14} />
                     Discord
@@ -68,9 +68,9 @@ export function Footer() {
                 <li>
                   <Link
                     className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-400"
-                    to={siteConfig.links.github}
-                    target="_blank"
                     rel="noopener noreferrer"
+                    target="_blank"
+                    to={siteConfig.links.github}
                   >
                     <GithubIcon size={14} />
                     GitHub
@@ -79,9 +79,9 @@ export function Footer() {
                 <li>
                   <Link
                     className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-400"
-                    to={siteConfig.links.sponsor}
-                    target="_blank"
                     rel="noopener noreferrer"
+                    target="_blank"
+                    to={siteConfig.links.sponsor}
                   >
                     <CoffeeIcon size={14} />
                     Support Us
@@ -97,9 +97,9 @@ export function Footer() {
               </h3>
               <Link
                 className="text-sm text-slate-500 transition-colors hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-400"
-                to="https://opensyntax.dev"
-                target="_blank"
                 rel="noopener noreferrer"
+                target="_blank"
+                to="https://opensyntax.dev"
               >
                 Open Syntax
               </Link>

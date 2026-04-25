@@ -60,6 +60,7 @@ const difficultyDescriptions: Record<Difficulty, string> = {
 const parseModeFromQuery = (value: string | null): Mode => {
   if (value === "bot") return "Bot";
   if (value === "local") return "Local";
+
   return "Online";
 };
 
@@ -96,6 +97,7 @@ const CreateRoom = () => {
   const title = useMemo(() => {
     if (mode === "Online") return "Create Online Room";
     if (mode === "Local") return "Create Local Match";
+
     return "Create Bot Match";
   }, [mode]);
 
@@ -142,8 +144,10 @@ const CreateRoom = () => {
         const errorMessage =
           (errorData as { message?: string })?.message ??
           "Failed to create room. Please try again.";
+
         setError(errorMessage);
         setIsLoading(false);
+
         return;
       }
 
@@ -292,12 +296,12 @@ const CreateRoom = () => {
                               <HashIcon size={18} />
                             </span>
                             <input
-                              id="room-name"
+                              required
                               className="border-foreground-100 bg-content2/70 text-foreground-900 dark:text-foreground focus:border-primary w-full rounded-xl border px-4 py-3 pl-10 text-sm transition outline-none"
+                              id="room-name"
                               maxLength={50}
                               minLength={3}
                               placeholder="Room name"
-                              required
                               value={roomName}
                               onChange={(event) =>
                                 setRoomName(event.target.value)
@@ -315,8 +319,8 @@ const CreateRoom = () => {
                               <Lock size={18} />
                             </span>
                             <input
-                              id="room-password"
                               className="border-foreground-100 bg-content2/70 text-foreground-900 dark:text-foreground focus:border-primary w-full rounded-xl border px-4 py-3 pl-10 text-sm transition outline-none"
+                              id="room-password"
                               placeholder="Add a password to lock this room"
                               type="password"
                               value={roomPassword}
@@ -377,8 +381,8 @@ const CreateRoom = () => {
                             <Person size={18} />
                           </span>
                           <input
-                            id="local-player-1"
                             className="border-foreground-100 bg-content2/70 text-foreground-900 dark:text-foreground focus:border-primary w-full rounded-xl border px-4 py-3 pl-10 text-sm transition outline-none"
+                            id="local-player-1"
                             placeholder="Player 1 name"
                             value={player1Name}
                             onChange={(event) =>
@@ -397,8 +401,8 @@ const CreateRoom = () => {
                             <Person size={18} />
                           </span>
                           <input
-                            id="local-player-2"
                             className="border-foreground-100 bg-content2/70 text-foreground-900 dark:text-foreground focus:border-primary w-full rounded-xl border px-4 py-3 pl-10 text-sm transition outline-none"
+                            id="local-player-2"
                             placeholder="Player 2 name"
                             value={player2Name}
                             onChange={(event) =>
@@ -430,8 +434,8 @@ const CreateRoom = () => {
                               <Person size={18} />
                             </span>
                             <input
-                              id="bot-player-name"
                               className="border-foreground-100 bg-content2/70 text-foreground-900 dark:text-foreground focus:border-primary w-full rounded-xl border px-4 py-3 pl-10 text-sm transition outline-none"
+                              id="bot-player-name"
                               placeholder="Enter your name"
                               value={botPlayerName}
                               onChange={(event) =>
@@ -448,8 +452,8 @@ const CreateRoom = () => {
                           label="Bot Difficulty"
                         >
                           <div
-                            id="bot-difficulty"
                             className="grid grid-cols-2 gap-2 md:grid-cols-4"
+                            id="bot-difficulty"
                           >
                             {(
                               [

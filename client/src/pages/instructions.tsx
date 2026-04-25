@@ -168,13 +168,13 @@ function Instructions() {
                   <Card className="border-foreground-100/70 bg-content1/80 border p-5">
                     <CardBody className="items-center gap-4 p-0">
                       <Board
-                        className="pointer-events-none mt-3 max-w-[min(100%,42rem)]"
                         board={
                           boardPreviewData as unknown as {
                             boards: BoardType;
                             status: BoardStatus | null;
                           }
                         }
+                        className="pointer-events-none mt-3 max-w-[min(100%,42rem)]"
                       />
                       <p className="text-foreground-700 dark:text-foreground-300 text-sm leading-relaxed">
                         This is the real in-game board component. The main board
@@ -420,12 +420,12 @@ function Instructions() {
                 <Card className="border-foreground-100/70 bg-content1/70 overflow-hidden border p-1">
                   <CardBody className="p-0">
                     <iframe
+                      allowFullScreen
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       className="aspect-video w-full rounded-lg"
+                      referrerPolicy="strict-origin-when-cross-origin"
                       src="https://www.youtube.com/embed/37PC0bGMiTI"
                       title="Ultimate Tic-Tac-Toe: The Rules"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      referrerPolicy="strict-origin-when-cross-origin"
-                      allowFullScreen
                     />
                   </CardBody>
                 </Card>

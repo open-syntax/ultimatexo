@@ -33,11 +33,11 @@ interface roomResponse {
 }
 
 function RoomPage() {
-  let { roomId } = useParams();
+  const { roomId } = useParams();
   const { player, board, status, score, rematchStatus, drawStatus, setStatus } =
     useGame();
   const { setWs, setMode } = RoomStore();
-  let { state } = useLocation() as unknown as {
+  const { state } = useLocation() as unknown as {
     state: {
       roomId: string;
       password?: string;
@@ -68,6 +68,7 @@ function RoomPage() {
   const handleWebSocket = useCallback(
     (password: string) => {
       const existingWs = RoomStore.getState().ws;
+
       if (existingWs) {
         existingWs.close();
       }
@@ -152,10 +153,10 @@ function RoomPage() {
       <DefaultLayout>
         <div className="flex h-full flex-col items-center justify-center gap-4">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
             className="flex flex-col items-center gap-4"
+            initial={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
           >
             <div className="relative">
               <div className="animate-ping-slow bg-primary/20 absolute inset-0 rounded-full" />
@@ -259,8 +260,9 @@ function RoomPage() {
               }}
             >
               <Input
-                isRequired
+                // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
+                isRequired
                 errorMessage={
                   status.status === RoomStatus.authFailed ? status.message : ""
                 }
@@ -334,8 +336,6 @@ function RoomPage() {
             <div className="flex w-full flex-col gap-3">
               <Button
                 fullWidth
-                variant="bordered"
-                onPress={() => handleCopy(roomId as string, "id")}
                 startContent={
                   copiedField === "id" ? (
                     <Check className="text-success" size={18} />
@@ -343,6 +343,8 @@ function RoomPage() {
                     <Copy size={18} />
                   )
                 }
+                variant="bordered"
+                onPress={() => handleCopy(roomId as string, "id")}
               >
                 {copiedField === "id" ? (
                   <span className="text-success">Copied!</span>
@@ -355,7 +357,6 @@ function RoomPage() {
               <Button
                 fullWidth
                 color="primary"
-                onPress={() => handleCopy(window.location.href, "link")}
                 startContent={
                   copiedField === "link" ? (
                     <Check className="text-white" size={18} />
@@ -363,6 +364,7 @@ function RoomPage() {
                     <LinkIcon size={18} />
                   )
                 }
+                onPress={() => handleCopy(window.location.href, "link")}
               >
                 {copiedField === "link" ? "Copied!" : "Copy Invite Link"}
               </Button>
