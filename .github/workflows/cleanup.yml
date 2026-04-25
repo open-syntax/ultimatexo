@@ -26,7 +26,7 @@ jobs:
     name: Cleanup Workflow Runs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v8
+      - uses: actions/github-script@v9
         with:
           script: |
             const days = parseInt(process.env.WORKFLOW_RUNS_RETENTION_DAYS) || 7;
@@ -84,7 +84,7 @@ jobs:
     name: Cleanup Caches
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v8
+      - uses: actions/github-script@v9
         with:
           script: |
             const days = parseInt(process.env.CACHE_RETENTION_DAYS) || 7;

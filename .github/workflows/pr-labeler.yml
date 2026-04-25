@@ -36,7 +36,7 @@ jobs:
 
       - name: Label dependency updates
         if: github.actor == 'dependabot[bot]' || github.actor == 'renovate[bot]'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             await github.rest.issues.addLabels({
