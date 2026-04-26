@@ -10,12 +10,24 @@ interface CellProps {
   board: number;
   index: number;
   boardStatus: BoardStatus | null;
+  lastMove?: [number, number] | null;
+  nextPlayer?: "X" | "O";
 }
 
-function Cell({ boardStatus, mark, board, index }: CellProps) {
+function Cell({
+  boardStatus,
+  mark,
+  board,
+  index,
+  lastMove: lastMoveProp,
+  nextPlayer: nextPlayerProp,
+}: CellProps) {
   const { player } = PlayerStore();
   const { playMove, move, nextPlayer } = GameStore();
   const { ws } = RoomStore();
+
+  const lastMove = lastMoveProp ?? move.lastMove;
+  const resolvedNextPlayer = nextPlayerProp ?? nextPlayer;
 
   const isAvailable =
     boardStatus === null &&
@@ -42,12 +54,12 @@ function Cell({ boardStatus, mark, board, index }: CellProps) {
   }
 
   if (
-    Array.isArray(move.lastMove) &&
-    move.lastMove[0] === board &&
-    move.lastMove[1] === index
+    Array.isArray(lastMove) &&
+    lastMove[0] === board &&
+    lastMove[1] === index
   ) {
     defaultClasses =
-      nextPlayer === "X"
+      resolvedNextPlayer === "X"
         ? `${defaultClasses} bg-danger/10 shadow-inner shadow-danger/50`
         : `${defaultClasses} bg-primary/10 shadow-inner shadow-primary/50`;
   }

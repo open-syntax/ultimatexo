@@ -6,7 +6,9 @@ import DefaultLayout from "@/layouts/default";
 import { Footer } from "@/components/footer";
 import Board from "@/components/room/board";
 import { Board as BoardType, BoardStatus } from "@/types";
+import { useMemo } from "react";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import allBoardStates from "@/data/board-states.json";
 
 const guideSections = [
   { id: "overview", label: "Overview" },
@@ -18,48 +20,6 @@ const guideSections = [
   { id: "video", label: "Video Tutorial" },
   { id: "faq", label: "FAQ" },
 ];
-
-const boardPreviewData = {
-  boards: [
-    {
-      cells: ["X", "X", "X", "O", null, "O", null, null, null],
-      status: "X",
-    },
-    {
-      cells: [null, "X", null, null, "O", null, null, null, null],
-      status: "InProgress",
-    },
-    {
-      cells: [null, null, null, "O", "O", null, null, null, "X"],
-      status: "InProgress",
-    },
-    {
-      cells: [null, null, null, "X", "X", null, "O", "O", null],
-      status: "InProgress",
-    },
-    {
-      cells: ["X", null, null, null, "O", null, null, null, "X"],
-      status: "InProgress",
-    },
-    {
-      cells: ["O", "O", "O", "X", null, "X", null, null, null],
-      status: "O",
-    },
-    {
-      cells: [null, "X", null, null, null, null, null, "O", null],
-      status: "InProgress",
-    },
-    {
-      cells: [null, null, null, null, "X", null, null, "O", null],
-      status: "InProgress",
-    },
-    {
-      cells: ["O", null, "X", null, "X", null, "O", null, null],
-      status: "InProgress",
-    },
-  ],
-  status: null,
-};
 
 function SectionTitle({ title }: { title: string }) {
   return (
@@ -79,6 +39,19 @@ function Instructions() {
       "Learn how to play Ultimate Tic-Tac-Toe. Complete rules, gameplay mechanics, strategy tips, and a video tutorial to master the game.",
     path: "/instructions",
   });
+
+  const boardPreviewData = useMemo(
+    () => allBoardStates[Math.floor(Math.random() * allBoardStates.length)],
+    [],
+  );
+
+  const nextPlayer: "X" | "O" = (() => {
+    const marks = boardPreviewData.boards.flatMap(
+      (b: { cells: (string | null)[] }) => b.cells,
+    );
+    const totalMarks = marks.filter((c: string | null) => c !== null).length;
+    return totalMarks % 2 === 0 ? "X" : "O";
+  })();
 
   return (
     <DefaultLayout>
@@ -182,7 +155,22 @@ function Instructions() {
                             status: BoardStatus | null;
                           }
                         }
-                        className="pointer-events-none mt-3 max-w-[min(100%,42rem)]"
+                        className="pointer-events-none mt-3 max-w-[min(100%,42rem)] shadow-none"
+                        nextPlayer={nextPlayer}
+                        lastMove={
+                          (
+                            boardPreviewData as unknown as {
+                              last_move?: [number, number] | null;
+                            }
+                          ).last_move ?? null
+                        }
+                        nextBoard={
+                          (
+                            boardPreviewData as unknown as {
+                              next_board?: number | null;
+                            }
+                          ).next_board ?? null
+                        }
                       />
                       <p className="text-foreground-700 dark:text-foreground-300 text-sm leading-relaxed">
                         This is the real in-game board component. The main board

@@ -10,11 +10,14 @@ interface params {
     status: BoardStatus | null;
   };
   className?: string;
+  nextBoard?: number | null;
+  lastMove?: [number, number] | null;
+  nextPlayer?: "X" | "O";
 }
 
 const BOARD_POSITIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
 
-function Board({ board, className }: params) {
+function Board({ board, className, nextBoard, lastMove, nextPlayer }: params) {
   return (
     <div
       className={cn(
@@ -28,6 +31,9 @@ function Board({ board, className }: params) {
           key={position}
           board={board.boards[position]}
           index={position}
+          lastMove={lastMove}
+          nextBoard={nextBoard}
+          nextPlayer={nextPlayer}
           status={board.status}
         />
       ))}

@@ -11,21 +11,37 @@ interface MiniBoardProps {
   board: miniBoard;
   index: number;
   status: BoardStatus | null;
+  nextBoard?: number | null;
+  lastMove?: [number, number] | null;
+  nextPlayer?: "X" | "O";
 }
 
 const MINI_BOARD_POSITIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
 
-function MiniBoard({ board, status, index }: MiniBoardProps) {
+function MiniBoard({
+  board,
+  status,
+  index,
+  nextBoard: nextBoardProp,
+  lastMove,
+  nextPlayer: nextPlayerProp,
+}: MiniBoardProps) {
   const {
     move: { nextMove },
     nextPlayer,
   } = GameStore();
   const { player } = PlayerStore();
 
-  const isAvailable = status === null && [index, null].includes(nextMove);
-  const isActiveTurnBoard = isAvailable && player?.marker === nextPlayer;
+  const nextBoard = nextBoardProp ?? nextMove;
+  const resolvedNextPlayer = nextPlayerProp ?? nextPlayer;
+
+  const isAvailable = status === null && [index, null].includes(nextBoard);
+  const isActiveTurnBoard =
+    nextBoardProp !== undefined
+      ? isAvailable
+      : isAvailable && player?.marker === nextPlayer;
   const nextPlayerShadowClass =
-    nextPlayer === "O"
+    resolvedNextPlayer === "O"
       ? "shadow-[0_0_30px_rgba(239,68,68,0.45)]"
       : "shadow-[0_0_30px_rgba(37,99,235,0.45)]";
 
@@ -58,6 +74,8 @@ function MiniBoard({ board, status, index }: MiniBoardProps) {
           board={index}
           boardStatus={status}
           index={position}
+          lastMove={lastMove}
+          nextPlayer={resolvedNextPlayer ?? undefined}
           mark={board.cells[position]}
         />
       ))}
