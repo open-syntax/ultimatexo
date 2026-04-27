@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:25-alpine3.21 AS builder
+FROM node:24-alpine3.21 AS builder
 
 RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-RUN npm install -g pnpm@10
+RUN corepack enable && corepack prepare pnpm@10.18.3 --activate
 
 COPY package.json pnpm-lock.yaml ./
 
