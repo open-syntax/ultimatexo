@@ -6,7 +6,7 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@10 --activate
+RUN npm install -g pnpm@10
 
 COPY package.json pnpm-lock.yaml ./
 
