@@ -17,6 +17,6 @@ COPY . .
 RUN pnpm run build && \
     test -d dist && test -f dist/index.html
 
-FROM alpine:3.21 AS runner
+FROM alpine:3.23 AS runner
 
 COPY --from=builder /app/dist /srv/www
