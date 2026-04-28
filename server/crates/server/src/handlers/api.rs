@@ -6,7 +6,7 @@ use axum::{
 };
 use serde_json::{Value, json};
 use std::{net::SocketAddr, sync::Arc};
-use ultimatexo_core::{GetRoomQuery, RoomInfo};
+use ultimatexo_core::{BotLevel, GetRoomQuery, RoomInfo, RoomType};
 
 #[utoipa::path(
     get,
@@ -62,6 +62,7 @@ pub async fn get_room(
     request_body = RoomInfo,
     responses(
         (status = 200, description = "Room created successfully", body = inline(Object), example = json!({"room_id": "123567"})),
+        (status = 400, description = "Bad request", body = inline(Object), example = json!({"message": "Expert bot is currently disabled"})),
         (status = 500, description = "Internal server error")
     ),
     tag = "rooms"
@@ -70,13 +71,27 @@ pub async fn create_room(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     State(state): State<Arc<AppState>>,
     Json(room_info): Json<RoomInfo>,
-) -> Result<Json<Value>, StatusCode> {
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if room_info.room_type == RoomType::BotRoom
+        && let Some(BotLevel::Expert) = room_info.bot_level
+    {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "message": "Expert bot is currently disabled."
+            })),
+        ));
+    }
+
     match state.create_room(room_info).await {
         Ok(room_id) => {
             tracing::info!("User {} created room {}", addr, room_id);
             Ok(Json(json!({ "room_id": room_id })))
         }
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Err(_) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "message": "Failed to create room. Please try again." })),
+        )),
     }
 }
 

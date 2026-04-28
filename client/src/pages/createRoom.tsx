@@ -12,9 +12,11 @@ import {
   Person,
   AlertCircle,
   X,
+  CoffeeIcon,
 } from "@/components/icons";
 import DefaultLayout from "@/layouts/default";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { siteConfig } from "@/config/site";
 
 type Mode = "Online" | "Local" | "Bot";
 type Difficulty = "Beginner" | "Medium" | "Hard" | "Expert";
@@ -89,6 +91,7 @@ const CreateRoom = () => {
 
   const [botPlayerName, setBotPlayerName] = useState("Player 1");
   const [difficulty, setDifficulty] = useState<Difficulty>("Beginner");
+  const isExpertSelected = mode === "Bot" && difficulty === "Expert";
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -496,6 +499,42 @@ const CreateRoom = () => {
                             {difficultyDescriptions[difficulty]}
                           </p>
                         </div>
+
+                        {isExpertSelected && (
+                          <div className="border-warning/40 bg-warning/10 flex items-start gap-3 rounded-xl border p-4">
+                            <CoffeeIcon
+                              className="text-warning shrink-0"
+                              size={20}
+                            />
+                            <p className="text-warning-900 dark:text-white/60 text-xs leading-relaxed">
+                              <strong>
+                                Expert mode is currently disabled on our public
+                                servers.
+                              </strong>{" "}
+                              It requires more CPU power than our current
+                              infrastructure can handle. If you&apos;d like us
+                              to bring it back, consider{" "}
+                              <a
+                                className="text-warning font-semibold underline"
+                                href={siteConfig.links.sponsor}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                              >
+                                buying us a coffee
+                              </a>
+                              . You can also{" "}
+                              <a
+                                className="text-warning font-semibold underline"
+                                href={siteConfig.links.github}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                              >
+                                self-host UltimateXO
+                              </a>{" "}
+                              to play against the Expert bot locally.
+                            </p>
+                          </div>
+                        )}
                       </section>
                     </>
                   )}
@@ -511,8 +550,11 @@ const CreateRoom = () => {
                   Back
                 </button>
                 <button
-                  className={buttonStyles({ color: "primary", radius: "md" })}
-                  disabled={isLoading}
+                  className={cn(
+                    buttonStyles({ color: "primary", radius: "md" }),
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                  )}
+                  disabled={isLoading || isExpertSelected}
                   type="button"
                   onClick={handleCreate}
                 >
