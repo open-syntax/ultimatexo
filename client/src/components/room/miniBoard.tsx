@@ -75,8 +75,8 @@ function MiniBoard({
           boardStatus={status}
           index={position}
           lastMove={lastMove}
-          nextPlayer={resolvedNextPlayer ?? undefined}
           mark={board.cells[position]}
+          nextPlayer={resolvedNextPlayer ?? undefined}
         />
       ))}
     </div>

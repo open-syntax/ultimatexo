@@ -7,6 +7,7 @@ import { BoardStatus } from "@/types";
 import { GameAction } from "@/types/actions";
 import { GameStore, RoomStore } from "@/store";
 import { Player } from "@/types/player";
+import { playButton } from "@/utils/sound";
 
 interface GameStatusProps {
   boardStatus: BoardStatus | null;
@@ -202,6 +203,7 @@ const RematchModal = ({
             <Button
               color="primary"
               onPress={() => {
+                playButton();
                 rematch(GameAction.Accepted);
                 setOpenModal("");
               }}
@@ -211,6 +213,7 @@ const RematchModal = ({
             <Button
               variant="flat"
               onPress={() => {
+                playButton();
                 rematch(GameAction.Declined);
                 setOpenModal("");
               }}
@@ -283,10 +286,22 @@ const GameStatusModal = ({
             {message}
           </p>
           <div className="flex gap-3">
-            <Button color="primary" onPress={handleRematch}>
+            <Button
+              color="primary"
+              onPress={() => {
+                playButton();
+                handleRematch();
+              }}
+            >
               Rematch?
             </Button>
-            <Button variant="flat" onPress={() => setOpenModal("")}>
+            <Button
+              variant="flat"
+              onPress={() => {
+                playButton();
+                setOpenModal("");
+              }}
+            >
               Close
             </Button>
           </div>
@@ -339,7 +354,13 @@ const RematchStatusModal = ({
               ? "Rematch Sent..."
               : rematchStatus === GameAction.Declined && "Opponent Declined."}
           </p>
-          <Button variant="flat" onPress={() => setOpenModal("")}>
+          <Button
+            variant="flat"
+            onPress={() => {
+              playButton();
+              setOpenModal("");
+            }}
+          >
             Close
           </Button>
         </div>

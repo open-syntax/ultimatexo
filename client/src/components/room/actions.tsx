@@ -5,6 +5,7 @@ import { Tooltip } from "@heroui/tooltip";
 import { GameStore, RoomStore } from "@/store";
 import { GameAction } from "@/types/actions";
 import { BoardStatus } from "@/types";
+import { playButton, playResign } from "@/utils/sound";
 
 interface ActionsParams {
   drawStatus: GameAction | null;
@@ -60,6 +61,7 @@ const PostGameActions = ({ rematch, rematchStatus }: PostGameActions) => {
         isLoading={rematchSent}
         onPress={() => {
           if (!rematchSent) {
+            playButton();
             rematch(GameAction.Requested);
           }
         }}
@@ -103,6 +105,7 @@ const DuringGameActions = ({
           variant="flat"
           onPress={() => {
             if (drawStatus === GameAction.Sent) return;
+            playButton();
             if (drawStatus === GameAction.Requested)
               return draw(GameAction.Accepted);
             draw(GameAction.Requested);
@@ -130,7 +133,10 @@ const DuringGameActions = ({
           className="w-1/2"
           color="danger"
           variant="flat"
-          onPress={() => setIsConfirm(true)}
+          onPress={() => {
+            playButton();
+            setIsConfirm(true);
+          }}
         >
           Resign
         </Button>
@@ -139,6 +145,7 @@ const DuringGameActions = ({
           className="w-1/2"
           color="danger"
           onPress={() => {
+            playResign();
             resign();
             setIsConfirm(false);
           }}
