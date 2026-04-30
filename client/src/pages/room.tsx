@@ -474,6 +474,7 @@ function RoomPage() {
               className={`flex w-full flex-col gap-4 ${status.status === RoomStatus.authFailed ? "animate-shake" : ""}`}
               onSubmit={(e) => {
                 e.preventDefault();
+                playButton();
                 handleWebSocket(password);
               }}
             >

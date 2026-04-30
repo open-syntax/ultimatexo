@@ -267,6 +267,7 @@ const GameStatusModal = ({
   }, [boardStatus, setOpenModal]);
 
   const handleRematch = () => {
+    playButton();
     rematch(GameAction.Requested);
     setOpenModal("rematchStatusModal");
   };

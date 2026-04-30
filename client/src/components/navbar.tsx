@@ -5,11 +5,12 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
+import { SettingsModal } from "@/components/settings-modal";
 import {
   DiscordIcon,
   GithubIcon,
   CoffeeIcon,
-  OpenSyntaxIcon,
+  SettingsIcon,
   Logo,
 } from "@/components/icons";
 import { TooltipIcon } from "@/components/ui/tooltip-icon";
@@ -53,6 +54,7 @@ const navbarStyles = tv({
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const location = useLocation();
 
   const isActiveRoute = (href: string) => {
@@ -141,16 +143,14 @@ export const Navbar = () => {
           </Link>
         </TooltipIcon>
 
-        <TooltipIcon label="Open Syntax">
-          <Link
-            aria-label="Open Syntax"
+        <TooltipIcon label="Settings">
+          <button
+            aria-label="Settings"
             className={iconButton()}
-            rel="noopener noreferrer"
-            target="_blank"
-            to={siteConfig.links.website}
+            onClick={() => setIsSettingsOpen(true)}
           >
-            <OpenSyntaxIcon size={28} />
-          </Link>
+            <SettingsIcon size={20} />
+          </button>
         </TooltipIcon>
 
         <ThemeSwitch />
@@ -255,6 +255,11 @@ export const Navbar = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </header>
   );
 };

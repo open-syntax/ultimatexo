@@ -1,13 +1,15 @@
+import { SettingsStore } from "@/store/settings";
+
 let audioCtx: AudioContext | null = null;
 
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
+  if (!SettingsStore.getState().soundEnabled) return null;
   if (!audioCtx) {
     audioCtx = new (
       window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext
-    )();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
   }
   if (audioCtx.state === "suspended") {
     void audioCtx.resume();
