@@ -506,7 +506,7 @@ const CreateRoom = () => {
                               className="text-warning shrink-0"
                               size={20}
                             />
-                            <p className="text-warning-900 dark:text-white/60 text-xs leading-relaxed">
+                            <p className="text-warning-900 text-xs leading-relaxed dark:text-white/60">
                               <strong>
                                 Expert mode is currently disabled on our public
                                 servers.
@@ -552,7 +552,7 @@ const CreateRoom = () => {
                 <button
                   className={cn(
                     buttonStyles({ color: "primary", radius: "md" }),
-                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
                   )}
                   disabled={isLoading || isExpertSelected}
                   type="button"

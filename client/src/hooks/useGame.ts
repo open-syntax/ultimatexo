@@ -10,6 +10,19 @@ import {
 import { GameAction } from "@/types/actions";
 import { GameStore, PlayerStore, RoomStore } from "@/store";
 import { Marker } from "@/types/player";
+import {
+  playButton,
+  playChat,
+  playDraw,
+  playGameWin,
+  playJoin,
+  playLeave,
+  playMiniWin,
+  playMoveO,
+  playMoveX,
+  playRequest,
+  playTick,
+} from "@/utils/sound";
 
 interface RoomState {
   status: RoomStatus;
@@ -48,6 +61,12 @@ const useGame = () => {
     number | null
   >(null);
 
+  // Refs for detecting state transitions to trigger sounds
+  const prevBoardRef = useRef<Board | null>(null);
+  const prevBoardStatusRef = useRef<BoardStatus | null | undefined>(undefined);
+  const prevLastMoveRef = useRef<[number, number] | null>(null);
+  const wonBoardsRef = useRef<Set<number>>(new Set());
+
   useEffect(() => {
     if (!ws) return;
 
@@ -84,6 +103,57 @@ const useGame = () => {
             playerMarker = e.data.next_player.marker;
           }
 
+          // Play move sound for newly-received moves
+          if (e.data.last_move !== null) {
+            const isNewMove =
+              prevLastMoveRef.current === null ||
+              prevLastMoveRef.current[0] !== e.data.last_move[0] ||
+              prevLastMoveRef.current[1] !== e.data.last_move[1];
+
+            if (isNewMove) {
+              const justMoved = e.data.next_player.marker === "X" ? "O" : "X";
+
+              if (justMoved === "X") {
+                playMoveX();
+              } else {
+                playMoveO();
+              }
+            }
+          }
+          prevLastMoveRef.current = e.data.last_move;
+
+          // Detect mini-board win
+          if (prevBoardRef.current !== null) {
+            for (let i = 0; i < 9; i++) {
+              const newStatus = e.data.board.boards[i].status;
+
+              if (
+                (newStatus === "X" || newStatus === "O") &&
+                !wonBoardsRef.current.has(i)
+              ) {
+                wonBoardsRef.current.add(i);
+                playMiniWin();
+                break;
+              }
+            }
+          }
+          prevBoardRef.current = e.data.board.boards;
+
+          // Detect game win or draw
+          if (prevBoardStatusRef.current !== undefined) {
+            const prevStatus = prevBoardStatusRef.current;
+            const newStatus = e.data.board.status;
+
+            if (prevStatus === null && newStatus !== null) {
+              if (newStatus === BoardStatus.Draw) {
+                playDraw();
+              } else {
+                playGameWin();
+              }
+            }
+          }
+          prevBoardStatusRef.current = e.data.board.status;
+
           setBoard(e.data.board);
           setScore(e.data.score);
 
@@ -118,6 +188,7 @@ const useGame = () => {
                 "You disconnected. Reconnecting...",
               );
             }
+            playLeave();
             break;
           }
 
@@ -141,6 +212,7 @@ const useGame = () => {
             if (!unmounted) {
               updateStatus(newStatus, message);
             }
+            playJoin();
             break;
           }
 
@@ -150,6 +222,7 @@ const useGame = () => {
             if (!unmounted) {
               updateStatus(RoomStatus.opponentLeft, "Opponent left");
             }
+            playLeave();
             break;
           }
 
@@ -163,6 +236,17 @@ const useGame = () => {
           } else {
             setRematchStatus(e.data.action);
           }
+          if (e.data.action === GameAction.Requested) {
+            playRequest();
+          }
+          if (e.data.action === GameAction.Accepted) {
+            // Reset sound state refs for a new game
+            prevBoardRef.current = null;
+            prevBoardStatusRef.current = undefined;
+            prevLastMoveRef.current = null;
+            wonBoardsRef.current.clear();
+            playButton();
+          }
           break;
 
         case "DrawRequest":
@@ -173,6 +257,11 @@ const useGame = () => {
               } else {
                 setDrawStatus(GameAction.Requested);
               }
+              playRequest();
+              break;
+            case GameAction.Accepted:
+              setDrawStatus(e.data.action);
+              playDraw();
               break;
             default:
               setDrawStatus(e.data.action);
@@ -185,6 +274,7 @@ const useGame = () => {
             content: e.data.content,
             player: e.data.player,
           });
+          playChat();
           break;
 
         case "Ping":
@@ -235,6 +325,10 @@ const useGame = () => {
       setOpponentReconnectSeconds((prev) => {
         if (prev === null || prev <= 1) {
           return 0;
+        }
+
+        if (prev <= 10) {
+          playTick();
         }
 
         return prev - 1;

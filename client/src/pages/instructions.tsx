@@ -1,12 +1,12 @@
 import { Card, CardBody } from "@heroui/card";
 import { Link } from "@heroui/link";
 import { button as buttonStyles } from "@heroui/theme";
+import { useMemo } from "react";
 
 import DefaultLayout from "@/layouts/default";
 import { Footer } from "@/components/footer";
 import Board from "@/components/room/board";
 import { Board as BoardType, BoardStatus } from "@/types";
-import { useMemo } from "react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import allBoardStates from "@/data/board-states.json";
 
@@ -50,6 +50,7 @@ function Instructions() {
       (b: { cells: (string | null)[] }) => b.cells,
     );
     const totalMarks = marks.filter((c: string | null) => c !== null).length;
+
     return totalMarks % 2 === 0 ? "X" : "O";
   })();
 
@@ -156,7 +157,6 @@ function Instructions() {
                           }
                         }
                         className="pointer-events-none mt-3 max-w-[min(100%,42rem)] shadow-none"
-                        nextPlayer={nextPlayer}
                         lastMove={
                           (
                             boardPreviewData as unknown as {
@@ -171,6 +171,7 @@ function Instructions() {
                             }
                           ).next_board ?? null
                         }
+                        nextPlayer={nextPlayer}
                       />
                       <p className="text-foreground-700 dark:text-foreground-300 text-sm leading-relaxed">
                         This is the real in-game board component. The main board
