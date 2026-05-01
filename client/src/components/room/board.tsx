@@ -86,10 +86,10 @@ function Board({
     }
   }, [lastMove, autoFocusFirstPlayable]);
 
-  // Focus mode: only when it's our turn and game is active
+  // Focus mode: active while game is in progress
   const isMyTurn = nextPlayer === player?.marker;
   const isGameActive = board.status === null;
-  const isFocusModeActive = focusMode && isGameActive && isMyTurn;
+  const isFocusModeActive = focusMode && isGameActive;
 
   return (
     <>
@@ -118,9 +118,15 @@ function Board({
       >
         {BOARD_POSITIONS.map((position) => {
           const isFocused = isFocusModeActive
-            ? nextBoard === null
-              ? board.boards[position].status === "InProgress"
-              : position === nextBoard
+            ? isMyTurn
+              ? nextBoard === null
+                ? board.boards[position].status === "InProgress"
+                  ? true
+                  : undefined
+                : position === nextBoard
+                  ? true
+                  : false
+              : false
             : undefined;
 
           return (

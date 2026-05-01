@@ -82,12 +82,13 @@ function MiniBoard({
 
     return (
       <motion.div
-        animate={{ scale: 1, opacity: 1 }}
+        animate={{ scale: 1, opacity: isFocused === false ? 0.4 : 1 }}
         className={cn(
           "border-foreground-100/70 flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border",
           isX ? "bg-primary/10 text-primary" : "bg-danger/10 text-danger",
           isJustWon &&
             (isX ? "animate-win-pulse-blue" : "animate-win-pulse-red"),
+          isFocused === false ? "blur-[1px]" : "",
         )}
         initial={{ scale: 0.7, opacity: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 18 }}
