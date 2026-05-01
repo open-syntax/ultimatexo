@@ -1,12 +1,14 @@
 use crate::{
     app::AppState,
     handlers::{ConnectionContext, spawn_receive_task, spawn_send_task},
+    utils::{otel::hash_ip, real_ip::real_client_ip},
 };
 use axum::{
     extract::{
         ConnectInfo, Path, Query, State, WebSocketUpgrade,
         ws::{Message, WebSocket},
     },
+    http::HeaderMap,
     response::Response,
 };
 use futures_util::{
@@ -32,22 +34,26 @@ type Receiver = SplitStream<WebSocket>;
         WebSocketQuery
     ),
 )]
+#[tracing::instrument(skip(ws, headers, state), fields(room_id = %room_id))]
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
     Path(room_id): Path<String>,
     State(state): State<Arc<AppState>>,
     Query(payload): Query<WebSocketQuery>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
 ) -> Response {
-    ws.on_upgrade(move |socket| handle_socket_upgrade(socket, state, room_id, payload, addr))
+    let client_ip = real_client_ip(&headers, addr);
+    ws.on_upgrade(move |socket| handle_socket_upgrade(socket, state, room_id, payload, client_ip))
 }
 
+#[tracing::instrument(skip(socket, state), fields(room_id = %room_id))]
 async fn handle_socket_upgrade(
     socket: WebSocket,
     state: Arc<AppState>,
     room_id: String,
     payload: WebSocketQuery,
-    addr: SocketAddr,
+    client_ip: String,
 ) {
     let (sender, receiver) = socket.split();
     let sender = Arc::new(Mutex::new(sender));
@@ -58,26 +64,44 @@ async fn handle_socket_upgrade(
         state,
         room_id.clone(),
         payload,
-        addr,
+        client_ip.clone(),
     )
     .await
-        && let Err(e) = send_error_and_close(sender, error, addr).await
+        && let Err(e) = send_error_and_close(sender, error, &client_ip).await
     {
-        warn!("Failed to send error message to {}: {}", room_id, e);
+        warn!(room_id = %room_id, error = %e, "send_initial_error_failed");
     }
 }
+
+#[tracing::instrument(
+    skip(sender, receiver, state, payload),
+    fields(
+        room_id = %room_id,
+        player_id = tracing::field::Empty,
+        client_hash = tracing::field::Empty,
+        room_type = tracing::field::Empty,
+        is_reconnecting = %payload.is_reconnecting,
+    )
+)]
 async fn handle_socket(
     sender: Sender,
     receiver: Receiver,
     state: Arc<AppState>,
     room_id: String,
     payload: WebSocketQuery,
-    addr: SocketAddr,
+    client_ip: String,
 ) -> Result<(), AppError> {
-    info!("User {} is connecting room {}", addr, room_id);
+    let client_hash = hash_ip(&client_ip);
+    info!(client_hash = %client_hash, room_id = %room_id, "user_connecting");
+
     let room_service = state.get_room_service(&room_id).await?;
     let is_reconnecting = payload.is_reconnecting;
-    let (room, player_id) = room_service.join_room(&room_id, payload, addr).await?;
+    let (room, player_id) = room_service.join_room(&room_id, payload, client_ip).await?;
+
+    let _ = tracing::Span::current().record("player_id", player_id.as_str());
+    let _ = tracing::Span::current().record("client_hash", client_hash.as_str());
+    let _ =
+        tracing::Span::current().record("room_type", tracing::field::debug(&room.info.room_type));
 
     let (player_tx, player_rx) = tokio::sync::mpsc::unbounded_channel();
 
@@ -128,16 +152,16 @@ async fn handle_socket(
     };
 
     match result {
-        (name, Ok(_)) => debug!("Room {}: {} task completed", room.info.id, name),
-        (name, Err(e)) => error!("Room {}: {} task failed: {}", room.info.id, name, e),
+        (name, Ok(_)) => debug!(room_id = %room.info.id, task = %name, "task_completed"),
+        (name, Err(e)) => warn!(room_id = %room.info.id, task = %name, error = %e, "task_failed"),
     }
     if let Err(e) = room_service
         .handle_player_leaving(room_id.as_str(), player_id.as_str())
         .await
     {
-        error!("Error during player disconnect cleanup: {}", e);
+        error!(error = %e, "disconnect_cleanup_failed");
     }
-    info!("Player {} disconnected from room {}", player_id, room_id);
+    info!(player_id = %player_id, room_id = %room_id, "player_disconnected");
     Ok(())
 }
 
@@ -182,6 +206,7 @@ async fn handle_game_start(
 
     Ok(())
 }
+
 async fn handle_player_connection_message(
     room: Arc<Room>,
     ctx: Arc<ConnectionContext>,
@@ -225,19 +250,21 @@ async fn handle_player_connection_message(
 async fn send_error_and_close(
     sender: Sender,
     error: AppError,
-    addr: SocketAddr,
+    client_ip: &str,
 ) -> Result<(), AppError> {
+    let client_hash = hash_ip(client_ip);
     info!(
-        "Sending error and closing connection for {}: {}",
-        addr, error
+        client_hash = %client_hash,
+        error = %error,
+        "send_error_and_close"
     );
     let mut sender = sender.lock().await;
     let error_msg = Message::Text(format!("Error: {}", error).into());
     if let Err(e) = sender.send(error_msg).await {
-        warn!("Failed to send error message to {}: {}", addr, e);
+        warn!(client_hash = %client_hash, error = %e, "send_error_message_failed");
     }
     if let Err(e) = sender.send(Message::Close(None)).await {
-        warn!("Failed to close WebSocket for {}: {}", addr, e);
+        warn!(client_hash = %client_hash, error = %e, "websocket_close_failed");
     }
     Ok(())
 }

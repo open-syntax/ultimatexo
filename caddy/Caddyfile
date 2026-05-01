@@ -44,8 +44,8 @@ ultimatexo.com {
     handle @websocket {
         reverse_proxy server:6767 {
             header_up Host {host}
-            header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-For {remote_host}
+            header_up X-Real-IP {header.CF-Connecting-IP}
+            header_up X-Forwarded-For {header.CF-Connecting-IP},{remote_host}
             header_up X-Forwarded-Proto {scheme}
 
             health_uri /health
@@ -68,8 +68,8 @@ ultimatexo.com {
         uri strip_prefix /api
         reverse_proxy server:6767 {
             header_up Host {host}
-            header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-For {remote_host}
+            header_up X-Real-IP {header.CF-Connecting-IP}
+            header_up X-Forwarded-For {header.CF-Connecting-IP},{remote_host}
             header_up X-Forwarded-Proto {scheme}
 
             # Health check

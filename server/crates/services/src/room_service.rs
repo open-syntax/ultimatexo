@@ -1,8 +1,5 @@
 use dashmap::DashMap;
-use std::{
-    net::SocketAddr,
-    sync::{Arc, atomic::Ordering},
-};
+use std::sync::{Arc, atomic::Ordering};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, warn};
@@ -46,7 +43,7 @@ impl RoomService {
         &self,
         room_id: &str,
         payload: WebSocketQuery,
-        addr: SocketAddr,
+        client_ip: String,
     ) -> Result<(Arc<Room>, String), AppError> {
         let room = self.get_room(room_id)?;
         let current_count = room.get_player_count();
@@ -66,7 +63,7 @@ impl RoomService {
                 &payload.password,
                 room.is_pending_cleanup().await,
             )?;
-            self.handle_new_connection(room, payload.player_id, addr)
+            self.handle_new_connection(room, payload.player_id, client_ip)
                 .await
         }
     }
@@ -86,8 +83,17 @@ impl RoomService {
         let remaining_count = room.player_counter.fetch_sub(1, Ordering::SeqCst) - 1;
 
         debug!(
-            "Player {} leaving room {}. Remaining players: {}",
-            player_id, room_id, remaining_count
+            player_id = %player_id,
+            room_id = %room_id,
+            remaining_players = remaining_count,
+            "player_leaving"
+        );
+
+        info!(
+            player_id = %player_id,
+            room_id = %room_id,
+            remaining_players = remaining_count,
+            "player_leaving"
         );
 
         self.cancel_pending_cleanup(&room).await;
@@ -98,7 +104,7 @@ impl RoomService {
             .rules
             .should_delete_room_immediately(remaining_count, has_pending_cleanup)
         {
-            debug!("Immediately removing room {} per rules", room_id);
+            debug!(room_id = %room_id, "room_removed_immediately");
             self.cleanup_service
                 .remove_room_immediately(self.rooms.clone(), room, room_id)
                 .await;
@@ -136,10 +142,17 @@ impl RoomService {
             && tx.send(disconnect_msg).is_err()
         {
             warn!(
-                "Failed to notify other player {} of disconnect",
-                opponent.id
+                opponent_id = %opponent.id,
+                "notify_disconnect_failed"
             );
         }
+
+        info!(
+            player_id = %leaving_player_id,
+            room_id = %room.info.id,
+            timeout_seconds = self.rules.get_cleanup_timeout().as_secs(),
+            "player_disconnected"
+        );
 
         self.schedule_cleanup(room, leaving_player_id).await;
 
@@ -149,13 +162,20 @@ impl RoomService {
     async fn cancel_pending_cleanup(&self, room: &Arc<Room>) {
         if let Some(token) = room.deletion_token.lock().await.take() {
             token.cancel();
-            debug!("Cancelled pending cleanup for Room {}", room.info.id);
+            debug!(room_id = %room.info.id, "cleanup_cancelled");
+            info!(room_id = %room.info.id, "cleanup_cancelled");
         }
     }
 
     async fn schedule_cleanup(&self, room: Arc<Room>, player_id: &str) {
         let cleanup_token = CancellationToken::new();
         *room.deletion_token.lock().await = Some(cleanup_token.clone());
+
+        info!(
+            player_id = %player_id,
+            room_id = %room.info.id,
+            "cleanup_scheduled"
+        );
 
         self.cleanup_service
             .schedule_room_cleanup(
@@ -211,7 +231,11 @@ impl RoomService {
             if let Some(token) = room.deletion_token.lock().await.take() {
                 token.cancel();
             }
-            info!("Player {} reconnected to room {}", player_id, room.info.id);
+            info!(
+                player_id = %player_id,
+                room_id = %room.info.id,
+                "player_reconnected"
+            );
             room.player_counter.fetch_add(1, Ordering::SeqCst);
             Ok((room, player_id))
         } else {
@@ -223,11 +247,15 @@ impl RoomService {
         &self,
         room: Arc<Room>,
         player_id: Option<String>,
-        addr: SocketAddr,
+        client_ip: String,
     ) -> Result<(Arc<Room>, String), AppError> {
         let new_player_id = room.add_player(player_id).await?;
-        info!("User {} created Player {}", addr, new_player_id);
-        info!("Player {} joined room {}", new_player_id, room.info.id);
+        info!(
+            player_id = %new_player_id,
+            room_id = %room.info.id,
+            client_ip = %client_ip,
+            "player_joined"
+        );
         Ok((room, new_player_id))
     }
 }

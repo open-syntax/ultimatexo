@@ -17,7 +17,7 @@ use tokio::sync::{
     mpsc::{Receiver, Sender},
 };
 use tokio_util::sync::CancellationToken;
-use tracing::debug;
+use tracing::warn;
 use utoipa::ToSchema;
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize, ToSchema)]
@@ -194,7 +194,7 @@ impl Room {
                     if let Some(tx) = &player.tx
                         && tx.send(msg.clone()).is_err()
                     {
-                        debug!("Failed to send message to player {:?}", player.id);
+                        warn!(player_id = %player.id, "broadcast_send_failed");
                     }
                 }
             }
