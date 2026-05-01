@@ -42,7 +42,8 @@ function Board({
   const lastMove = lastMoveProp ?? move.lastMove;
   const nextPlayer = nextPlayerProp ?? nextPlayerStore;
 
-  const { autoFocusFirstPlayable } = useKeyboardNavigation(containerRef);
+  const { autoFocusFirstPlayable, keyboardModeRef } =
+    useKeyboardNavigation(containerRef);
 
   // Trigger confetti and screen shake on game end
   useEffect(() => {
@@ -68,28 +69,29 @@ function Board({
     prevStatusRef.current = curr;
   }, [board.status]);
 
-  // Auto-focus first playable cell on mount
-  useEffect(() => {
-    autoFocusFirstPlayable();
-  }, [autoFocusFirstPlayable]);
-
-  // Auto-focus after a move if a cell inside the board already has focus
-  useEffect(() => {
-    const active = document.activeElement;
-
-    if (active && containerRef.current?.contains(active)) {
-      const timer = setTimeout(() => {
-        autoFocusFirstPlayable();
-      }, 50);
-
-      return () => clearTimeout(timer);
-    }
-  }, [lastMove, autoFocusFirstPlayable]);
-
   // Focus mode: active while game is in progress
   const isMyTurn = nextPlayer === player?.marker;
   const isGameActive = board.status === null;
   const isFocusModeActive = focusMode && isGameActive;
+
+  // Auto-focus first playable cell when my turn begins, but only if the user
+  // is actively keyboard-navigating (focus is already inside the board).
+  const prevIsMyTurnRef = useRef(isMyTurn);
+
+  useEffect(() => {
+    const justBecameMyTurn = !prevIsMyTurnRef.current && isMyTurn;
+
+    prevIsMyTurnRef.current = isMyTurn;
+
+    if (justBecameMyTurn && keyboardModeRef.current) {
+      const timer = setTimeout(
+        () => autoFocusFirstPlayable(nextBoard ?? undefined),
+        50,
+      );
+
+      return () => clearTimeout(timer);
+    }
+  }, [isMyTurn, autoFocusFirstPlayable, nextBoard]);
 
   return (
     <>

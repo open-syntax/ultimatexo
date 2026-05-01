@@ -19,7 +19,7 @@ function fromGlobal([row, col]: [number, number]): CellCoord {
 export function useKeyboardNavigation(
   containerRef: React.RefObject<HTMLElement | null>,
 ) {
-  const focusedCellRef = useRef<CellCoord | null>(null);
+  const keyboardModeRef = useRef(false);
 
   const focusCell = useCallback((coord: CellCoord) => {
     const [board, cell] = coord;
@@ -29,7 +29,6 @@ export function useKeyboardNavigation(
 
     if (el && el.getAttribute("tabindex") === "0") {
       el.focus();
-      focusedCellRef.current = coord;
 
       return true;
     }
@@ -68,10 +67,12 @@ export function useKeyboardNavigation(
     [],
   );
 
-  const findNextTabbable = useCallback(
-    (startFlatIdx: number, direction: 1 | -1): CellCoord | null => {
-      for (let i = 1; i <= 81; i++) {
-        const flat = (startFlatIdx + i * direction + 81) % 81;
+  const autoFocusFirstPlayable = useCallback((preferredBoard?: number) => {
+    // If a specific board is preferred (nextBoard), search its 9 cells first
+    if (preferredBoard !== undefined) {
+      const start = preferredBoard * 9;
+
+      for (let flat = start; flat < start + 9; flat++) {
         const board = Math.floor(flat / 9);
         const cell = flat % 9;
         const el = document.querySelector<HTMLElement>(
@@ -79,16 +80,14 @@ export function useKeyboardNavigation(
         );
 
         if (el && el.getAttribute("tabindex") === "0") {
-          return [board, cell];
+          el.focus();
+
+          return;
         }
       }
+    }
 
-      return null;
-    },
-    [],
-  );
-
-  const autoFocusFirstPlayable = useCallback(() => {
+    // Fallback: search globally from flat 0
     for (let flat = 0; flat < 81; flat++) {
       const board = Math.floor(flat / 9);
       const cell = flat % 9;
@@ -98,7 +97,6 @@ export function useKeyboardNavigation(
 
       if (el && el.getAttribute("tabindex") === "0") {
         el.focus();
-        focusedCellRef.current = [board, cell];
 
         return;
       }
@@ -119,6 +117,9 @@ export function useKeyboardNavigation(
       const cellAttr = active.getAttribute("data-cell");
 
       if (!boardAttr || !cellAttr) return;
+
+      // Track that user is actively using keyboard navigation.
+      keyboardModeRef.current = true;
 
       const current: CellCoord = [
         parseInt(boardAttr, 10),
@@ -144,17 +145,10 @@ export function useKeyboardNavigation(
           e.preventDefault();
           target = findNextPlayable(current, "right");
           break;
-        case "Tab": {
-          e.preventDefault();
-          const currentFlat = current[0] * 9 + current[1];
-
-          target = findNextTabbable(currentFlat, e.shiftKey ? -1 : 1);
-          break;
-        }
         case "Escape": {
           e.preventDefault();
+          keyboardModeRef.current = false;
           (active as HTMLElement).blur();
-          focusedCellRef.current = null;
           break;
         }
         default:
@@ -166,12 +160,27 @@ export function useKeyboardNavigation(
       }
     };
 
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+
+      if (
+        target &&
+        target.getAttribute("data-board") &&
+        target.getAttribute("data-cell")
+      ) {
+        // User clicked a cell with the mouse — exit keyboard mode.
+        keyboardModeRef.current = false;
+      }
+    };
+
     container.addEventListener("keydown", handleKeyDown);
+    container.addEventListener("mousedown", handleMouseDown);
 
     return () => {
       container.removeEventListener("keydown", handleKeyDown);
+      container.removeEventListener("mousedown", handleMouseDown);
     };
-  }, [containerRef, findNextPlayable, findNextTabbable, focusCell]);
+  }, [containerRef, findNextPlayable, focusCell]);
 
-  return { autoFocusFirstPlayable, focusedCellRef };
+  return { autoFocusFirstPlayable, keyboardModeRef };
 }
