@@ -366,7 +366,7 @@ impl MessageHandler {
         use tokio::time::Instant;
         let mut last_pong = ctx.last_pong.write().await;
         *last_pong = Instant::now();
-        debug!(player_id = %ctx.player_id, "pong_received");
+        tracing::debug!(player_id = %ctx.player_id, "pong_received");
 
         Ok(())
     }

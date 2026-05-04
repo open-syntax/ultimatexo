@@ -38,7 +38,6 @@ impl ConnectionContext {
 pub fn spawn_heartbeat_task(ctx: Arc<ConnectionContext>) -> JoinHandle<()> {
     use std::env;
     use std::time::Duration;
-    use tracing::debug;
 
     tokio::spawn(
         async move {
