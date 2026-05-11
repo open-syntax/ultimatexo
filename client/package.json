@@ -37,7 +37,7 @@
     "@react-aria/visually-hidden": "3.8.31",
     "@react-types/shared": "3.33.1",
     "@tailwindcss/postcss": "^4.2.4",
-    "@tailwindcss/vite": "^4.2.4",
+    "@tailwindcss/vite": "^4.3.0",
     "clsx": "2.1.1",
     "framer-motion": "12.38.0",
     "react": "19.2.5",
