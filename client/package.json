@@ -40,18 +40,18 @@
     "@tailwindcss/vite": "^4.2.4",
     "clsx": "2.1.1",
     "framer-motion": "12.38.0",
-    "react": "19.2.5",
-    "react-dom": "19.2.5",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
     "react-router-dom": "^7.14.2",
     "tailwind-variants": "3.2.2",
     "tailwindcss": "4.2.4",
     "ws": "^8.20.0",
-    "zustand": "^5.0.12"
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@types/node": "25.6.0",
-    "@types/react": "19.2.14",
+    "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
     "@typescript-eslint/eslint-plugin": "8.59.0",
     "@typescript-eslint/parser": "8.59.0",
