@@ -82,13 +82,6 @@ impl RoomService {
 
         let remaining_count = room.player_counter.fetch_sub(1, Ordering::SeqCst) - 1;
 
-        debug!(
-            player_id = %player_id,
-            room_id = %room_id,
-            remaining_players = remaining_count,
-            "player_leaving"
-        );
-
         info!(
             player_id = %player_id,
             room_id = %room_id,
