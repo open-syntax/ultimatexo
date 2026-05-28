@@ -82,7 +82,7 @@ fn log_startup_info(config: &ServerConfig) {
     info!(url = %config.http_url(), "server_listening");
     info!(url = %config.ws_url(), "websocket_ready");
     #[cfg(debug_assertions)]
-    info!(url = %config.http_url(), "swagger_ready");
+    info!(url = %format!("{}/swagger-ui", config.http_url()), "swagger_ready");
 }
 
 pub async fn start_server() -> Result<()> {
