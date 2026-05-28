@@ -42,7 +42,8 @@ function Board({
   const lastMove = lastMoveProp ?? move.lastMove;
   const nextPlayer = nextPlayerProp ?? nextPlayerStore;
 
-  const { autoFocusFirstPlayable } = useKeyboardNavigation(containerRef);
+  const { autoFocusFirstPlayable, keyboardModeRef } =
+    useKeyboardNavigation(containerRef);
 
   // Trigger confetti and screen shake on game end
   useEffect(() => {
@@ -68,28 +69,29 @@ function Board({
     prevStatusRef.current = curr;
   }, [board.status]);
 
-  // Auto-focus first playable cell on mount
-  useEffect(() => {
-    autoFocusFirstPlayable();
-  }, [autoFocusFirstPlayable]);
+  // Focus mode: active while game is in progress
+  const isMyTurn = nextPlayer === player?.marker;
+  const isGameActive = board.status === null;
+  const isFocusModeActive = focusMode && isGameActive;
 
-  // Auto-focus after a move if a cell inside the board already has focus
-  useEffect(() => {
-    const active = document.activeElement;
+  // Auto-focus first playable cell when my turn begins, but only if the user
+  // is actively keyboard-navigating (focus is already inside the board).
+  const prevIsMyTurnRef = useRef(isMyTurn);
 
-    if (active && containerRef.current?.contains(active)) {
-      const timer = setTimeout(() => {
-        autoFocusFirstPlayable();
-      }, 50);
+  useEffect(() => {
+    const justBecameMyTurn = !prevIsMyTurnRef.current && isMyTurn;
+
+    prevIsMyTurnRef.current = isMyTurn;
+
+    if (justBecameMyTurn && keyboardModeRef.current) {
+      const timer = setTimeout(
+        () => autoFocusFirstPlayable(nextBoard ?? undefined),
+        50,
+      );
 
       return () => clearTimeout(timer);
     }
-  }, [lastMove, autoFocusFirstPlayable]);
-
-  // Focus mode: only when it's our turn and game is active
-  const isMyTurn = nextPlayer === player?.marker;
-  const isGameActive = board.status === null;
-  const isFocusModeActive = focusMode && isGameActive && isMyTurn;
+  }, [isMyTurn, autoFocusFirstPlayable, nextBoard]);
 
   return (
     <>
@@ -118,9 +120,15 @@ function Board({
       >
         {BOARD_POSITIONS.map((position) => {
           const isFocused = isFocusModeActive
-            ? nextBoard === null
-              ? board.boards[position].status === "InProgress"
-              : position === nextBoard
+            ? isMyTurn
+              ? nextBoard === null
+                ? board.boards[position].status === "InProgress"
+                  ? true
+                  : undefined
+                : position === nextBoard
+                  ? true
+                  : false
+              : false
             : undefined;
 
           return (

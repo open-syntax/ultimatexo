@@ -35,8 +35,9 @@ impl CleanupService {
         );
         let room_id = room.info.id.clone();
         debug!(
-            "Scheduling cleanup for room {} in {:?}",
-            room_id, timeout_duration
+            room_id = %room_id,
+            timeout = ?timeout_duration,
+            "cleanup_scheduled"
         );
 
         tokio::spawn(async move {
@@ -51,7 +52,7 @@ impl CleanupService {
                     ).await;
                 }
                 _ = cleanup_token.cancelled() => {
-                    debug!("Cleanup cancelled for room {}", room_id);
+                    debug!(room_id = %room_id, "cleanup_cancelled");
                 }
             }
         });
@@ -65,7 +66,7 @@ impl CleanupService {
         timeout_game_state: Status,
     ) {
         if !rooms.contains_key(&room_id) {
-            debug!("Room {} already removed, skipping timeout cleanup", room_id);
+            debug!(room_id = %room_id, "room_already_removed");
             return;
         }
         {
@@ -84,28 +85,40 @@ impl CleanupService {
 
             if let Err(e) = opponent_tx.send(board_msg) {
                 warn!(
-                    "Failed to send board message to opponent {} in room {}: {:?}",
-                    opponent.id, room_id, e
+                    opponent_id = %opponent.id,
+                    room_id = %room_id,
+                    error = ?e,
+                    "send_board_failed"
                 );
             }
             if let Err(e) = opponent_tx.send(timeout_msg) {
                 warn!(
-                    "Failed to send timeout message to opponent {} in room {}: {:?}",
-                    opponent.id, room_id, e
+                    opponent_id = %opponent.id,
+                    room_id = %room_id,
+                    error = ?e,
+                    "send_timeout_failed"
                 );
             }
             if let Err(e) = opponent_tx.send(ServerMessage::WebsocketMessage(Message::Close(None)))
             {
                 warn!(
-                    "Failed to send close message to opponent {} in room {}: {:?}",
-                    opponent.id, room_id, e
+                    opponent_id = %opponent.id,
+                    room_id = %room_id,
+                    error = ?e,
+                    "send_close_failed"
                 );
             }
         }
-        if rooms.remove(&room_id).is_some() {
-            info!("Room {} cleaned up after timeout", room_id);
-        } else {
-            debug!("Room {} doesn't Exist during timeout cleanup", room_id);
+
+        info!(
+            room_id = %room_id,
+            player_id = %disconnected_player_id,
+            timeout_game_state = ?timeout_game_state,
+            "game_timeout"
+        );
+
+        if rooms.remove(&room_id).is_none() {
+            debug!(room_id = %room_id, "room_missing_timeout_cleanup");
         }
     }
 
@@ -118,10 +131,11 @@ impl CleanupService {
         if let Some(token) = room.deletion_token.lock().await.take() {
             token.cancel();
         }
-        if rooms.remove(room_id).is_some() {
-            info!("Room {} removed", room_id);
-        } else {
-            debug!("Room {} doesn't Exist", room_id);
+
+        info!(room_id = %room_id, "room_removed");
+
+        if rooms.remove(room_id).is_none() {
+            debug!(room_id = %room_id, "room_missing");
         }
     }
 }

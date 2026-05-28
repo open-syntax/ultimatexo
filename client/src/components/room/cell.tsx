@@ -51,18 +51,20 @@ function Cell({
   const [showRipple, setShowRipple] = useState(false);
 
   useEffect(() => {
-    // Reset animation flag when cell is cleared (e.g., rematch)
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
     if (prevMarkRef.current !== null && mark === null) {
       hasAnimated.current = false;
     }
-    // Trigger ripple when a new mark is placed
     if (prevMarkRef.current === null && mark !== null) {
       setShowRipple(true);
-      const timer = setTimeout(() => setShowRipple(false), 700);
-
-      return () => clearTimeout(timer);
+      timer = setTimeout(() => setShowRipple(false), 700);
     }
     prevMarkRef.current = mark;
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [mark]);
 
   // Aria label describing the cell state

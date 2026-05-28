@@ -7,6 +7,11 @@ services:
       HOST: 0.0.0.0
       PORT: 6767
       RUST_LOG: ${RUST_LOG:-info}
+      AXIOM_ENABLED: ${AXIOM_ENABLED:-false}
+      AXIOM_TOKEN: ${AXIOM_TOKEN:-}
+      AXIOM_DATASET: ${AXIOM_DATASET:-ultimatexo}
+      AXIOM_DOMAIN: ${AXIOM_DOMAIN:-api.axiom.co}
+      IP_HASH_SALT: ${IP_HASH_SALT:-}
 
     networks:
       - app-network

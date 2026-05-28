@@ -2,10 +2,13 @@
 use crate::handlers::ApiDoc;
 use crate::{
     app::state::AppState,
-    handlers::{create_room, get_room, get_rooms, health_check, websocket_handler},
+    handlers::{client_error, create_room, get_room, get_rooms, health_check, websocket_handler},
 };
 use anyhow::{Context, Result};
-use axum::{Router, routing::get};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 #[cfg(not(debug_assertions))]
 use std::time::Duration;
 use std::{
@@ -15,7 +18,13 @@ use std::{
 };
 use tokio::signal;
 #[cfg(not(debug_assertions))]
-use tower_governor::{GovernorLayer, governor::GovernorConfigBuilder};
+use tower_governor::GovernorLayer;
+#[cfg(not(debug_assertions))]
+use tower_governor::governor::GovernorConfigBuilder;
+#[cfg(not(debug_assertions))]
+use tower_governor::key_extractor::SmartIpKeyExtractor;
+#[cfg(not(debug_assertions))]
+use tracing::debug;
 use tracing::info;
 #[cfg(debug_assertions)]
 use utoipa::OpenApi;
@@ -58,6 +67,7 @@ fn build_router(state: Arc<AppState>) -> Router {
     let api_routes = Router::new()
         .route("/rooms", get(get_rooms).post(create_room))
         .route("/room/{room_id}", get(get_room))
+        .route("/client-error", post(client_error))
         .route("/health", get(health_check));
     let ws_routes = Router::new().route("/{room_id}", get(websocket_handler));
     let app = Router::new().merge(api_routes).nest("/ws", ws_routes);
@@ -69,10 +79,10 @@ fn build_router(state: Arc<AppState>) -> Router {
 }
 
 fn log_startup_info(config: &ServerConfig) {
-    info!("Server listening on {}", config.http_url());
-    info!("WebSocket available at {}", config.ws_url());
+    info!(url = %config.http_url(), "server_listening");
+    info!(url = %config.ws_url(), "websocket_ready");
     #[cfg(debug_assertions)]
-    info!("Swagger UI available at {}/swagger-ui", config.http_url());
+    info!(url = %config.http_url(), "swagger_ready");
 }
 
 pub async fn start_server() -> Result<()> {
@@ -84,6 +94,7 @@ pub async fn start_server() -> Result<()> {
     #[cfg(not(debug_assertions))]
     {
         let governor_conf = GovernorConfigBuilder::default()
+            .key_extractor(SmartIpKeyExtractor)
             .per_second(2)
             .burst_size(5)
             .finish()
@@ -100,7 +111,7 @@ pub async fn start_server() -> Result<()> {
             let mut interval = tokio::time::interval(Duration::from_secs(cleanup_secs));
             loop {
                 interval.tick().await;
-                tracing::debug!("rate limiting storage size: {}", limiter.len());
+                debug!(storage_size = limiter.len(), "rate_limiter_storage");
                 limiter.retain_recent();
             }
         });
@@ -124,7 +135,7 @@ pub async fn start_server() -> Result<()> {
     .await
     .context("Server encountered an error during execution")?;
 
-    info!("Server shutdown complete");
+    info!("shutdown_complete");
     Ok(())
 }
 
@@ -145,10 +156,10 @@ async fn shutdown_signal() {
     let terminate = std::future::pending::<()>();
     tokio::select! {
         _ = ctrl_c => {
-            info!("Received Ctrl+C signal");
+            info!(signal = "ctrl_c", "shutdown_signal_received");
         },
         _ = terminate => {
-            info!("Received termination signal");
+            info!(signal = "sigterm", "shutdown_signal_received");
         },
     }
 }

@@ -30,7 +30,7 @@ const prefersReducedMotion =
 
 const defaults: Settings = {
   soundEnabled: true,
-  focusMode: true,
+  focusMode: false,
   reducedMotion: prefersReducedMotion,
 };
 

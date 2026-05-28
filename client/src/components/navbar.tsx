@@ -158,15 +158,13 @@ export const Navbar = () => {
 
       {/* Mobile Menu Toggle & Icons */}
       <div className="flex items-center gap-2 md:hidden">
-        <Link
-          aria-label="GitHub"
+        <button
+          aria-label="Settings"
           className={mobileIconButton()}
-          rel="noopener noreferrer"
-          target="_blank"
-          to={siteConfig.links.github}
+          onClick={() => setIsSettingsOpen(true)}
         >
-          <GithubIcon size={18} />
-        </Link>
+          <SettingsIcon size={18} />
+        </button>
         <ThemeSwitch />
         <button
           aria-expanded={isMenuOpen}
@@ -239,6 +237,16 @@ export const Navbar = () => {
                 >
                   <DiscordIcon size={18} />
                   <span className="text-sm">Discord</span>
+                </Link>
+                <Link
+                  className={mobileSocialLink()}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  to={siteConfig.links.github}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <GithubIcon size={18} />
+                  <span className="text-sm">GitHub</span>
                 </Link>
                 <Link
                   className={mobileSocialLink()}
