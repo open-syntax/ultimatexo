@@ -86,7 +86,12 @@ jobs:
           VERSION=${{ needs.validate.outputs.version }}
           CLOUDFLARE_EMAIL=${{ secrets.CLOUDFLARE_EMAIL }}
           CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}
-          RUST_LOG=info
+          RUST_LOG=${{ vars.RUST_LOG || 'info' }}
+          AXIOM_ENABLED=${{ vars.AXIOM_ENABLED || 'true' }}
+          AXIOM_TOKEN=${{ secrets.AXIOM_TOKEN }}
+          AXIOM_DATASET=${{ vars.AXIOM_DATASET || 'ultimatexo' }}
+          AXIOM_DOMAIN=${{ vars.AXIOM_DOMAIN || 'api.axiom.co' }}
+          IP_HASH_SALT=${{ secrets.IP_HASH_SALT }}
           EOF
 
       - name: Copy deploy script
