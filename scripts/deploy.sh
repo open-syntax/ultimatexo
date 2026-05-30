@@ -102,7 +102,6 @@ rollback() {
 
 main() {
   cd "$DEPLOY_DIR"
-  rm -f "$DEPLOY_DIR/.env"
 
   log "Starting deployment of version: $VERSION"
   log "Skip health check: $SKIP_HEALTH"
