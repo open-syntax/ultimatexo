@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { SettingsModal } from "@/components/settings-modal";
+import { useScrollDirection } from "@/hooks/useScrollDirection";
 import {
   DiscordIcon,
   GithubIcon,
@@ -56,6 +57,7 @@ export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const location = useLocation();
+  const { isHidden } = useScrollDirection();
 
   const isActiveRoute = (href: string) => {
     if (href === "/") {
@@ -80,7 +82,11 @@ export const Navbar = () => {
   } = navbarStyles();
 
   return (
-    <header className={base()}>
+    <header
+      className={`${base()} fixed top-0 left-0 right-0 transition-transform duration-300 ${
+        isHidden ? "-translate-y-full" : "translate-y-0"
+      }`}
+    >
       {/* Logo */}
       <div className="flex items-center">
         <Link className={logoLink()} to="/">

@@ -17,6 +17,8 @@ interface MiniBoardProps {
   lastMove?: [number, number] | null;
   nextPlayer?: "X" | "O";
   isFocused?: boolean;
+  isCellAvailable?: (boardIndex: number, cellIndex: number) => boolean;
+  onCellClick?: (boardIndex: number, cellIndex: number) => void;
 }
 
 const MINI_BOARD_POSITIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
@@ -29,6 +31,8 @@ function MiniBoard({
   lastMove,
   nextPlayer: nextPlayerProp,
   isFocused,
+  isCellAvailable,
+  onCellClick,
 }: MiniBoardProps) {
   const {
     move: { nextMove },
@@ -117,9 +121,11 @@ function MiniBoard({
           board={index}
           boardStatus={status}
           index={position}
+          isAvailable={isCellAvailable?.(index, position)}
           lastMove={lastMove}
           mark={board.cells[position]}
           nextPlayer={resolvedNextPlayer ?? undefined}
+          onCellClick={onCellClick}
         />
       ))}
     </div>

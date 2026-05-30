@@ -17,6 +17,8 @@ interface CellProps {
   boardStatus: BoardStatus | null;
   lastMove?: [number, number] | null;
   nextPlayer?: "X" | "O";
+  isAvailable?: boolean;
+  onCellClick?: (board: number, index: number) => void;
 }
 
 function Cell({
@@ -26,6 +28,8 @@ function Cell({
   index,
   lastMove: lastMoveProp,
   nextPlayer: nextPlayerProp,
+  isAvailable: isAvailableProp,
+  onCellClick: onCellClickProp,
 }: CellProps) {
   const { player } = PlayerStore();
   const { playMove, move, nextPlayer } = GameStore();
@@ -34,15 +38,21 @@ function Cell({
   const lastMove = lastMoveProp ?? move.lastMove;
   const resolvedNextPlayer = nextPlayerProp ?? nextPlayer;
 
-  const isAvailable =
+  const isAvailableFromStore =
     boardStatus === null &&
     [board, null].includes(move.nextMove) &&
     mark === null &&
     nextPlayer === player?.marker;
 
+  const isAvailable = isAvailableProp ?? isAvailableFromStore;
+
   const handleClick = () => {
     if (!isAvailable) return;
-    playMove([board, index], ws);
+    if (onCellClickProp) {
+      onCellClickProp(board, index);
+    } else {
+      playMove([board, index], ws);
+    }
   };
 
   // Track mark changes for animation and ripple

@@ -8,8 +8,9 @@ function getCtx(): AudioContext | null {
   if (!audioCtx) {
     audioCtx = new (
       window.AudioContext ||
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext
+    )();
   }
   if (audioCtx.state === "suspended") {
     void audioCtx.resume();

@@ -17,6 +17,8 @@ interface params {
   nextBoard?: number | null;
   lastMove?: [number, number] | null;
   nextPlayer?: "X" | "O";
+  isCellAvailable?: (boardIndex: number, cellIndex: number) => boolean;
+  onCellClick?: (boardIndex: number, cellIndex: number) => void;
 }
 
 const BOARD_POSITIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8] as const;
@@ -27,6 +29,8 @@ function Board({
   nextBoard: nextBoardProp,
   lastMove: lastMoveProp,
   nextPlayer: nextPlayerProp,
+  isCellAvailable,
+  onCellClick,
 }: params) {
   const containerRef = useRef<HTMLDivElement>(null);
   const prevStatusRef = useRef<BoardStatus | null>(null);
@@ -136,11 +140,13 @@ function Board({
               key={position}
               board={board.boards[position]}
               index={position}
+              isCellAvailable={isCellAvailable}
               isFocused={isFocused}
               lastMove={lastMove}
               nextBoard={nextBoard}
               nextPlayer={nextPlayer ?? undefined}
               status={board.status}
+              onCellClick={onCellClick}
             />
           );
         })}

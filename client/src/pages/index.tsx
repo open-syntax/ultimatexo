@@ -48,7 +48,7 @@ export default function IndexPage() {
   };
 
   return (
-    <DefaultLayout pageScrollable>
+    <DefaultLayout>
       <section className="relative z-10 mx-auto flex h-full w-full max-w-4xl flex-col items-center justify-center gap-8 py-4 md:py-6">
         {/* Main Title */}
         <motion.h1

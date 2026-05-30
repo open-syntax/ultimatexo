@@ -2,14 +2,12 @@ import { Navbar } from "@/components/navbar";
 
 export default function DefaultLayout({
   children,
-  pageScrollable = false,
 }: {
   children: React.ReactNode;
-  pageScrollable?: boolean;
 }) {
   return (
     <div
-      className={`relative flex h-dvh flex-col selection:bg-blue-500 selection:text-white ${pageScrollable ? "overflow-y-auto" : "overflow-hidden"}`}
+      className="relative flex min-h-dvh flex-col selection:bg-blue-500 selection:text-white"
       style={{
         paddingTop: "env(safe-area-inset-top)",
         paddingLeft: "env(safe-area-inset-left)",
@@ -19,7 +17,7 @@ export default function DefaultLayout({
     >
       <Navbar />
 
-      <main className="relative z-10 container mx-auto flex min-h-0 max-w-7xl grow flex-col items-stretch justify-stretch px-4 py-8 max-sm:py-4 sm:px-6">
+      <main className="relative z-10 container mx-auto flex min-h-0 max-w-7xl grow flex-col items-stretch justify-stretch px-4 py-8 pt-20 max-sm:py-4 max-sm:pt-16 sm:px-6">
         {children}
       </main>
     </div>
