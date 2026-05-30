@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@heroui/theme";
 
-import { O, X } from "../icons";
+import { O, X, Draw } from "../icons";
 
 import Cell from "./cell";
 
@@ -102,6 +102,24 @@ function MiniBoard({
           ) : (
             <O className="scale-[4] max-sm:scale-[2.5]" />
           )}
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (board.status === "Draw") {
+    return (
+      <motion.div
+        animate={{ scale: 1, opacity: 1 }}
+        className={cn(
+          "border-foreground-100/70 flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border",
+          "bg-foreground-100/70 text-foreground-500",
+        )}
+        initial={{ scale: 0.7, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 18 }}
+      >
+        <div className="flex h-full w-full items-center justify-center rounded-2xl">
+          <Draw className="scale-[4] max-sm:scale-[2.5]" />
         </div>
       </motion.div>
     );

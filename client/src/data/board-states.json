@@ -428,5 +428,48 @@
     "status": null,
     "next_board": null,
     "last_move": [2, 1]
+  },
+  {
+    "boards": [
+      {
+        "cells": ["X", "O", "X", "O", "X", "O", "O", "X", "O"],
+        "status": "Draw"
+      },
+      {
+        "cells": ["X", null, null, null, "X", null, "O", null, null],
+        "status": "InProgress"
+      },
+      {
+        "cells": [null, "O", "X", null, null, null, null, null, null],
+        "status": "InProgress"
+      },
+      {
+        "cells": ["O", "X", "O", null, null, null, null, null, null],
+        "status": "InProgress"
+      },
+      {
+        "cells": [null, null, null, "X", null, null, null, null, null],
+        "status": "InProgress"
+      },
+      {
+        "cells": [null, null, null, null, "O", null, null, null, "X"],
+        "status": "InProgress"
+      },
+      {
+        "cells": [null, null, null, null, null, null, null, "X", null],
+        "status": "InProgress"
+      },
+      {
+        "cells": [null, null, null, null, null, "O", null, null, null],
+        "status": "InProgress"
+      },
+      {
+        "cells": ["X", "O", "X", "O", "X", "O", "O", "X", "X"],
+        "status": "Draw"
+      }
+    ],
+    "status": null,
+    "next_board": 1,
+    "last_move": [0, 4]
   }
 ]

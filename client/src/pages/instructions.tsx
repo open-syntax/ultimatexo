@@ -7,7 +7,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import DefaultLayout from "@/layouts/default";
 import { Footer } from "@/components/footer";
 import Board from "@/components/room/board";
-import { O, X } from "@/components/icons";
+import { O, X, Draw } from "@/components/icons";
 import { Board as BoardType, BoardStatus } from "@/types";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import allBoardStates from "@/data/board-states.json";
@@ -105,6 +105,7 @@ function BoardLegend({
 }) {
   const hasWonX = boards.some((b) => b.status === "X");
   const hasWonO = boards.some((b) => b.status === "O");
+  const hasDraw = boards.some((b) => b.status === "Draw");
   const hasLastMove =
     lastMove !== null &&
     lastMove[0] < boards.length &&
@@ -117,7 +118,7 @@ function BoardLegend({
   const lastMoveGlow = nextPlayer === "X" ? "danger" : "primary";
   const activeBorder = nextPlayer === "X" ? "border-primary" : "border-danger";
 
-  if (!hasWonX && !hasWonO && !hasLastMove && !hasActiveBoard) {
+  if (!hasWonX && !hasWonO && !hasDraw && !hasLastMove && !hasActiveBoard) {
     return null;
   }
 
@@ -142,6 +143,14 @@ function BoardLegend({
             />
           </div>
           <span className="text-foreground-600 text-xs">Won by O</span>
+        </div>
+      )}
+      {hasDraw && (
+        <div className="flex items-center gap-1.5">
+          <div className="bg-foreground-100/70 flex h-6 w-6 items-center justify-center rounded">
+            <Draw className="text-foreground-500" size={14} />
+          </div>
+          <span className="text-foreground-600 text-xs">Draw</span>
         </div>
       )}
       {hasLastMove && (

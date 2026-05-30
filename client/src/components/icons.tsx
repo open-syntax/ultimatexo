@@ -292,6 +292,24 @@ export const O = ({ size = 24, ...props }: IconSvgProps) => (
   </svg>
 );
 
+export const Draw = ({ size = 24, ...props }: IconSvgProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={2}
+    {...props}
+  >
+    <line x1="4" y1="9" x2="20" y2="9" />
+    <line x1="4" y1="15" x2="20" y2="15" />
+  </svg>
+);
+
 export const SettingsIcon = ({ size = 24, ...props }: IconSvgProps) => (
   <svg
     fill="none"
