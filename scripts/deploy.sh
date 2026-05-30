@@ -21,13 +21,14 @@ log() {
 backup_current_state() {
   local backup_path="$BACKUP_DIR/$(date +%Y%m%d_%H%M%S)"
   mkdir -p "$backup_path"
+  chmod 700 "$backup_path"
 
-  if [ -f "$DEPLOY_DIR/.env" ]; then
-    cp "$DEPLOY_DIR/.env" "$backup_path/.env"
-    local prev_version
-    prev_version=$(grep "^VERSION=" "$backup_path/.env" | cut -d= -f2 || echo "unknown")
+  local prev_image
+  prev_image=$(docker inspect ultimatexo-server --format='{{.Config.Image}}' 2>/dev/null || echo "unknown")
+  if [ "$prev_image" != "unknown" ]; then
+    local prev_version="${prev_image##*:}"
     echo "$prev_version" > "$backup_path/version.txt"
-    log "Backed up previous version: $prev_version to $backup_path"
+    log "Backed up previous version: $prev_version"
   fi
 
   docker compose -f "$DEPLOY_DIR/docker-compose.yml" ps -a > "$backup_path/containers.txt" 2>/dev/null || true
@@ -88,16 +89,20 @@ rollback() {
   local backup_path="$1"
   log "Rolling back to backup at $backup_path"
 
-  if [ -f "$backup_path/.env" ]; then
-    cp "$backup_path/.env" "$DEPLOY_DIR/.env"
+  if [ -f "$backup_path/version.txt" ]; then
+    local prev_version
+    prev_version=$(cat "$backup_path/version.txt")
+    VERSION="$prev_version" docker compose -f "$DEPLOY_DIR/docker-compose.yml" up -d --remove-orphans
+  else
+    log "No previous version found, attempting generic rollback"
+    docker compose -f "$DEPLOY_DIR/docker-compose.yml" up -d --remove-orphans
   fi
-
-  docker compose -f "$DEPLOY_DIR/docker-compose.yml" up -d --remove-orphans
   log "Rollback complete"
 }
 
 main() {
   cd "$DEPLOY_DIR"
+  rm -f "$DEPLOY_DIR/.env"
 
   log "Starting deployment of version: $VERSION"
   log "Skip health check: $SKIP_HEALTH"
