@@ -9,7 +9,7 @@ set -euo pipefail
 
 VERSION="${1:?Version is required}"
 SKIP_HEALTH="${2:-false}"
-DEPLOY_DIR="${DEPLOY_DIR:-$HOME/ultimatexo}"
+DEPLOY_DIR="${DEPLOY_DIR:-/opt/ultimatexo}"
 BACKUP_DIR="${DEPLOY_DIR}/backups"
 MAX_HEALTH_ATTEMPTS=30
 HEALTH_INTERVAL=10

@@ -31,6 +31,7 @@ env:
   IMAGE_BASE: ghcr.io/open-syntax/ultimatexo
   DEPLOY_USER: ${{ secrets.PROD_USERNAME }}
   DEPLOY_HOST: ${{ secrets.PROD_HOST }}
+  DEPLOY_DIR: /opt/ultimatexo
 
 jobs:
   validate:
@@ -93,7 +94,7 @@ jobs:
           username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
           source: "deploy/*"
-          target: "~/ultimatexo/"
+          target: "${{ env.DEPLOY_DIR }}/"
           strip_components: 1
           overwrite: true
 
@@ -105,8 +106,9 @@ jobs:
           key: ${{ secrets.PROD_SSH_KEY }}
           command_timeout: 10m
           script: |
-            rm -f ~/ultimatexo/.env
-            cat > ~/ultimatexo/.env << 'EOF'
+            DEPLOY_DIR="${{ env.DEPLOY_DIR }}"
+            rm -f "$DEPLOY_DIR/.env"
+            cat > "$DEPLOY_DIR/.env" << 'EOF'
             IMAGE_BASE=${{ env.IMAGE_BASE }}
             VERSION=${{ needs.validate.outputs.version }}
             RUST_LOG=${{ vars.RUST_LOG || 'info' }}
@@ -118,10 +120,10 @@ jobs:
             CLOUDFLARE_EMAIL=${{ secrets.CLOUDFLARE_EMAIL }}
             CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}
             EOF
-            chmod 600 ~/ultimatexo/.env
-            cd ~/ultimatexo
+            chmod 600 "$DEPLOY_DIR/.env"
+            cd "$DEPLOY_DIR"
             ./scripts/deploy.sh "${{ needs.validate.outputs.version }}" "${{ github.event.inputs.skip_health_check || 'false' }}"
-            rm -f ~/ultimatexo/.env
+            rm -f "$DEPLOY_DIR/.env"
   verify:
     name: Post-deployment Verification
     runs-on: ubuntu-latest
