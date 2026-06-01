@@ -139,7 +139,7 @@ jobs:
     name: Cleanup Packages
     runs-on: ubuntu-latest
     steps:
-      - uses: snok/container-retention-policy@v3.0.1
+      - uses: snok/container-retention-policy@v3.1.0
         with:
           account: open-syntax
           token: ${{ secrets.PAT }}
