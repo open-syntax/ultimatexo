@@ -15,7 +15,7 @@ ultimatexo-services = { path = "crates/services" }
 # External dependencies
 anyhow = "1.0.102"
 axum = { version = "0.8.9", features = ["ws"] }
-dashmap = "6.1.0"
+dashmap = "6.2.1"
 dotenv = "0.15.0"
 futures-util = "0.3.32"
 rand = "0.10.1"
