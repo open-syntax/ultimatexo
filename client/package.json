@@ -34,7 +34,7 @@
     "@heroui/tooltip": "^2.2.29",
     "@heroui/use-disclosure": "^2.2.19",
     "@heroui/use-theme": "2.1.10",
-    "@react-aria/visually-hidden": "3.8.31",
+    "@react-aria/visually-hidden": "3.9.1",
     "@react-types/shared": "3.35.0",
     "@tailwindcss/postcss": "^4.2.4",
     "@tailwindcss/vite": "^4.2.4",
