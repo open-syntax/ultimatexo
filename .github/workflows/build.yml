@@ -33,7 +33,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Determine version
         id: version
@@ -55,7 +55,7 @@ jobs:
       matrix:
         component: [client, server, caddy]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.trigger_sha || github.sha }}
 
@@ -131,7 +131,7 @@ jobs:
       matrix:
         image: [client, server, caddy]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Download digest
         uses: actions/download-artifact@v8

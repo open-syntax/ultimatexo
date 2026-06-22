@@ -75,7 +75,7 @@ jobs:
       name: production
       url: https://ultimatexo.com
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Prepare deployment files
         run: |

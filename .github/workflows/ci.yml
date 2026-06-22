@@ -41,7 +41,7 @@ jobs:
       server: ${{ steps.filter.outputs.server }}
       client: ${{ steps.filter.outputs.client }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
         id: filter
         with:
@@ -64,7 +64,7 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.server == 'true' || needs.changes.outputs.client == 'true' || needs.changes.outputs.infra == 'true' || github.event_name == 'workflow_dispatch' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@v1
@@ -124,7 +124,7 @@ jobs:
             needs-client: true
     if: ${{ needs.changes.outputs.server == 'true' || needs.changes.outputs.client == 'true' || needs.changes.outputs.infra == 'true' || github.event_name == 'workflow_dispatch' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Rust
         if: matrix.needs-server && needs.changes.outputs.server == 'true'
@@ -168,7 +168,7 @@ jobs:
     name: Security Audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@v1
@@ -204,7 +204,7 @@ jobs:
       matrix:
         component: [client, server, caddy]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
