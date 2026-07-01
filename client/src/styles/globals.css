@@ -413,6 +413,23 @@
   animation: win-pulse-red 0.6s ease-out;
 }
 
+/* Mini-board draw pulse */
+@keyframes draw-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(115, 115, 115, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 18px rgba(115, 115, 115, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(115, 115, 115, 0);
+  }
+}
+
+@utility animate-draw-pulse {
+  animation: draw-pulse 0.6s ease-out;
+}
+
 /* Active board breathing glow */
 @keyframes breathe-glow-blue {
   0%,

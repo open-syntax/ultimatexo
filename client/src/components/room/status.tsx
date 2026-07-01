@@ -237,8 +237,10 @@ const GameStatusModal = ({
 }: GameStatusModalProps) => {
   const { mode } = RoomStore();
 
+  const isDraw = boardStatus === BoardStatus.Draw;
+
   const message = (() => {
-    if (boardStatus === BoardStatus.Draw) return "Draw";
+    if (isDraw) return "Draw";
 
     if (mode === "Local") {
       const xName = playerNames?.player1 ?? "Player 1";
@@ -280,10 +282,22 @@ const GameStatusModal = ({
     >
       <ModalFrame>
         <div className="flex flex-col items-center gap-6">
-          <p className="text-primary text-xs font-black tracking-[0.14em] uppercase">
+          <p
+            className={cn(
+              "text-xs font-black tracking-[0.14em] uppercase",
+              isDraw ? "text-foreground-400" : "text-primary",
+            )}
+          >
             Match Result
           </p>
-          <p className="text-foreground-900 dark:text-foreground text-center text-2xl font-bold">
+          <p
+            className={cn(
+              "text-center text-2xl font-bold",
+              isDraw
+                ? "text-foreground-400"
+                : "text-foreground-900 dark:text-foreground",
+            )}
+          >
             {message}
           </p>
           <div className="flex gap-3">

@@ -47,6 +47,7 @@ function MiniBoard({
 
   const prevStatusRef = useRef(board.status);
   const [isJustWon, setIsJustWon] = useState(false);
+  const [isJustDrawn, setIsJustDrawn] = useState(false);
 
   useEffect(() => {
     const prev = prevStatusRef.current;
@@ -55,6 +56,13 @@ function MiniBoard({
     if (prev !== "X" && prev !== "O" && (curr === "X" || curr === "O")) {
       setIsJustWon(true);
       const timer = setTimeout(() => setIsJustWon(false), 600);
+
+      return () => clearTimeout(timer);
+    }
+
+    if (prev !== "Draw" && curr === "Draw") {
+      setIsJustDrawn(true);
+      const timer = setTimeout(() => setIsJustDrawn(false), 600);
 
       return () => clearTimeout(timer);
     }
@@ -76,6 +84,24 @@ function MiniBoard({
       : isFocused === false
         ? "scale-[0.96] opacity-40 blur-[1px]"
         : "";
+
+  if (board.status === "Draw") {
+    return (
+      <motion.div
+        animate={{ scale: 1, opacity: 1 }}
+        className={cn(
+          "border-foreground-100/70 bg-foreground/5 text-foreground-400 flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border",
+          isJustDrawn && "animate-draw-pulse",
+        )}
+        initial={{ scale: 0.7, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 18 }}
+      >
+        <div className="flex h-full w-full items-center justify-center rounded-2xl text-4xl font-black tracking-tight max-sm:text-3xl">
+          Draw
+        </div>
+      </motion.div>
+    );
+  }
 
   if (board.status === "O" || board.status === "X") {
     const isX = board.status === "X";
