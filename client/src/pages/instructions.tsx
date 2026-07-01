@@ -1,13 +1,14 @@
 import { Card, CardBody } from "@heroui/card";
 import { Link } from "@heroui/link";
 import { button as buttonStyles } from "@heroui/theme";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import DefaultLayout from "@/layouts/default";
 import { Footer } from "@/components/footer";
 import Board from "@/components/room/board";
 import { Board as BoardType, BoardStatus } from "@/types";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import useScrollSpy from "@/hooks/useScrollSpy";
 import allBoardStates from "@/data/board-states.json";
 
 const guideSections = [
@@ -19,6 +20,41 @@ const guideSections = [
   { id: "strategy", label: "Strategy Tips" },
   { id: "video", label: "Video Tutorial" },
   { id: "faq", label: "FAQ" },
+];
+
+const strategyTips = [
+  {
+    title: "Control the Center",
+    body: "Center cells and center local boards influence the highest number of lines. Prioritize them when possible.",
+  },
+  {
+    title: "Avoid Free Turns",
+    body: "Sending your opponent to a closed board can give them a strong free choice. Use that only when it helps you.",
+  },
+  {
+    title: "Think Two Moves Ahead",
+    body: "Every turn is both placement and routing. Consider where your move sends the opponent, then where they can send you.",
+  },
+  {
+    title: "Build Double Threats",
+    body: "Set up positions where the opponent must answer one threat while giving you progress in another local board.",
+  },
+  {
+    title: "Win the Right Boards",
+    body: "Do not just win any local board. Prioritize winning boards that complete your existing global lines or block the opponent's.",
+  },
+  {
+    title: "Block Global Threats",
+    body: "If the opponent owns two boards in a global line, deny the third. Force them elsewhere, or tie that board to keep it out of both win lines.",
+  },
+  {
+    title: "Force Closed-Board Free Turns",
+    body: "Deliberately send opponents to won or full boards. A free move sounds good, but they lose routing control and you keep the tempo.",
+  },
+  {
+    title: "Count Closed Boards Late",
+    body: "In the endgame, track how many boards are closed. Routing options shrink fast, and well-timed free turns become decisive.",
+  },
 ];
 
 function SectionTitle({ title }: { title: string }) {
@@ -54,15 +90,72 @@ function Instructions() {
     return totalMarks % 2 === 0 ? "X" : "O";
   })();
 
+  const sectionIds = useMemo(
+    () => guideSections.map((section) => section.id),
+    [],
+  );
+  const activeId = useScrollSpy(sectionIds);
+  const [isNavOpen, setIsNavOpen] = useState(false);
+
+  const activeLabel =
+    guideSections.find((section) => section.id === activeId)?.label ??
+    "Game Guide";
+
   return (
     <DefaultLayout>
       <div className="h-full min-h-0">
-        <div className="scrollbar-hide h-full overflow-y-auto pr-1">
-          <div
-            className="mx-auto grid max-w-7xl gap-6 pb-12 lg:grid-cols-[270px_1fr]"
-            id="overview"
-          >
-            <aside className="lg:sticky lg:top-8 lg:h-fit">
+        <div className="scrollbar-hide scroll-smooth h-full overflow-y-auto pr-1">
+          <div className="border-foreground-100/70 bg-content1/90 sticky top-0 z-30 border-b backdrop-blur-sm lg:hidden">
+            <button
+              className="flex w-full items-center justify-between px-4 py-3 text-left"
+              type="button"
+              onClick={() => setIsNavOpen((open) => !open)}
+            >
+              <span className="flex flex-col">
+                <span className="text-primary text-[0.65rem] font-black tracking-[0.14em] uppercase">
+                  Game Guide
+                </span>
+                <span className="text-foreground-900 dark:text-foreground text-sm font-bold">
+                  {activeLabel}
+                </span>
+              </span>
+              <svg
+                className={`h-5 w-5 shrink-0 text-foreground-500 transition-transform duration-200 ${isNavOpen ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M6 9l6 6 6-6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                />
+              </svg>
+            </button>
+
+            {isNavOpen && (
+              <nav className="border-foreground-100/70 max-h-[60vh] overflow-y-auto border-t px-2 pb-3">
+                {guideSections.map((section) => (
+                  <a
+                    key={section.id}
+                    className={`block rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                      activeId === section.id
+                        ? "bg-primary/10 text-foreground-900"
+                        : "text-foreground-700 hover:bg-primary/10 hover:text-foreground-900 dark:text-foreground-500 dark:hover:text-foreground"
+                    }`}
+                    href={`#${section.id}`}
+                    onClick={() => setIsNavOpen(false)}
+                  >
+                    {section.label}
+                  </a>
+                ))}
+              </nav>
+            )}
+          </div>
+
+          <div className="mx-auto grid max-w-7xl gap-6 pb-12 lg:grid-cols-[270px_1fr]">
+            <aside className="hidden lg:sticky lg:top-8 lg:block lg:h-fit">
               <Card className="border-foreground-100/70 bg-content1/85 border p-5 shadow-lg backdrop-blur-sm">
                 <CardBody className="gap-6 p-0">
                   <div className="space-y-1">
@@ -78,7 +171,11 @@ function Instructions() {
                     {guideSections.map((section) => (
                       <a
                         key={section.id}
-                        className="text-foreground-700 hover:border-primary/40 hover:bg-primary/10 hover:text-foreground-900 dark:text-foreground-500 dark:hover:text-foreground block rounded-lg border border-transparent px-3 py-2 text-sm font-semibold transition"
+                        className={`block rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                          activeId === section.id
+                            ? "border-primary/40 bg-primary/10 text-foreground-900"
+                            : "border-transparent text-foreground-700 hover:border-primary/40 hover:bg-primary/10 hover:text-foreground-900 dark:text-foreground-500 dark:hover:text-foreground"
+                        }`}
                         href={`#${section.id}`}
                       >
                         {section.label}
@@ -100,7 +197,10 @@ function Instructions() {
             </aside>
 
             <div className="space-y-12">
-              <header className="border-foreground-100/70 bg-content1/85 relative overflow-hidden rounded-2xl border p-5 md:p-7">
+              <header
+                className="border-foreground-100/70 bg-content1/85 relative overflow-hidden rounded-2xl border p-5 md:p-7"
+                id="overview"
+              >
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.14),transparent_60%)]" />
                 <div className="relative space-y-4">
                   <p className="text-primary text-xs font-black tracking-[0.14em] uppercase">
@@ -298,7 +398,12 @@ function Instructions() {
                       </h3>
                       <p className="text-foreground-700 dark:text-foreground-300 text-sm leading-relaxed">
                         A tied local board does not belong to either player.
-                        Treat that global square as blocked for win lines.
+                        Treat that global square as blocked for win lines. In
+                        game, a tied board is replaced with a neutral gray&nbsp;
+                        <span className="text-foreground-500 font-bold">
+                          Draw
+                        </span>
+                        &nbsp;label.
                       </p>
                     </CardBody>
                   </Card>
@@ -310,7 +415,12 @@ function Instructions() {
                       </h3>
                       <p className="text-foreground-700 dark:text-foreground-300 text-sm leading-relaxed">
                         If every local board is won or tied and no player has a
-                        global 3-in-a-row, the game ends in a draw.
+                        global 3-in-a-row, the game ends in a draw. The match
+                        result shows a neutral gray&nbsp;
+                        <span className="text-foreground-500 font-bold">
+                          Draw
+                        </span>
+                        &nbsp;instead of a winner.
                       </p>
                     </CardBody>
                   </Card>
@@ -364,51 +474,21 @@ function Instructions() {
                 <SectionTitle title="Strategy Tips" />
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Card className="border-foreground-100/70 bg-content1/80 border p-5">
-                    <CardBody className="gap-2 p-0">
-                      <h3 className="text-foreground-900 dark:text-foreground text-lg font-bold">
-                        Control the Center
-                      </h3>
-                      <p className="text-foreground-700 dark:text-foreground-300 text-sm leading-relaxed">
-                        Center cells and center local boards influence the
-                        highest number of lines. Prioritize them when possible.
-                      </p>
-                    </CardBody>
-                  </Card>
-                  <Card className="border-foreground-100/70 bg-content1/80 border p-5">
-                    <CardBody className="gap-2 p-0">
-                      <h3 className="text-foreground-900 dark:text-foreground text-lg font-bold">
-                        Avoid Free Turns
-                      </h3>
-                      <p className="text-foreground-700 dark:text-foreground-300 text-sm leading-relaxed">
-                        Sending your opponent to a closed board can give them a
-                        strong free choice. Use that only when it helps you.
-                      </p>
-                    </CardBody>
-                  </Card>
-                  <Card className="border-foreground-100/70 bg-content1/80 border p-5">
-                    <CardBody className="gap-2 p-0">
-                      <h3 className="text-foreground-900 dark:text-foreground text-lg font-bold">
-                        Think Two Moves Ahead
-                      </h3>
-                      <p className="text-foreground-700 dark:text-foreground-300 text-sm leading-relaxed">
-                        Every turn is both placement and routing. Consider where
-                        your move sends the opponent, then where they can send
-                        you.
-                      </p>
-                    </CardBody>
-                  </Card>
-                  <Card className="border-foreground-100/70 bg-content1/80 border p-5">
-                    <CardBody className="gap-2 p-0">
-                      <h3 className="text-foreground-900 dark:text-foreground text-lg font-bold">
-                        Build Double Threats
-                      </h3>
-                      <p className="text-foreground-700 dark:text-foreground-300 text-sm leading-relaxed">
-                        Set up positions where the opponent must answer one
-                        threat while giving you progress in another local board.
-                      </p>
-                    </CardBody>
-                  </Card>
+                  {strategyTips.map((tip) => (
+                    <Card
+                      key={tip.title}
+                      className="border-foreground-100/70 bg-content1/80 border p-5"
+                    >
+                      <CardBody className="gap-2 p-0">
+                        <h3 className="text-foreground-900 dark:text-foreground text-lg font-bold">
+                          {tip.title}
+                        </h3>
+                        <p className="text-foreground-700 dark:text-foreground-300 text-sm leading-relaxed">
+                          {tip.body}
+                        </p>
+                      </CardBody>
+                    </Card>
+                  ))}
                 </div>
               </section>
 
@@ -441,8 +521,24 @@ function Instructions() {
                       a: "No. Ties claim no global ownership and only reduce available win lines.",
                     },
                     {
+                      q: "What does a drawn local board look like?",
+                      a: 'A tied local board is replaced by a neutral gray "Draw" label. The game itself ends in a draw only when no global 3-in-a-row is possible, shown as a gray "Draw" result.',
+                    },
+                    {
                       q: "Can I force my opponent into a bad board?",
                       a: "Yes. Routing is core to strategy. Strong players use this to create pressure.",
+                    },
+                    {
+                      q: "Can I offer a draw to my opponent?",
+                      a: 'In online matches, yes. Use "Request Draw" to offer; your opponent can accept or decline, and an unanswered offer auto-declines after 10 seconds. Draws by agreement end the game immediately.',
+                    },
+                    {
+                      q: "What happens when I resign?",
+                      a: "Resigning awards the win to your opponent. Use it when a position is lost or you need to leave a match.",
+                    },
+                    {
+                      q: "What is Focus Mode?",
+                      a: "Focus Mode dims every local board except the active one, so the only playable board stands out. Toggle it from settings; it is purely visual and does not change the rules.",
                     },
                   ].map((item) => (
                     <Card
