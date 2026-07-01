@@ -208,7 +208,6 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           title: ${{ needs.security-scan.result == 'success' && '✅ Build Success' || '❌ Build Failed' }}
           description: |
-            <@590555241292890142>
             **Version:** `${{ needs.meta.outputs.version }}`
             **Build:** ${{ needs.build.result == 'success' && '✅' || '❌' }}
             **Security:** ${{ needs.security-scan.result == 'success' && '✅' || '❌' }}
