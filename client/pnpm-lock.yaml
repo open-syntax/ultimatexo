@@ -83,6 +83,9 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.3.2
         version: 4.3.2(vite@8.1.0(@types/node@26.0.1)(esbuild@0.27.2)(jiti@2.7.0)(yaml@2.8.1))
+      canvas-confetti:
+        specifier: ^1.9.4
+        version: 1.9.4
       clsx:
         specifier: 2.1.1
         version: 2.1.1
