@@ -5,11 +5,12 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
+import { SettingsModal } from "@/components/settings-modal";
 import {
   DiscordIcon,
   GithubIcon,
   CoffeeIcon,
-  OpenSyntaxIcon,
+  SettingsIcon,
   Logo,
 } from "@/components/icons";
 import { TooltipIcon } from "@/components/ui/tooltip-icon";
@@ -53,6 +54,7 @@ const navbarStyles = tv({
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const location = useLocation();
 
   const isActiveRoute = (href: string) => {
@@ -141,16 +143,14 @@ export const Navbar = () => {
           </Link>
         </TooltipIcon>
 
-        <TooltipIcon label="Open Syntax">
-          <Link
-            aria-label="Open Syntax"
+        <TooltipIcon label="Settings">
+          <button
+            aria-label="Settings"
             className={iconButton()}
-            rel="noopener noreferrer"
-            target="_blank"
-            to={siteConfig.links.website}
+            onClick={() => setIsSettingsOpen(true)}
           >
-            <OpenSyntaxIcon size={28} />
-          </Link>
+            <SettingsIcon size={20} />
+          </button>
         </TooltipIcon>
 
         <ThemeSwitch />
@@ -158,15 +158,13 @@ export const Navbar = () => {
 
       {/* Mobile Menu Toggle & Icons */}
       <div className="flex items-center gap-2 md:hidden">
-        <Link
-          aria-label="GitHub"
+        <button
+          aria-label="Settings"
           className={mobileIconButton()}
-          rel="noopener noreferrer"
-          target="_blank"
-          to={siteConfig.links.github}
+          onClick={() => setIsSettingsOpen(true)}
         >
-          <GithubIcon size={18} />
-        </Link>
+          <SettingsIcon size={18} />
+        </button>
         <ThemeSwitch />
         <button
           aria-expanded={isMenuOpen}
@@ -244,6 +242,16 @@ export const Navbar = () => {
                   className={mobileSocialLink()}
                   rel="noopener noreferrer"
                   target="_blank"
+                  to={siteConfig.links.github}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <GithubIcon size={18} />
+                  <span className="text-sm">GitHub</span>
+                </Link>
+                <Link
+                  className={mobileSocialLink()}
+                  rel="noopener noreferrer"
+                  target="_blank"
                   to={siteConfig.links.sponsor}
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -255,6 +263,11 @@ export const Navbar = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </header>
   );
 };

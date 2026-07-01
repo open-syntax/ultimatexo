@@ -24,6 +24,7 @@ import { RoomStore } from "@/store";
 import Actions from "@/components/room/actions";
 import { RoomStatus } from "@/types";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { playButton, playConnect } from "@/utils/sound";
 
 interface roomResponse {
   id: string;
@@ -80,6 +81,7 @@ function RoomPage() {
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptedPasswordRef = useRef("");
   const prefersReducedMotion = useReducedMotion();
+  const prevStatusRef = useRef<RoomStatus | null>(null);
 
   useEffect(() => {
     return () => {
@@ -87,9 +89,20 @@ function RoomPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (
+      prevStatusRef.current !== RoomStatus.connected &&
+      status.status === RoomStatus.connected
+    ) {
+      playConnect();
+    }
+    prevStatusRef.current = status.status;
+  }, [status.status]);
+
   const handleCopy = async (text: string, field: "id" | "link") => {
     try {
       await navigator.clipboard.writeText(text);
+      playButton();
       setCopiedField(field);
       if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
       copyTimerRef.current = setTimeout(() => setCopiedField(null), 2000);
@@ -420,6 +433,7 @@ function RoomPage() {
                     color="primary"
                     startContent={<RefreshCw size={16} />}
                     onPress={() => {
+                      playButton();
                       setStatus({ status: RoomStatus.connecting, message: "" });
                       handleWebSocket("");
                     }}
@@ -460,6 +474,7 @@ function RoomPage() {
               className={`flex w-full flex-col gap-4 ${status.status === RoomStatus.authFailed ? "animate-shake" : ""}`}
               onSubmit={(e) => {
                 e.preventDefault();
+                playButton();
                 handleWebSocket(password);
               }}
             >

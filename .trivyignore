@@ -4,3 +4,10 @@
 # Expires: 2026-07-14 (3 months)
 CVE-2026-30836
 CVE-2026-33186
+
+# perl-base CVEs from debian:trixie-slim base image -- unreachable in Rust server
+# Server is a compiled binary; Perl interpreter is never invoked at runtime
+# These have no fixed versions in Debian repos yet
+# Expires: 2026-08-28 (3 months)
+CVE-2026-42496
+CVE-2026-8376

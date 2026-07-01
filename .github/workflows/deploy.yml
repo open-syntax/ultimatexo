@@ -31,6 +31,7 @@ env:
   IMAGE_BASE: ghcr.io/open-syntax/ultimatexo
   DEPLOY_USER: ${{ secrets.PROD_USERNAME }}
   DEPLOY_HOST: ${{ secrets.PROD_HOST }}
+  DEPLOY_DIR: /opt/ultimatexo
 
 jobs:
   validate:
@@ -77,18 +78,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Prepare deployment files
-        run: |
-          mkdir -p deploy
-
-          cat > deploy/.env << EOF
-          IMAGE_BASE=${{ env.IMAGE_BASE }}
-          VERSION=${{ needs.validate.outputs.version }}
-          CLOUDFLARE_EMAIL=${{ secrets.CLOUDFLARE_EMAIL }}
-          CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}
-          RUST_LOG=info
-          EOF
-
       - name: Copy deploy script
         run: |
           mkdir -p deploy/scripts
@@ -105,26 +94,36 @@ jobs:
           username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
           source: "deploy/*"
-          target: "~/ultimatexo/"
+          target: "${{ env.DEPLOY_DIR }}/"
           strip_components: 1
           overwrite: true
 
       - name: Execute deployment
         uses: appleboy/ssh-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTOR: ${{ github.actor }}
         with:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ env.DEPLOY_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
-          envs: GITHUB_TOKEN,GITHUB_ACTOR
           command_timeout: 10m
           script: |
-            cd ~/ultimatexo
-            export DEPLOY_DIR="$HOME/ultimatexo"
+            DEPLOY_DIR="${{ env.DEPLOY_DIR }}"
+            rm -f "$DEPLOY_DIR/.env"
+            cat > "$DEPLOY_DIR/.env" << 'EOF'
+            IMAGE_BASE=${{ env.IMAGE_BASE }}
+            VERSION=${{ needs.validate.outputs.version }}
+            RUST_LOG=${{ vars.RUST_LOG || 'info' }}
+            AXIOM_ENABLED=${{ vars.AXIOM_ENABLED || 'true' }}
+            AXIOM_TOKEN=${{ secrets.AXIOM_TOKEN }}
+            AXIOM_DATASET=${{ vars.AXIOM_DATASET || 'ultimatexo' }}
+            AXIOM_DOMAIN=${{ vars.AXIOM_DOMAIN || 'api.axiom.co' }}
+            IP_HASH_SALT=${{ secrets.IP_HASH_SALT }}
+            CLOUDFLARE_EMAIL=${{ secrets.CLOUDFLARE_EMAIL }}
+            CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}
+            EOF
+            chmod 600 "$DEPLOY_DIR/.env"
+            cd "$DEPLOY_DIR"
             ./scripts/deploy.sh "${{ needs.validate.outputs.version }}" "${{ github.event.inputs.skip_health_check || 'false' }}"
-
+            rm -f "$DEPLOY_DIR/.env"
   verify:
     name: Post-deployment Verification
     runs-on: ubuntu-latest
