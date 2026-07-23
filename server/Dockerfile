@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 FROM lukemathwalker/cargo-chef:latest-rust-alpine3.24 AS chef
-RUN apk add --no-cache musl-dev pkg-config openssl-dev perl
+RUN apk add --no-cache musl-dev pkgconf openssl-dev perl
 WORKDIR /app
 
 FROM chef AS planner
@@ -10,7 +10,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
 
-RUN apk add --no-cache musl-dev pkg-config openssl-dev curl
+RUN apk add --no-cache musl-dev pkgconf openssl-dev curl
 
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
