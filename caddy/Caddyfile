@@ -18,7 +18,7 @@ ultimatexo.com {
         X-XSS-Protection "1; mode=block"
         Referrer-Policy strict-origin-when-cross-origin
         Permissions-Policy "geolocation=(), microphone=(), camera=()"
-        Content-Security-Policy "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://storage.ko-fi.com; font-src 'self' https:; connect-src 'self' wss://ultimatexo.com https://ultimatexo.com; frame-src 'self' https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com;"
+        Content-Security-Policy "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://storage.ko-fi.com; font-src 'self' https:; connect-src 'self' wss://ultimatexo.com https://ultimatexo.com; frame-src 'self' https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com;"
         -Server
     }
 
