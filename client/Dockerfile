@@ -19,4 +19,8 @@ RUN pnpm run build && \
 
 FROM alpine:3.24 AS runner
 
-COPY --from=builder /app/dist /srv/www
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+COPY --from=builder --chown=appuser:appgroup /app/dist /srv/www
+
+USER appuser

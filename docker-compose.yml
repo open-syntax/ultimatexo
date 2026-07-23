@@ -93,6 +93,7 @@ services:
   client-builder:
     image: ${IMAGE_BASE:-ghcr.io/open-syntax/ultimatexo}-client:${VERSION:-latest}
     container_name: ultimatexo-client-builder
+    user: "0:0"
 
     volumes:
       - client_dist:/target

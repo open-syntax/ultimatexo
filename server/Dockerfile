@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
-FROM lukemathwalker/cargo-chef:latest-rust-slim-trixie AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-alpine3.24 AS chef
+RUN apk add --no-cache musl-dev pkgconf openssl-dev perl
 WORKDIR /app
 
 FROM chef AS planner
@@ -9,11 +10,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    pkg-config \
-    libssl-dev \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache musl-dev pkgconf openssl-dev curl
 
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
@@ -23,24 +20,18 @@ COPY . .
 RUN cargo build --release --bin server && \
     strip /app/target/release/server
 
-FROM debian:trixie-slim AS runtime
+FROM alpine:3.24 AS runtime
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    curl \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+RUN apk add --no-cache curl ca-certificates
 
-RUN groupadd -r appuser && \
-    useradd -r -g appuser -u 1000 -d /app -s /sbin/nologin appuser
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
-COPY --from=builder --chown=appuser:appuser /app/target/release/server /app/server
+COPY --from=builder --chown=appuser:appgroup /app/target/release/server /app/server
 
 RUN mkdir -p /tmp && \
-    chown -R appuser:appuser /app /tmp
+    chown -R appuser:appgroup /app /tmp
 
 USER appuser
 
