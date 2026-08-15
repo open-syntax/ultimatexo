@@ -70,7 +70,7 @@ function SectionTitle({ title }: { title: string }) {
 
 function Instructions() {
   usePageMeta({
-    title: "How to Play Ultimate Tic-Tac-Toe - Rules & Strategy Guide",
+    title: "How to Play Ultimate Tic-Tac-Toe: Rules & Tips",
     description:
       "Learn how to play Ultimate Tic-Tac-Toe. Complete rules, gameplay mechanics, strategy tips, and a video tutorial to master the game.",
     path: "/instructions",

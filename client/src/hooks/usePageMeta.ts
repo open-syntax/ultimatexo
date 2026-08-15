@@ -4,9 +4,15 @@ interface PageMetaProps {
   title: string;
   description: string;
   path?: string;
+  noIndex?: boolean;
 }
 
-export function usePageMeta({ title, description, path = "/" }: PageMetaProps) {
+export function usePageMeta({
+  title,
+  description,
+  path = "/",
+  noIndex = false,
+}: PageMetaProps) {
   useEffect(() => {
     const fullTitle = `${title} | UltimateXO`;
 
@@ -69,5 +75,21 @@ export function usePageMeta({ title, description, path = "/" }: PageMetaProps) {
       document.head.appendChild(canonical);
     }
     canonical.setAttribute("href", `https://ultimatexo.com${path}`);
-  }, [title, description, path]);
+
+    let robots = document.querySelector('meta[name="robots"]');
+
+    if (noIndex) {
+      if (!robots) {
+        robots = document.createElement("meta");
+        robots.setAttribute("name", "robots");
+        document.head.appendChild(robots);
+      }
+      robots.setAttribute("content", "noindex, nofollow");
+    } else if (robots) {
+      robots.setAttribute(
+        "content",
+        "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1",
+      );
+    }
+  }, [title, description, path, noIndex]);
 }

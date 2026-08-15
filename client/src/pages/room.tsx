@@ -66,6 +66,7 @@ function RoomPage() {
     title: `Room ${roomId} - Live Game`,
     description: `Join Ultimate Tic-Tac-Toe room ${roomId}. Play a live multiplayer game online.`,
     path: `/room/${roomId}`,
+    noIndex: true,
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);

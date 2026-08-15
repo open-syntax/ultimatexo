@@ -106,8 +106,37 @@ ultimatexo.com {
         header Cache-Control "public, max-age=2592000"
     }
 
+    @trailing_slash {
+        not {
+            path /ws /ws/* /api /api/*
+        }
+        path_regexp slash ^/(.+)/$
+    }
+
+    redir @trailing_slash /{re.slash.1} permanent
+
+    redir /index.html / permanent
+
+    @root_route {
+        path /
+    }
+
+    rewrite @root_route /index.html
+
+    @static_route {
+        path /instructions /rooms /create /quick
+    }
+
+    rewrite @static_route {path}/index.html
+
+    @room_route {
+        path_regexp room ^/room/[0-9]{6}/?$
+    }
+
+    rewrite @room_route /index.html
+
     handle {
-        try_files {path} /index.html
+        file_server
     }
 
     log {

@@ -10,6 +10,7 @@ const RoomPage = lazy(() => import("@/pages/room"));
 const CreateRoom = lazy(() => import("@/pages/createRoom"));
 const Instructions = lazy(() => import("@/pages/instructions"));
 const Quick = lazy(() => import("@/pages/quick"));
+const NotFoundPage = lazy(() => import("@/pages/notFound"));
 
 function LoadingFallback() {
   return (
@@ -31,6 +32,7 @@ function App() {
           <Route element={<RoomsPage />} path="/rooms" />
           <Route element={<Instructions />} path="/instructions" />
           <Route element={<Quick />} path="/quick" />
+          <Route element={<NotFoundPage />} path="*" />
         </Routes>
       </Suspense>
     </>

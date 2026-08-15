@@ -189,9 +189,6 @@ importers:
       vite:
         specifier: ^8.2.1
         version: 8.2.1(@types/node@26.1.2)(esbuild@0.27.2)(jiti@2.7.0)(yaml@2.8.1)
-      vite-sitemap:
-        specifier: ^1.17.0
-        version: 1.17.0
       vite-tsconfig-paths:
         specifier: ^6.1.1
         version: 6.1.1(typescript@6.0.3)(vite@8.2.1(@types/node@26.1.2)(esbuild@0.27.2)(jiti@2.7.0)(yaml@2.8.1))
@@ -2814,10 +2811,6 @@ packages:
     resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-
-  vite-sitemap@1.17.0:
-    resolution: {integrity: sha512-qP9ABHCQEyPSymhPwEVye8g5u3nxbVqMP+skS2jYypt89DuE+ofsL922+Xj9CXJ+F8Zbot75pGws8TPdeE5otQ==}
-    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   vite-tsconfig-paths@6.1.1:
     resolution: {integrity: sha512-2cihq7zliibCCZ8P9cKJrQBkfgdvcFkOOc3Y02o3GWUDLgqjWsZudaoiuOwO/gzTzy17cS5F7ZPo4bsnS4DGkg==}
@@ -5938,8 +5931,6 @@ snapshots:
   use-sync-external-store@1.6.0(react@19.2.8):
     dependencies:
       react: 19.2.8
-
-  vite-sitemap@1.17.0: {}
 
   vite-tsconfig-paths@6.1.1(typescript@6.0.3)(vite@8.2.1(@types/node@26.1.2)(esbuild@0.27.2)(jiti@2.7.0)(yaml@2.8.1)):
     dependencies:
