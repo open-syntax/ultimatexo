@@ -46,8 +46,8 @@
     "react-router-dom": "^7.18.2",
     "tailwind-variants": "3.3.1",
     "tailwindcss": "4.3.3",
-    "ws": "^8.21.2",
-    "zustand": "^5.0.14"
+    "ws": "^8.21.3",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
