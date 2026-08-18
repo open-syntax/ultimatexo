@@ -12,7 +12,8 @@ export default {
     const url = new URL(request.url);
 
     // Target backend server URL (Configurable via Cloudflare Environment Variable BACKEND_URL)
-    const backendUrlConfig = env.BACKEND_URL;
+    const backendUrlConfig =
+      env.BACKEND_URL || "http://omarisadev.duckdns.org:6767";
     const targetUrl = new URL(backendUrlConfig);
 
     // 1. Proxy REST API calls: /api/* -> targetUrl/*
