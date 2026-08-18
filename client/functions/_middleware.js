@@ -57,14 +57,18 @@ export async function onRequest(context) {
 
   // 2. Proxy WebSocket connections: /ws/* -> targetUrl/ws/*
   if (url.pathname.startsWith("/ws/") || url.pathname === "/ws") {
-    const wsScheme = targetUrl.protocol === "https:" ? "wss:" : "ws:";
-    const destWsUrl = new URL(
-      url.pathname + url.search,
-      `${wsScheme}//${targetUrl.host}`,
-    );
+    const destWsUrl = new URL(url.pathname + url.search, targetUrl);
 
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("Host", targetUrl.host);
+
+    if (request.headers.get("CF-Connecting-IP")) {
+      requestHeaders.set(
+        "X-Forwarded-For",
+        request.headers.get("CF-Connecting-IP"),
+      );
+      requestHeaders.set("X-Real-IP", request.headers.get("CF-Connecting-IP"));
+    }
 
     const proxyWsRequest = new Request(destWsUrl.toString(), {
       method: request.method,
