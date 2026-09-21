@@ -12,7 +12,7 @@ ultimatexo-core = { workspace = true }
 ultimatexo-services = { workspace = true }
 anyhow = { workspace = true }
 axum = { workspace = true }
-dotenv = { workspace = true }
+dotenvy = { workspace = true }
 futures-util = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

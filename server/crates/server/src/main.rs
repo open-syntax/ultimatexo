@@ -1,6 +1,6 @@
 use anyhow::Result;
 use app::start_server;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use opentelemetry::trace::TracerProvider;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
