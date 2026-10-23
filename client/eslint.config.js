@@ -8,12 +8,15 @@ import importPlugin from "eslint-plugin-import";
 import unusedImports from "eslint-plugin-unused-imports";
 import prettier from "eslint-plugin-prettier";
 import prettierConfig from "eslint-config-prettier";
+// These plugins do not declare ESLint 10 support yet. Remove the compat
+// wrappers once their peer dependency ranges include eslint ^10.
+import { fixupConfigRules, fixupPluginRules } from "@eslint/compat";
 
 export default ts.config(
   js.configs.recommended,
   ...ts.configs.recommended,
-  react.configs.flat.recommended,
-  jsxA11y.flatConfigs.recommended,
+  ...fixupConfigRules(react.configs.flat.recommended),
+  ...fixupConfigRules(jsxA11y.flatConfigs.recommended),
   prettierConfig,
   {
     files: ["src/**/*.{js,jsx,ts,tsx}"],
@@ -26,7 +29,7 @@ export default ts.config(
     },
     plugins: {
       "react-hooks": reactHooks,
-      import: importPlugin,
+      import: fixupPluginRules(importPlugin),
       "unused-imports": unusedImports,
       prettier,
     },

@@ -29,7 +29,7 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
   NODE_VERSION: "24"
-  PNPM_VERSION: "10"
+  PNPM_VERSION: "12.15.0"
 
 jobs:
   changes:

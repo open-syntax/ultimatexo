@@ -28,13 +28,15 @@ repos:
         language: system
         pass_filenames: false
 
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.9.10
     hooks:
       - id: prettier
         name: Prettier (client)
         files: ^client/
         types_or: [javascript, jsx, ts, tsx, json, css, scss, html]
+        additional_dependencies:
+          - prettier-plugin-tailwindcss@0.8.1
 
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0
@@ -44,14 +46,14 @@ repos:
         exclude: pnpm-lock.yaml
 
   - repo: https://github.com/hadolint/hadolint
-    rev: v2.14.0
+    rev: v2.15.1
     hooks:
       - id: hadolint-docker
         args: ['--ignore', 'DL3008', '--ignore', 'DL3016', '--ignore', 'DL3018', '--ignore', 'DL3007', '--ignore', 'DL3006']
         name: Lint Dockerfiles
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.45.0
+    rev: v0.49.1
     hooks:
       - id: markdownlint
         args: ['--fix']

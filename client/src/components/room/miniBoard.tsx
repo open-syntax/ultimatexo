@@ -157,7 +157,7 @@ function MiniBoard({
         <motion.div
           animate={{ scale: 1, opacity: 1 }}
           className={cn(
-            "absolute inset-0 flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border border-foreground-100/70",
+            "border-foreground-100/70 absolute inset-0 flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border",
             isDraw
               ? "bg-foreground/5 text-foreground-400"
               : isX

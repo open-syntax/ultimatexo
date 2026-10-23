@@ -1,14 +1,14 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:24-alpine3.21 AS builder
+FROM node:24-alpine3.24 AS builder
 
 RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@10.18.3 --activate
+RUN corepack enable && corepack prepare pnpm@12.15.0 --activate
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 
 RUN pnpm install --frozen-lockfile
 

@@ -36,7 +36,7 @@ Each move sends your opponent to a specific sub-board, creating a mix of local t
 
 ## Getting Started 🚀
 
-**Requirements:** Node 20+, pnpm 8+, Rust 1.75+, Docker (optional)
+**Requirements:** Node `^20.19`, `^22.13`, or `>=24`, pnpm 12+, Rust 1.88+, Docker (optional)
 
 ```bash
 git clone https://github.com/open-syntax/ultimatexo.git

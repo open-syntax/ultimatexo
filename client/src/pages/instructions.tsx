@@ -104,7 +104,7 @@ function Instructions() {
   return (
     <DefaultLayout>
       <div className="h-full min-h-0">
-        <div className="scrollbar-hide scroll-smooth h-full overflow-y-auto pr-1">
+        <div className="scrollbar-hide h-full overflow-y-auto scroll-smooth pr-1">
           <div className="border-foreground-100/70 bg-content1/90 sticky top-0 z-30 border-b backdrop-blur-sm lg:hidden">
             <button
               className="flex w-full items-center justify-between px-4 py-3 text-left"
@@ -120,7 +120,7 @@ function Instructions() {
                 </span>
               </span>
               <svg
-                className={`h-5 w-5 shrink-0 text-foreground-500 transition-transform duration-200 ${isNavOpen ? "rotate-180" : ""}`}
+                className={`text-foreground-500 h-5 w-5 shrink-0 transition-transform duration-200 ${isNavOpen ? "rotate-180" : ""}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -174,7 +174,7 @@ function Instructions() {
                         className={`block rounded-lg border px-3 py-2 text-sm font-semibold transition ${
                           activeId === section.id
                             ? "border-primary/40 bg-primary/10 text-foreground-900"
-                            : "border-transparent text-foreground-700 hover:border-primary/40 hover:bg-primary/10 hover:text-foreground-900 dark:text-foreground-500 dark:hover:text-foreground"
+                            : "text-foreground-700 hover:border-primary/40 hover:bg-primary/10 hover:text-foreground-900 dark:text-foreground-500 dark:hover:text-foreground border-transparent"
                         }`}
                         href={`#${section.id}`}
                       >

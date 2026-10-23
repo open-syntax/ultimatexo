@@ -2,7 +2,6 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
-import tsconfigPaths from "vite-tsconfig-paths";
 import tailwindcss from "@tailwindcss/vite";
 
 interface SeoRoute {
@@ -18,7 +17,8 @@ const SITE_URL = "https://ultimatexo.com";
 const seoRoutes: SeoRoute[] = [
   {
     path: "/",
-    title: "UltimateXO - Play Ultimate Tic-Tac-Toe Online | Free Multiplayer Game",
+    title:
+      "UltimateXO - Play Ultimate Tic-Tac-Toe Online | Free Multiplayer Game",
     description:
       "Play Ultimate Tic-Tac-Toe online for free. Challenge friends, join public rooms, or practice against AI. Nine boards, one champion - the ultimate tic-tac-toe experience.",
     h1: "Play Ultimate Tic-Tac-Toe Online",
@@ -144,13 +144,19 @@ function seoPlugin(): Plugin {
 
       for (const route of seoRoutes) {
         if (route.path === "/") {
-          writeFileSync(resolve(dist, "index.html"), applyRouteMeta(indexHtml, route));
+          writeFileSync(
+            resolve(dist, "index.html"),
+            applyRouteMeta(indexHtml, route),
+          );
           continue;
         }
 
         const routeDir = resolve(dist, route.path.slice(1));
         mkdirSync(routeDir, { recursive: true });
-        writeFileSync(resolve(routeDir, "index.html"), applyRouteMeta(indexHtml, route));
+        writeFileSync(
+          resolve(routeDir, "index.html"),
+          applyRouteMeta(indexHtml, route),
+        );
       }
 
       writeFileSync(resolve(dist, "sitemap.xml"), buildSitemap());
@@ -167,12 +173,11 @@ export default defineConfig(({ mode }) => {
   const apiPort = env.VITE_API_PORT || "6767";
 
   return {
-    plugins: [
-      tailwindcss(),
-      react(),
-      tsconfigPaths(),
-      seoPlugin(),
-    ],
+    resolve: {
+      tsconfigPaths: true,
+    },
+
+    plugins: [tailwindcss(), react(), seoPlugin()],
 
     // Build optimizations
     build: {

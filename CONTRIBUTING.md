@@ -25,9 +25,9 @@ unacceptable behavior to the project maintainers.
 
 ### Prerequisites
 
-- **Node.js** 20.19.x or higher, or 22.12.x or higher
-- **pnpm** 8.x or higher
-- **Rust** 1.75 or higher
+- **Node.js** `^20.19.0`, `^22.13.0`, or `>=24`
+- **pnpm** 12.x or higher
+- **Rust** 1.88 or higher
 - **Docker** and Docker Compose
 - **Git**
 - **just** (optional but recommended)
@@ -166,6 +166,13 @@ Don't worry if you get feedback - it's all part of making the code better!
 ## Coding Standards
 
 ### JavaScript/TypeScript (Client)
+
+> **TypeScript tooling:** The client builds with TypeScript 7 (`tsc`) for speed,
+> while ESLint/type-aware tooling uses the TypeScript 6 compatibility API exposed
+> as the `typescript` package alias. Keep the `typescript` and
+> `@typescript/native` aliases in `client/package.json` until typescript-eslint
+> supports TypeScript 7 natively. Use `pnpm exec tsc6` if you explicitly need
+> the TypeScript 6 compiler.
 
 ```typescript
 // Use TypeScript for type safety

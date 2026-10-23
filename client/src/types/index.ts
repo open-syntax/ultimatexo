@@ -52,10 +52,7 @@ export type miniBoard = {
 export type boardCell = Marker;
 
 export type PlayerAction =
-  | "Joined"
-  | "Left"
-  | "Reconnected"
-  | { Disconnected: number };
+  "Joined" | "Left" | "Reconnected" | { Disconnected: number };
 
 export type socketEvent =
   | {
