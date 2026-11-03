@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:24-alpine3.24 AS builder
+FROM node:26-alpine3.24 AS builder
 
 RUN apk add --no-cache libc6-compat
 
