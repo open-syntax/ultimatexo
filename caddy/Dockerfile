@@ -1,13 +1,12 @@
 # syntax=docker/dockerfile:1.7
 
-FROM caddy:2.11.8-builder-alpine AS builder
+FROM caddy:2.11.9-builder-alpine AS builder
 
-RUN xcaddy build v2.11.7 \
+RUN xcaddy build "${CADDY_VERSION}" \
     --with github.com/caddy-dns/cloudflare \
-    --with github.com/mholt/caddy-ratelimit \
-    --with github.com/quic-go/quic-go
+    --with github.com/mholt/caddy-ratelimit
 
-FROM caddy:2.11.8-alpine
+FROM caddy:2.11.9-alpine
 
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 

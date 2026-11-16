@@ -553,17 +553,17 @@ impl MoveGenerator {
     }
 
     fn add_board_moves(board_idx: usize, board: &MacroBoard, moves: &mut Vec<Move>) {
-        for cell_idx in 0..MAX_CELLS {
-            if matches!(board.cells[cell_idx], Marker::Empty) {
+        for (cell_idx, cell) in board.cells.iter().enumerate() {
+            if matches!(cell, Marker::Empty) {
                 moves.push(Move::new(board_idx, cell_idx));
             }
         }
     }
 
     fn add_all_moves(board: &Board, moves: &mut Vec<Move>) {
-        for board_idx in 0..MAX_BOARDS {
-            if matches!(board.boards[board_idx].status, Status::InProgress) {
-                Self::add_board_moves(board_idx, &board.boards[board_idx], moves);
+        for (board_idx, macro_board) in board.boards.iter().enumerate() {
+            if matches!(macro_board.status, Status::InProgress) {
+                Self::add_board_moves(board_idx, macro_board, moves);
             }
         }
     }
