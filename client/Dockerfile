@@ -6,7 +6,7 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-RUN npm install -g pnpm@12.15.0 --no-fund --no-audit
+RUN npm install -g pnpm@12.21.0 --no-fund --no-audit
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 
